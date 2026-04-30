@@ -36,8 +36,22 @@ py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+pip install -e .
 Copy-Item .env.example .env
 Copy-Item config.example.yaml config.yaml
+```
+
+The `pip install -e .` step is required. Without it, Windows can show this error when running the scheduler or CLI:
+
+```text
+C:\pa450-report-monitor\.venv\Scripts\python.exe: No module named pa450_report_monitor
+```
+
+If you already created the virtual environment and see that error, fix the existing environment from the project folder:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+pip install -e .
 ```
 
 If PowerShell blocks virtualenv activation, run this once in the same PowerShell window:
@@ -196,6 +210,7 @@ The project can also run on Linux/WSL, but Windows is the primary documented set
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -e .
 cp .env.example .env
 cp config.example.yaml config.yaml
 python -m pa450_report_monitor --config config.yaml
