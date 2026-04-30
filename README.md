@@ -32,8 +32,8 @@ No Palo Alto credentials are committed to this repository.
 Open **PowerShell** in the project folder:
 
 ```powershell
-py -3 -m venv .venv
-.\.venv\Scripts\Activate.ps1
+python -m venv .venv
+.venv\Scripts\Activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 pip install -e .
@@ -50,15 +50,8 @@ C:\pa450-report-monitor\.venv\Scripts\python.exe: No module named pa450_report_m
 If you already created the virtual environment and see that error, fix the existing environment from the project folder:
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
+.venv\Scripts\Activate
 pip install -e .
-```
-
-If PowerShell blocks virtualenv activation, run this once in the same PowerShell window:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\.venv\Scripts\Activate.ps1
 ```
 
 ## Configure `.env` on Windows
@@ -142,7 +135,7 @@ monitor:
 In PowerShell:
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
+.venv\Scripts\Activate
 python -m pa450_report_monitor --config config.yaml
 ```
 
