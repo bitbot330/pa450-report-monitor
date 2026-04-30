@@ -5,7 +5,7 @@ pa450:
   api_key_env: PA450_API_KEY
   verify_tls: false
   vsys: vsys1
-  report_name: PA450-Traffic-Bytes-Report
+  report_name: YOUR_CUSTOM_REPORT_NAME
   report_job_name: pa450-custom-dynamic-report
 
 output:

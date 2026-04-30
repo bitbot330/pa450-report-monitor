@@ -2,7 +2,7 @@
 
 Automate a Palo Alto Networks PA-450 custom report workflow:
 
-1. get a PAN-OS XML API key,
+1. get a PAN-OS XML API key, or call `type=keygen` with username/password when no key is provided,
 2. retrieve a configured custom report definition,
 3. enqueue a dynamic report job,
 4. fetch the report result XML,
@@ -20,40 +20,79 @@ This project intentionally uses the PAN-OS XML API path because Palo Alto docume
 
 ## Requirements
 
-- Python 3.10+
-- Network access from this script host to `https://<PA450_IP>/api/`
+- Windows 10/11 or Windows Server with Python 3.10+
+- Network access from the Windows machine to `https://<YOUR_PA450_MANAGEMENT_IP>/api/`
 - A PA-450/PAN-OS administrator account allowed to use the XML API
 - An existing custom report under `Monitor > Manage Custom Reports`
 
 No Palo Alto credentials are committed to this repository.
 
-## Setup
+## Windows setup
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
+Open **PowerShell** in the project folder:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-cp .env.example .env
-cp config.example.yaml config.yaml
+Copy-Item .env.example .env
+Copy-Item config.example.yaml config.yaml
 ```
 
-## Configure `.env`
+If PowerShell blocks virtualenv activation, run this once in the same PowerShell window:
 
-Edit `.env`:
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+## Configure `.env` on Windows
+
+Open `.env` with Notepad:
+
+```powershell
+notepad .env
+```
+
+Edit these values:
 
 ```env
-PA450_HOST=192.168.1.1
-PA450_USERNAME=api-report-user
-PA450_PASSWORD=change-me
-# Optional. If set, the script uses this instead of calling type=keygen.
+# Replace this with your real PA450 management IP or hostname.
+# 192.168.1.1 is only an example placeholder, not an official Palo Alto value.
+PA450_HOST=YOUR_PA450_MANAGEMENT_IP
+
+# Use a PA450/PAN-OS account that is allowed to call the XML API.
+PA450_USERNAME=YOUR_PA450_USERNAME
+PA450_PASSWORD=YOUR_PA450_PASSWORD
+
+# Leave this blank if you do not already have an API key.
+# The script will call type=keygen by using PA450_USERNAME and PA450_PASSWORD.
 PA450_API_KEY=
-# Optional. Used only when alert.discord_webhook_env points to DISCORD_WEBHOOK_URL.
+
+# Optional. Only needed if you want Discord webhook alerts.
+DISCORD_WEBHOOK_URL=
+```
+
+Example for a real firewall at `10.10.10.254`:
+
+```env
+PA450_HOST=10.10.10.254
+PA450_USERNAME=report-api-user
+PA450_PASSWORD=your-real-password
+PA450_API_KEY=
 DISCORD_WEBHOOK_URL=
 ```
 
 ## Configure `config.yaml`
 
-Edit `config.yaml`:
+Open `config.yaml`:
+
+```powershell
+notepad config.yaml
+```
+
+Edit this section:
 
 ```yaml
 pa450:
@@ -63,23 +102,8 @@ pa450:
   api_key_env: PA450_API_KEY
   verify_tls: false
   vsys: vsys1
-  report_name: PA450-Traffic-Bytes-Report
+  report_name: YOUR_CUSTOM_REPORT_NAME
   report_job_name: pa450-custom-dynamic-report
-
-output:
-  directory: output
-  xml_file: report_result.xml
-  csv_file: report_result.csv
-
-monitor:
-  bytes_field_candidates:
-    - bytes
-    - Bytes
-    - repeatcnt
-  bytes_threshold: 1000000000
-
-alert:
-  discord_webhook_env: DISCORD_WEBHOOK_URL
 ```
 
 Concrete fields to edit:
@@ -89,10 +113,22 @@ Concrete fields to edit:
 - `monitor.bytes_threshold`: byte value that should trigger an alert
 - `monitor.bytes_field_candidates`: keep `bytes` first if your selected report column is named `bytes`
 
-## Run
+Example monitor section:
 
-```bash
-source .venv/bin/activate
+```yaml
+monitor:
+  bytes_field_candidates:
+    - bytes
+    - Bytes
+  bytes_threshold: 1000000000
+```
+
+## Run on Windows
+
+In PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
 python -m pa450_report_monitor --config config.yaml
 ```
 
@@ -100,44 +136,75 @@ Expected output when rows are below threshold:
 
 ```text
 OK: no rows exceeded threshold
-CSV written: output/report_result.csv
-XML written: output/report_result.xml
+CSV written: output\report_result.csv
+XML written: output\report_result.xml
 ```
 
 Expected output when rows exceed threshold:
 
 ```text
 ALERT: 2 rows exceeded threshold
-CSV written: output/report_result.csv
-XML written: output/report_result.xml
+CSV written: output\report_result.csv
+XML written: output\report_result.xml
 ```
 
-## Dry-run XML to CSV only
+## Test XML to CSV only
 
 If you already have a saved report XML and only want to test conversion:
 
-```bash
-python -m pa450_report_monitor.convert output/report_result.xml output/report_result.csv
+```powershell
+python -m pa450_report_monitor.convert output\report_result.xml output\report_result.csv
 ```
 
-## Scheduler examples
+## Windows Task Scheduler
 
-### Linux cron
+Create a scheduled task:
 
-Run every day at 08:00:
+```text
+Program/script:
+C:\Path\To\pa450-report-monitor\.venv\Scripts\python.exe
+
+Arguments:
+-m pa450_report_monitor --config C:\Path\To\pa450-report-monitor\config.yaml
+
+Start in:
+C:\Path\To\pa450-report-monitor
+```
+
+Redirect logs by creating a small PowerShell wrapper, for example `run-pa450-monitor.ps1`:
+
+```powershell
+Set-Location "C:\Path\To\pa450-report-monitor"
+.\.venv\Scripts\python.exe -m pa450_report_monitor --config config.yaml *> logs\monitor.log
+```
+
+Then set Task Scheduler to run:
+
+```text
+Program/script:
+powershell.exe
+
+Arguments:
+-ExecutionPolicy Bypass -File C:\Path\To\pa450-report-monitor\run-pa450-monitor.ps1
+```
+
+## Linux or WSL quick reference
+
+The project can also run on Linux/WSL, but Windows is the primary documented setup above.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+cp config.example.yaml config.yaml
+python -m pa450_report_monitor --config config.yaml
+```
+
+Cron example:
 
 ```cron
 0 8 * * * cd /path/to/pa450-report-monitor && . .venv/bin/activate && python -m pa450_report_monitor --config config.yaml >> logs/monitor.log 2>&1
-```
-
-### Windows Task Scheduler
-
-Action:
-
-```text
-Program/script: C:\Path\To\Python\python.exe
-Arguments: -m pa450_report_monitor --config C:\Path\To\pa450-report-monitor\config.yaml
-Start in: C:\Path\To\pa450-report-monitor
 ```
 
 ## Security notes
