@@ -79,6 +79,11 @@ def load_config(path: str | Path) -> AppConfig:
     report_name = pa.get("report_name")
     if not report_name:
         raise ValueError("Missing pa450.report_name in config")
+    if report_name == "YOUR_CUSTOM_REPORT_NAME":
+        raise ValueError(
+            "Replace pa450.report_name in config.yaml with the exact custom report "
+            "name from Monitor > Manage Custom Reports."
+        )
 
     return AppConfig(
         pa450=Pa450Config(
