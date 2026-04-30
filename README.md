@@ -98,7 +98,6 @@ Edit this section:
 ```yaml
 pa450:
   verify_tls: false
-  vsys: vsys1
   report_name: top-sources
   report_job_name: pa450-custom-dynamic-report
 
@@ -114,9 +113,16 @@ monitor:
 Concrete fields to edit:
 
 - `pa450.report_name`: use your exact custom report name from `Monitor > Manage Custom Reports`; for your screenshot, this is `top-sources`.
-- `pa450.vsys`: currently `vsys1`. The script first checks this VSYS path, then also checks shared custom reports under `/config/shared/reports`.
 - `monitor.bytes_threshold`: byte value that should trigger an alert.
 - `monitor.bytes_field_candidates`: keep `bytes` / `Bytes` for the PA450 report bytes field.
+
+The `top-sources` custom report path is now fixed from your confirmed output:
+
+```text
+/config/shared/reports/entry[@name='top-sources']
+```
+
+Because this report is under `/config/shared/reports`, `config.yaml` no longer needs a `vsys` setting for the report lookup.
 
 Do **not** add an `output:` block to `config.yaml`. Output settings are fixed in code:
 
@@ -161,7 +167,7 @@ XML written: output\20260430\report_result.xml
 Custom report XPath: /config/shared/reports/entry[@name='top-sources']
 ```
 
-The `Custom report XPath` line is intentionally printed so you can send it back. After we confirm where `top-sources` actually lives on your PA450, the code can be changed to use that fixed path instead of probing both locations.
+The `Custom report XPath` line is still printed as a verification line, but the lookup is now fixed to the shared report path instead of probing multiple locations.
 
 ## Test XML to CSV only
 

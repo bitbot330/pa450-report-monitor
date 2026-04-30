@@ -35,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit("Missing PA450_API_KEY or PA450_USERNAME/PA450_PASSWORD")
         client.keygen(cfg.pa450.username, cfg.pa450.password)
 
-    report_definition = client.get_custom_report_definition(cfg.pa450.vsys, cfg.pa450.report_name)
+    report_definition = client.get_custom_report_definition(cfg.pa450.report_name)
     job_id = client.enqueue_dynamic_report(cfg.pa450.report_job_name, report_definition)
     result_root = client.wait_for_report_result(job_id)
 

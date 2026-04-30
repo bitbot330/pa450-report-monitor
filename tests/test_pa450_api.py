@@ -11,9 +11,7 @@ class FakePa450ApiClient(Pa450ApiClient):
     def _post(self, data, include_key=True):
         self.requests.append(data)
         xpath = data.get("xpath", "")
-        if "vsys1" in xpath:
-            return ET.fromstring('<response status="success"><result /></response>')
-        if "/config/shared/reports" in xpath:
+        if xpath == "/config/shared/reports/entry[@name='top-sources']":
             return ET.fromstring(
                 '''
                 <response status="success">
@@ -30,16 +28,14 @@ class FakePa450ApiClient(Pa450ApiClient):
         raise AssertionError(f"unexpected xpath: {xpath}")
 
 
-def test_get_custom_report_definition_falls_back_to_shared_reports():
+def test_get_custom_report_definition_uses_fixed_shared_report_path():
     client = FakePa450ApiClient()
 
-    report_definition = client.get_custom_report_definition("vsys1", "top-sources")
+    report_definition = client.get_custom_report_definition("top-sources")
 
     assert "<type>" in report_definition.xml
     assert "<period>last-24-hrs</period>" in report_definition.xml
     assert report_definition.xpath == "/config/shared/reports/entry[@name='top-sources']"
-    xpaths = [request["xpath"] for request in client.requests]
-    assert xpaths == [
-        "/config/devices/entry/vsys/entry[@name='vsys1']/reports/entry[@name='top-sources']",
+    assert [request["xpath"] for request in client.requests] == [
         "/config/shared/reports/entry[@name='top-sources']",
     ]
