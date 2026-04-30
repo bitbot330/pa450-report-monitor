@@ -4,6 +4,7 @@ config.yaml
 __pycache__/
 .pytest_cache/
 *.pyc
+*.egg-info/
 output/*.xml
 output/*.csv
 logs/*.log
