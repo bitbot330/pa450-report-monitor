@@ -116,7 +116,7 @@ pa450:
 Concrete fields to edit:
 
 - `pa450.report_name`: replace `YOUR_CUSTOM_REPORT_NAME` with your exact custom report name from `Monitor > Manage Custom Reports`. Do not leave the placeholder value unchanged.
-- `pa450.vsys`: usually `vsys1`
+- `pa450.vsys`: usually `vsys1`. The script first checks this VSYS path, then also checks shared custom reports under `/config/shared/reports`.
 - `monitor.bytes_threshold`: byte value that should trigger an alert
 - `monitor.bytes_field_candidates`: keep `bytes` first if your selected report column is named `bytes`
 
