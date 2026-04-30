@@ -33,10 +33,11 @@ class FakePa450ApiClient(Pa450ApiClient):
 def test_get_custom_report_definition_falls_back_to_shared_reports():
     client = FakePa450ApiClient()
 
-    definition = client.get_custom_report_definition("vsys1", "top-sources")
+    report_definition = client.get_custom_report_definition("vsys1", "top-sources")
 
-    assert "<type>" in definition
-    assert "<period>last-24-hrs</period>" in definition
+    assert "<type>" in report_definition.xml
+    assert "<period>last-24-hrs</period>" in report_definition.xml
+    assert report_definition.xpath == "/config/shared/reports/entry[@name='top-sources']"
     xpaths = [request["xpath"] for request in client.requests]
     assert xpaths == [
         "/config/devices/entry/vsys/entry[@name='vsys1']/reports/entry[@name='top-sources']",

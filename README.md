@@ -3,12 +3,13 @@
 Automate a Palo Alto Networks PA-450 custom report workflow:
 
 1. get a PAN-OS XML API key, or call `type=keygen` with username/password when no key is provided,
-2. retrieve a configured custom report definition,
-3. enqueue a dynamic report job,
-4. fetch the report result XML,
-5. convert report rows to CSV,
-6. check byte thresholds,
-7. save outputs and optionally send a Discord webhook alert.
+2. retrieve the configured custom report definition,
+3. print the exact XPath where the custom report was found,
+4. enqueue a dynamic report job,
+5. fetch the report result XML,
+6. convert report rows to CSV using the fixed Excel column layout,
+7. save outputs under an `output\YYYYMMDD\` folder,
+8. check byte thresholds and optionally send a Discord webhook alert.
 
 This project intentionally uses the PAN-OS XML API path because Palo Alto documentation confirms custom reports can be exported as CSV manually, while the built-in email scheduler is documented under **PDF Reports > Email Scheduler**. For automated CSV, this project fetches XML results from the API and converts them to CSV locally.
 
@@ -65,21 +66,14 @@ notepad .env
 Edit these values:
 
 ```env
-# Replace this with your real PA450 management IP or hostname.
-# 192.168.1.1 is only an example placeholder, not an official Palo Alto value.
 PA450_HOST=YOUR_PA450_MANAGEMENT_IP
-
-# Use a PA450/PAN-OS account that is allowed to call the XML API.
 PA450_USERNAME=YOUR_PA450_USERNAME
 PA450_PASSWORD=YOUR_PA450_PASSWORD
-
-# Leave this blank if you do not already have an API key.
-# The script will call type=keygen by using PA450_USERNAME and PA450_PASSWORD.
 PA450_API_KEY=
-
-# Optional. Only needed if you want Discord webhook alerts.
 DISCORD_WEBHOOK_URL=
 ```
+
+Only `.env` contains connection/account values. `config.yaml` does **not** repeat `PA450_HOST`, `PA450_USERNAME`, `PA450_PASSWORD`, or `PA450_API_KEY` because the program always reads those fixed environment variable names directly.
 
 Example for a real firewall at `10.10.10.254`:
 
@@ -103,23 +97,34 @@ Edit this section:
 
 ```yaml
 pa450:
-  host_env: PA450_HOST
-  username_env: PA450_USERNAME
-  password_env: PA450_PASSWORD
-  api_key_env: PA450_API_KEY
   verify_tls: false
   vsys: vsys1
-  report_name: YOUR_CUSTOM_REPORT_NAME
+  report_name: top-sources
   report_job_name: pa450-custom-dynamic-report
+
+monitor:
+  bytes_field_candidates:
+    - bytes
+    - Bytes
+    - 位元組
+    - repeatcnt
+  bytes_threshold: 1000000000
 ```
 
 Concrete fields to edit:
 
-- `pa450.report_name`: replace `YOUR_CUSTOM_REPORT_NAME` with your exact custom report name from `Monitor > Manage Custom Reports`. Do not leave the placeholder value unchanged.
-- `pa450.vsys`: usually `vsys1`. The script first checks this VSYS path, then also checks shared custom reports under `/config/shared/reports`.
-- `monitor.bytes_threshold`: byte value that should trigger an alert
-- `monitor.bytes_field_candidates`: keep `bytes` first if your selected report column is named `bytes`
-- `output.columns`: controls the Excel/CSV column order and column names. The default matches your `top-sources` report screenshot:
+- `pa450.report_name`: use your exact custom report name from `Monitor > Manage Custom Reports`; for your screenshot, this is `top-sources`.
+- `pa450.vsys`: currently `vsys1`. The script first checks this VSYS path, then also checks shared custom reports under `/config/shared/reports`.
+- `monitor.bytes_threshold`: byte value that should trigger an alert.
+- `monitor.bytes_field_candidates`: keep `bytes` / `Bytes` for the PA450 report bytes field.
+
+Do **not** add an `output:` block to `config.yaml`. Output settings are fixed in code:
+
+- Base folder: `output`
+- Daily folder format: `YYYYMMDD`
+- XML file name: `report_result.xml`
+- CSV file name: `report_result.csv`
+- CSV/Excel columns:
   1. `產生時間`
   2. `來源位址`
   3. `來源主機名稱`
@@ -128,27 +133,6 @@ Concrete fields to edit:
   6. `目的地主機名稱`
   7. `應用程式`
   8. `位元組`
-
-Each `output.columns` item has:
-
-```yaml
-- header: Excel 欄位名稱
-  candidates:
-    - Possible PAN-OS XML field name 1
-    - Possible PAN-OS XML field name 2
-```
-
-The script uses the first matching candidate in each row and writes it under the configured `header`.
-
-Example monitor section:
-
-```yaml
-monitor:
-  bytes_field_candidates:
-    - bytes
-    - Bytes
-  bytes_threshold: 1000000000
-```
 
 ## Run on Windows
 
@@ -163,24 +147,28 @@ Expected output when rows are below threshold:
 
 ```text
 OK: no rows exceeded threshold
-CSV written: output\report_result.csv
-XML written: output\report_result.xml
+CSV written: output\20260430\report_result.csv
+XML written: output\20260430\report_result.xml
+Custom report XPath: /config/shared/reports/entry[@name='top-sources']
 ```
 
 Expected output when rows exceed threshold:
 
 ```text
 ALERT: 2 rows exceeded threshold
-CSV written: output\report_result.csv
-XML written: output\report_result.xml
+CSV written: output\20260430\report_result.csv
+XML written: output\20260430\report_result.xml
+Custom report XPath: /config/shared/reports/entry[@name='top-sources']
 ```
+
+The `Custom report XPath` line is intentionally printed so you can send it back. After we confirm where `top-sources` actually lives on your PA450, the code can be changed to use that fixed path instead of probing both locations.
 
 ## Test XML to CSV only
 
 If you already have a saved report XML and only want to test conversion:
 
 ```powershell
-python -m pa450_report_monitor.convert output\report_result.xml output\report_result.csv
+python -m pa450_report_monitor.convert output\20260430\report_result.xml output\20260430\report_result.csv
 ```
 
 ## Windows Task Scheduler

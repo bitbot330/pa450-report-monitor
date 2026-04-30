@@ -12,6 +12,12 @@ class Pa450ApiError(RuntimeError):
     pass
 
 
+@dataclass(frozen=True)
+class ReportDefinition:
+    xml: str
+    xpath: str
+
+
 @dataclass
 class Pa450ApiClient:
     host: str
@@ -57,7 +63,7 @@ class Pa450ApiClient:
         self.api_key = key
         return key
 
-    def get_custom_report_definition(self, vsys: str, report_name: str) -> str:
+    def get_custom_report_definition(self, vsys: str, report_name: str) -> ReportDefinition:
         candidate_xpaths = [
             f"/config/devices/entry/vsys/entry[@name='{vsys}']/reports/entry[@name='{report_name}']",
             f"/config/shared/reports/entry[@name='{report_name}']",
@@ -66,14 +72,17 @@ class Pa450ApiClient:
             root = self._post({"type": "config", "action": "get", "xpath": xpath})
             entry = root.find(".//entry")
             if entry is not None:
-                return "".join(ET.tostring(child, encoding="unicode") for child in list(entry))
+                xml = "".join(ET.tostring(child, encoding="unicode") for child in list(entry))
+                return ReportDefinition(xml=xml, xpath=xpath)
         searched = ", ".join(candidate_xpaths)
         raise Pa450ApiError(
             f"Custom report not found: vsys={vsys}, report={report_name}. "
             f"Searched XPath locations: {searched}"
         )
 
-    def enqueue_dynamic_report(self, report_job_name: str, report_definition_xml: str) -> str:
+    def enqueue_dynamic_report(self, report_job_name: str, report_definition_xml: str | ReportDefinition) -> str:
+        if isinstance(report_definition_xml, ReportDefinition):
+            report_definition_xml = report_definition_xml.xml
         root = self._post(
             {
                 "type": "report",

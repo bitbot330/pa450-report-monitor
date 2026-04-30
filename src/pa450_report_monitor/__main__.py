@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import date
 from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
@@ -12,13 +13,18 @@ from .monitor import rows_exceeding_bytes_threshold
 from .pa450_api import Pa450ApiClient
 
 
+def dated_output_dir(base_dir: Path, today: date | None = None) -> Path:
+    today = today or date.today()
+    return base_dir / today.strftime("%Y%m%d")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fetch PA450 custom report, convert to CSV, and monitor bytes")
     parser.add_argument("--config", default="config.yaml", help="Path to config.yaml")
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
-    output_dir = cfg.output.directory
+    output_dir = dated_output_dir(cfg.output.directory)
     output_dir.mkdir(parents=True, exist_ok=True)
     xml_path = output_dir / cfg.output.xml_file
     csv_path = output_dir / cfg.output.csv_file
@@ -57,6 +63,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"CSV written: {csv_path}")
     print(f"XML written: {xml_path}")
+    print(f"Custom report XPath: {report_definition.xpath}")
     return 0
 
 
