@@ -1,65 +1,8 @@
 pa450:
-  host_env: PA450_HOST
-  username_env: PA450_USERNAME
-  password_env: PA450_PASSWORD
-  api_key_env: PA450_API_KEY
   verify_tls: false
   vsys: vsys1
   report_name: YOUR_CUSTOM_REPORT_NAME
   report_job_name: pa450-custom-dynamic-report
-
-output:
-  directory: output
-  xml_file: report_result.xml
-  csv_file: report_result.csv
-  columns:
-    - header: 產生時間
-      candidates:
-        - Generate Time
-        - generated-time
-        - receive_time
-        - receive-time
-        - time_generated
-    - header: 來源位址
-      candidates:
-        - Source address
-        - source-address
-        - src
-        - source
-    - header: 來源主機名稱
-      candidates:
-        - Source Hostname
-        - source-hostname
-        - src-host
-        - src_hostname
-    - header: 來源使用者
-      candidates:
-        - Source User
-        - source-user
-        - srcuser
-        - src-user
-    - header: 目的地位址
-      candidates:
-        - Destination address
-        - destination-address
-        - dst
-        - destination
-    - header: 目的地主機名稱
-      candidates:
-        - Destination Hostname
-        - destination-hostname
-        - dst-host
-        - dst_hostname
-    - header: 應用程式
-      candidates:
-        - Application
-        - app
-        - application
-    - header: 位元組
-      candidates:
-        - Bytes
-        - bytes
-        - byte
 
 monitor:
   bytes_field_candidates:
@@ -68,6 +11,3 @@ monitor:
     - 位元組
     - repeatcnt
   bytes_threshold: 1000000000
-
-alert:
-  discord_webhook_env: DISCORD_WEBHOOK_URL

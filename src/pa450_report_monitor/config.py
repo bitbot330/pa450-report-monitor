@@ -7,6 +7,17 @@ import yaml
 
 from .convert import OutputColumn
 
+DEFAULT_COLUMNS = [
+    OutputColumn("產生時間", ["Generate Time", "generated-time", "receive_time", "receive-time", "time_generated"]),
+    OutputColumn("來源位址", ["Source address", "source-address", "src", "source"]),
+    OutputColumn("來源主機名稱", ["Source Hostname", "source-hostname", "src-host", "src_hostname"]),
+    OutputColumn("來源使用者", ["Source User", "source-user", "srcuser", "src-user"]),
+    OutputColumn("目的地位址", ["Destination address", "destination-address", "dst", "destination"]),
+    OutputColumn("目的地主機名稱", ["Destination Hostname", "destination-hostname", "dst-host", "dst_hostname"]),
+    OutputColumn("應用程式", ["Application", "app", "application"]),
+    OutputColumn("位元組", ["Bytes", "bytes", "byte"]),
+]
+
 
 @dataclass(frozen=True)
 class Pa450Config:
@@ -59,9 +70,7 @@ def load_dotenv(path: str | Path = ".env") -> None:
         os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
-def _env(name: str | None) -> str | None:
-    if not name:
-        return None
+def _env(name: str) -> str | None:
     value = os.environ.get(name)
     return value if value else None
 
@@ -71,13 +80,12 @@ def load_config(path: str | Path) -> AppConfig:
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
     pa = data["pa450"]
-    monitor = data["monitor"]
-    output = data["output"]
+    monitor = data.get("monitor", {})
     alert = data.get("alert", {})
 
-    host = _env(pa.get("host_env"))
+    host = _env("PA450_HOST")
     if not host:
-        raise ValueError(f"Missing PA450 host env var: {pa.get('host_env')}")
+        raise ValueError("Missing PA450_HOST in .env")
 
     report_name = pa.get("report_name")
     if not report_name:
@@ -91,26 +99,23 @@ def load_config(path: str | Path) -> AppConfig:
     return AppConfig(
         pa450=Pa450Config(
             host=host.rstrip("/"),
-            username=_env(pa.get("username_env")),
-            password=_env(pa.get("password_env")),
-            api_key=_env(pa.get("api_key_env")),
+            username=_env("PA450_USERNAME"),
+            password=_env("PA450_PASSWORD"),
+            api_key=_env("PA450_API_KEY"),
             verify_tls=bool(pa.get("verify_tls", True)),
             vsys=pa.get("vsys", "vsys1"),
             report_name=report_name,
             report_job_name=pa.get("report_job_name", "pa450-custom-dynamic-report"),
         ),
         output=OutputConfig(
-            directory=Path(output.get("directory", "output")),
-            xml_file=output.get("xml_file", "report_result.xml"),
-            csv_file=output.get("csv_file", "report_result.csv"),
-            columns=[
-                OutputColumn(header=item["header"], candidates=list(item.get("candidates", [])))
-                for item in output.get("columns", [])
-            ],
+            directory=Path("output"),
+            xml_file="report_result.xml",
+            csv_file="report_result.csv",
+            columns=DEFAULT_COLUMNS,
         ),
         monitor=MonitorConfig(
-            bytes_field_candidates=list(monitor.get("bytes_field_candidates", ["bytes", "Bytes"])),
+            bytes_field_candidates=list(monitor.get("bytes_field_candidates", ["bytes", "Bytes", "位元組", "repeatcnt"])),
             bytes_threshold=int(monitor.get("bytes_threshold", 0)),
         ),
-        alert=AlertConfig(discord_webhook_url=_env(alert.get("discord_webhook_env"))),
+        alert=AlertConfig(discord_webhook_url=_env("DISCORD_WEBHOOK_URL")),
     )
