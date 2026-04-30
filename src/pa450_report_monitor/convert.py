@@ -2,9 +2,16 @@ from __future__ import annotations
 
 import argparse
 import csv
+from dataclasses import dataclass
 from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
+
+
+@dataclass(frozen=True)
+class OutputColumn:
+    header: str
+    candidates: list[str]
 
 
 def xml_text_to_rows(xml_text: str) -> list[dict[str, str]]:
@@ -22,10 +29,38 @@ def xml_text_to_rows(xml_text: str) -> list[dict[str, str]]:
     return rows
 
 
-def rows_to_csv(rows: list[dict[str, str]], csv_path: str | Path) -> None:
+def _first_matching_value(row: dict[str, str], candidates: list[str]) -> str:
+    normalized = {key.lower().replace("_", "-").replace(" ", "-"): value for key, value in row.items()}
+    for candidate in candidates:
+        if candidate in row:
+            return row[candidate]
+        normalized_candidate = candidate.lower().replace("_", "-").replace(" ", "-")
+        if normalized_candidate in normalized:
+            return normalized[normalized_candidate]
+    return ""
+
+
+def _align_rows_to_columns(rows: list[dict[str, str]], columns: list[OutputColumn]) -> list[dict[str, str]]:
+    aligned_rows: list[dict[str, str]] = []
+    for row in rows:
+        aligned_rows.append(
+            {column.header: _first_matching_value(row, column.candidates) for column in columns}
+        )
+    return aligned_rows
+
+
+def rows_to_csv(
+    rows: list[dict[str, str]],
+    csv_path: str | Path,
+    columns: list[OutputColumn] | None = None,
+) -> None:
     if not rows:
         raise ValueError("No rows found in XML report result")
-    headers = sorted({key for row in rows for key in row.keys()})
+    if columns:
+        headers = [column.header for column in columns]
+        rows = _align_rows_to_columns(rows, columns)
+    else:
+        headers = sorted({key for row in rows for key in row.keys()})
     with Path(csv_path).open("w", newline="", encoding="utf-8-sig") as handle:
         writer = csv.DictWriter(handle, fieldnames=headers)
         writer.writeheader()

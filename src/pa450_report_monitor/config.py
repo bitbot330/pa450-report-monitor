@@ -5,6 +5,8 @@ from pathlib import Path
 import os
 import yaml
 
+from .convert import OutputColumn
+
 
 @dataclass(frozen=True)
 class Pa450Config:
@@ -23,6 +25,7 @@ class OutputConfig:
     directory: Path
     xml_file: str
     csv_file: str
+    columns: list[OutputColumn]
 
 
 @dataclass(frozen=True)
@@ -100,6 +103,10 @@ def load_config(path: str | Path) -> AppConfig:
             directory=Path(output.get("directory", "output")),
             xml_file=output.get("xml_file", "report_result.xml"),
             csv_file=output.get("csv_file", "report_result.csv"),
+            columns=[
+                OutputColumn(header=item["header"], candidates=list(item.get("candidates", [])))
+                for item in output.get("columns", [])
+            ],
         ),
         monitor=MonitorConfig(
             bytes_field_candidates=list(monitor.get("bytes_field_candidates", ["bytes", "Bytes"])),
