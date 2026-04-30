@@ -37,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     xml_path.write_text(xml_text, encoding="utf-8")
 
     rows = xml_text_to_rows(xml_text)
-    rows_to_csv(rows, csv_path)
+    rows_to_csv(rows, csv_path, columns=cfg.output.columns)
 
     alert_rows = rows_exceeding_bytes_threshold(
         rows,

@@ -119,6 +119,26 @@ Concrete fields to edit:
 - `pa450.vsys`: usually `vsys1`. The script first checks this VSYS path, then also checks shared custom reports under `/config/shared/reports`.
 - `monitor.bytes_threshold`: byte value that should trigger an alert
 - `monitor.bytes_field_candidates`: keep `bytes` first if your selected report column is named `bytes`
+- `output.columns`: controls the Excel/CSV column order and column names. The default matches your `top-sources` report screenshot:
+  1. `產生時間`
+  2. `來源位址`
+  3. `來源主機名稱`
+  4. `來源使用者`
+  5. `目的地位址`
+  6. `目的地主機名稱`
+  7. `應用程式`
+  8. `位元組`
+
+Each `output.columns` item has:
+
+```yaml
+- header: Excel 欄位名稱
+  candidates:
+    - Possible PAN-OS XML field name 1
+    - Possible PAN-OS XML field name 2
+```
+
+The script uses the first matching candidate in each row and writes it under the configured `header`.
 
 Example monitor section:
 
