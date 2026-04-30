@@ -26,7 +26,6 @@ class Pa450Config:
     password: str | None
     api_key: str | None
     verify_tls: bool
-    vsys: str
     report_name: str
     report_job_name: str
 
@@ -103,7 +102,6 @@ def load_config(path: str | Path) -> AppConfig:
             password=_env("PA450_PASSWORD"),
             api_key=_env("PA450_API_KEY"),
             verify_tls=bool(pa.get("verify_tls", True)),
-            vsys=pa.get("vsys", "vsys1"),
             report_name=report_name,
             report_job_name=pa.get("report_job_name", "pa450-custom-dynamic-report"),
         ),

@@ -11,7 +11,6 @@ def test_load_config_rejects_placeholder_report_name(tmp_path, monkeypatch):
         """
 pa450:
   verify_tls: false
-  vsys: vsys1
   report_name: YOUR_CUSTOM_REPORT_NAME
   report_job_name: pa450-custom-dynamic-report
 monitor:
@@ -31,7 +30,6 @@ def test_load_config_uses_fixed_env_names_and_default_output(tmp_path, monkeypat
         """
 pa450:
   verify_tls: false
-  vsys: vsys1
   report_name: top-sources
   report_job_name: pa450-custom-dynamic-report
 monitor:

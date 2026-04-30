@@ -1,6 +1,5 @@
 pa450:
   verify_tls: false
-  vsys: vsys1
   report_name: YOUR_CUSTOM_REPORT_NAME
   report_job_name: pa450-custom-dynamic-report
 

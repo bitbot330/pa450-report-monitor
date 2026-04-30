@@ -63,21 +63,16 @@ class Pa450ApiClient:
         self.api_key = key
         return key
 
-    def get_custom_report_definition(self, vsys: str, report_name: str) -> ReportDefinition:
-        candidate_xpaths = [
-            f"/config/devices/entry/vsys/entry[@name='{vsys}']/reports/entry[@name='{report_name}']",
-            f"/config/shared/reports/entry[@name='{report_name}']",
-        ]
-        for xpath in candidate_xpaths:
-            root = self._post({"type": "config", "action": "get", "xpath": xpath})
-            entry = root.find(".//entry")
-            if entry is not None:
-                xml = "".join(ET.tostring(child, encoding="unicode") for child in list(entry))
-                return ReportDefinition(xml=xml, xpath=xpath)
-        searched = ", ".join(candidate_xpaths)
+    def get_custom_report_definition(self, report_name: str) -> ReportDefinition:
+        xpath = f"/config/shared/reports/entry[@name='{report_name}']"
+        root = self._post({"type": "config", "action": "get", "xpath": xpath})
+        entry = root.find(".//entry")
+        if entry is not None:
+            xml = "".join(ET.tostring(child, encoding="unicode") for child in list(entry))
+            return ReportDefinition(xml=xml, xpath=xpath)
         raise Pa450ApiError(
-            f"Custom report not found: vsys={vsys}, report={report_name}. "
-            f"Searched XPath locations: {searched}"
+            f"Custom report not found: report={report_name}. "
+            f"Searched fixed XPath location: {xpath}"
         )
 
     def enqueue_dynamic_report(self, report_job_name: str, report_definition_xml: str | ReportDefinition) -> str:
