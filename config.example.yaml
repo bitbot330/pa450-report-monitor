@@ -1,0 +1,24 @@
+pa450:
+  host_env: PA450_HOST
+  username_env: PA450_USERNAME
+  password_env: PA450_PASSWORD
+  api_key_env: PA450_API_KEY
+  verify_tls: false
+  vsys: vsys1
+  report_name: PA450-Traffic-Bytes-Report
+  report_job_name: pa450-custom-dynamic-report
+
+output:
+  directory: output
+  xml_file: report_result.xml
+  csv_file: report_result.csv
+
+monitor:
+  bytes_field_candidates:
+    - bytes
+    - Bytes
+    - repeatcnt
+  bytes_threshold: 1000000000
+
+alert:
+  discord_webhook_env: DISCORD_WEBHOOK_URL
