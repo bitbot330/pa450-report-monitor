@@ -7,4 +7,5 @@ __pycache__/
 *.egg-info/
 output/*.csv
 output/**/*.csv
+output/*.json
 logs/*.log

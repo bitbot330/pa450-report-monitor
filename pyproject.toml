@@ -7,7 +7,7 @@ name = "pa450-report-monitor"
 version = "0.1.0"
 description = "PAN-OS XML API custom report to CSV monitor for PA-450"
 requires-python = ">=3.10"
-dependencies = ["PyYAML>=6.0"]
+dependencies = ["PyYAML>=6.0", "python-dotenv>=1.0", "httpx>=0.27", "langchain-openai>=0.2", "langchain-core>=0.3"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
