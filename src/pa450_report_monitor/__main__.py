@@ -18,13 +18,23 @@ def dated_output_dir(base_dir: Path, today: date | None = None) -> Path:
     return base_dir / today.strftime("%Y%m%d")
 
 
-def main(argv: list[str] | None = None) -> int:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Fetch PA450 custom report, convert to CSV, and monitor bytes")
     parser.add_argument("--config", default="config.yaml", help="Path to config.yaml")
-    args = parser.parse_args(argv)
+    parser.add_argument(
+        "--output-dir",
+        default=Path("output"),
+        type=Path,
+        help="Base folder for downloaded report files; daily YYYYMMDD folders are created under this path",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
 
     cfg = load_config(args.config)
-    output_dir = dated_output_dir(cfg.output.directory)
+    output_dir = dated_output_dir(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     xml_path = output_dir / cfg.output.xml_file
     csv_path = output_dir / cfg.output.csv_file
