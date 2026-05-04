@@ -177,19 +177,6 @@ If you already have a saved report XML and only want to test conversion:
 python -m pa450_report_monitor.convert input_report.xml output_report.csv
 ```
 
-## n8n execution example
-
-Use n8n to execute the CLI command. Example command:
-
-```powershell
-C:\Path\To\pa450-report-monitor\.venv\Scripts\python.exe -m pa450_report_monitor --config C:\Path\To\pa450-report-monitor\config.yaml --output-dir C:\Path\To\pa450-report-monitor\output
-```
-
-The command writes only the CSV file, for example:
-
-```text
-C:\Path\To\pa450-report-monitor\output\20260430_report.csv
-```
 
 ## Linux or WSL quick reference
 
