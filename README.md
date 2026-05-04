@@ -1,27 +1,64 @@
 # PA450 Report CSV Monitor
 
-這個專案用 PAN-OS XML API 下載 PA450 custom report，並轉成 CSV 檔案。
+PA450 Report CSV Monitor 是一個 Windows 本機執行的 PA450 report 下載工具。
 
-目前功能：
+它目前只負責一件事：
 
-- 透過 API 取得 PA450 custom report。
-- 將 report 結果轉成 CSV。
-- CSV 欄位固定成 Excel 方便閱讀的格式。
-- 只輸出 CSV，不輸出 XML。
-- CSV 檔案直接放在 `--output-dir` 指定的資料夾。
-- CSV 檔名格式為 `YYYYMMDD_report.csv`。
+> 透過 PAN-OS XML API 下載指定的 PA450 custom report，並輸出成 CSV。
 
-## 需求
+---
 
-- Windows 10/11 或 Windows Server。
-- Python 3.10 以上。
-- 執行主機可以連到 PA450 management API。
-- PA450 帳號需有 XML API 權限。
-- PA450 上已存在要下載的 custom report。
+## 專案流程
+
+```text
+PA450 custom report
+→ PAN-OS XML API
+→ Python 下載 report
+→ 轉成 CSV
+→ 輸出 YYYYMMDD_report.csv
+```
+
+目前主流程不做 AI 判斷，也不負責排程。
+AI 分析、告警通知、自動排程可由外部流程再呼叫本工具。
+
+---
+
+## 專案結構
+
+```text
+pa450-report-monitor/
+├── src/pa450_report_monitor/      # 主程式
+├── tests/                         # 測試
+├── .env.example                   # PA450 連線設定範本
+├── config.example.yaml            # report 與監控設定範本
+├── requirements.txt               # Python 套件
+├── pyproject.toml                 # Python package 設定
+└── README.md
+```
+
+實際執行時會另外建立：
+
+```text
+.env                              # 本機 PA450 連線資料，不 commit
+config.yaml                       # 本機執行設定，不 commit
+output/                           # CSV 輸出資料夾，不 commit
+```
+
+---
+
+## 系統需求
+
+- Windows 10/11 或 Windows Server
+- Python 3.10 以上
+- 執行主機可連線到 PA450 management API
+- PA450 帳號需可使用 XML API
+- PA450 上已建立要下載的 custom report
+
+---
 
 ## 安裝
 
-在專案資料夾開啟 PowerShell：
+在專案根目錄開啟 PowerShell，執行：
 
 ```powershell
 python -m venv .venv
@@ -33,11 +70,25 @@ Copy-Item .env.example .env
 Copy-Item config.example.yaml config.yaml
 ```
 
-`pip install -e .` 必須執行。否則可能出現：
+確認 CLI 可使用：
+
+```powershell
+python -m pa450_report_monitor --help
+```
+
+如果出現以下錯誤：
 
 ```text
 No module named pa450_report_monitor
 ```
+
+代表尚未執行：
+
+```powershell
+pip install -e .
+```
+
+---
 
 ## 設定 `.env`
 
@@ -47,13 +98,23 @@ No module named pa450_report_monitor
 notepad .env
 ```
 
-依照 `.env.example` 內的欄位填入 PA450 連線資訊。
+依照 `.env.example` 的欄位填入 PA450 連線資料。
+
+`.env` 用來放：
+
+- PA450 management IP 或 hostname
+- PA450 使用者名稱
+- PA450 密碼
+- PA450 API key
+- Discord webhook URL（如果需要）
 
 注意：
 
-- `.env` 放主機、帳號、密碼、API key 等連線資料。
+- `.env` 是本機設定檔。
 - `.env` 不要 commit。
 - README 不放實際 `.env` 內容。
+
+---
 
 ## 設定 `config.yaml`
 
@@ -63,23 +124,27 @@ notepad .env
 notepad config.yaml
 ```
 
-依照 `config.example.yaml` 內的欄位調整設定。
+依照 `config.example.yaml` 的欄位調整。
 
-主要需要確認：
+主要設定項目：
 
-- custom report 名稱。
-- bytes 判斷欄位候選名稱。
-- bytes threshold。
-- TLS 驗證設定。
+- custom report 名稱
+- report job 名稱
+- TLS 驗證設定
+- bytes 欄位候選名稱
+- bytes threshold
 
 注意：
 
+- `config.yaml` 是本機設定檔。
 - `config.yaml` 不要 commit。
 - README 不放實際 `config.yaml` 內容。
-- 不需要在 `config.yaml` 加 `output` 區塊。
-- 輸出資料夾由 CLI 參數 `--output-dir` 指定。
+- 不需要在 `config.yaml` 加 `output` 設定。
+- 輸出資料夾由 CLI 的 `--output-dir` 指定。
 
-## 執行下載
+---
+
+## 執行 PA450 report 下載
 
 PowerShell：
 
@@ -88,29 +153,47 @@ PowerShell：
 python -m pa450_report_monitor --config config.yaml --output-dir output
 ```
 
-輸出檔案會直接產生在 `output` 資料夾下：
+參數說明：
+
+- `--config config.yaml`：指定本機設定檔。
+- `--output-dir output`：指定 CSV 輸出資料夾。
+
+---
+
+## 輸出結果
+
+主流程只輸出 CSV。
+
+輸出位置：
+
+```text
+<output-dir>\YYYYMMDD_report.csv
+```
+
+例如指定：
+
+```powershell
+--output-dir output
+```
+
+則輸出格式為：
 
 ```text
 output\YYYYMMDD_report.csv
 ```
 
-範例格式：
-
-```text
-output\20260504_report.csv
-```
-
-## 輸出規則
+輸出規則：
 
 - 不建立每日資料夾。
 - 不輸出 XML。
 - 只輸出 CSV。
-- 檔名格式：`YYYYMMDD_report.csv`。
-- 輸出資料夾由 `--output-dir` 決定。
+- 檔名固定為 `YYYYMMDD_report.csv`。
+
+---
 
 ## CSV 欄位
 
-CSV 會依照固定欄位輸出：
+CSV 固定輸出以下欄位：
 
 1. `產生時間`
 2. `來源位址`
@@ -121,20 +204,24 @@ CSV 會依照固定欄位輸出：
 7. `應用程式`
 8. `位元組`
 
-## 執行結果判斷
+---
 
-成功時會看到類似訊息：
+## 執行結果訊息
+
+成功產生 CSV 時，終端機會顯示：
 
 ```text
-CSV written: output\YYYYMMDD_report.csv
+CSV written: <output-dir>\YYYYMMDD_report.csv
 Custom report XPath: ...
 ```
 
-如果流量超過設定門檻，會看到：
+如果有資料超過 bytes threshold，會顯示：
 
 ```text
 ALERT: <COUNT> rows exceeded threshold
 ```
+
+---
 
 ## 單獨測試 XML 轉 CSV
 
@@ -144,20 +231,21 @@ ALERT: <COUNT> rows exceeded threshold
 python -m pa450_report_monitor.convert input_report.xml output_report.csv
 ```
 
-這個功能只用於測試轉換，不代表主流程會輸出 XML。
+這只是轉換測試工具。
+主下載流程不會輸出 XML。
 
-## 安全注意事項
+---
 
-不要 commit 以下檔案或資料：
+## 注意事項
 
-- `.env`
-- `config.yaml`
-- API key
-- 密碼
-- 輸出的 CSV
-- log 檔案
+- `.env` 不要 commit。
+- `config.yaml` 不要 commit。
+- API key、密碼不要寫進 README。
+- 輸出的 CSV 不要 commit。
+- log 檔案不要 commit。
+- 建議使用專用 PA450 API 帳號。
 
-建議使用專用的 PA450 API 帳號，並只給必要權限。
+---
 
 ## 官方文件
 
