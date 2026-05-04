@@ -46,7 +46,6 @@ monitor:
     assert config.pa450.host == "10.0.0.1"
     assert config.pa450.username == "api-user"
     assert config.pa450.password == "api-password"
-    assert config.output.directory == Path("output")
-    assert config.output.xml_file == "report_result.xml"
-    assert config.output.csv_file == "report_result.csv"
     assert config.output.columns == DEFAULT_COLUMNS
+    assert not hasattr(config.output, "xml_file")
+    assert not hasattr(config.output, "csv_file")

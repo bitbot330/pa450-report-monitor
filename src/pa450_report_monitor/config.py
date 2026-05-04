@@ -32,9 +32,6 @@ class Pa450Config:
 
 @dataclass(frozen=True)
 class OutputConfig:
-    directory: Path
-    xml_file: str
-    csv_file: str
     columns: list[OutputColumn]
 
 
@@ -105,12 +102,7 @@ def load_config(path: str | Path) -> AppConfig:
             report_name=report_name,
             report_job_name=pa.get("report_job_name", "pa450-custom-dynamic-report"),
         ),
-        output=OutputConfig(
-            directory=Path("output"),
-            xml_file="report_result.xml",
-            csv_file="report_result.csv",
-            columns=DEFAULT_COLUMNS,
-        ),
+        output=OutputConfig(columns=DEFAULT_COLUMNS),
         monitor=MonitorConfig(
             bytes_field_candidates=list(monitor.get("bytes_field_candidates", ["bytes", "Bytes", "位元組", "repeatcnt"])),
             bytes_threshold=int(monitor.get("bytes_threshold", 0)),

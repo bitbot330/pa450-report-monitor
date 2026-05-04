@@ -13,9 +13,9 @@ from .monitor import rows_exceeding_bytes_threshold
 from .pa450_api import Pa450ApiClient
 
 
-def dated_output_dir(base_dir: Path, today: date | None = None) -> Path:
+def output_csv_path(output_dir: Path, today: date | None = None) -> Path:
     today = today or date.today()
-    return base_dir / today.strftime("%Y%m%d")
+    return output_dir / f"{today.strftime('%Y%m%d')}_report.csv"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -25,7 +25,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--output-dir",
         default=Path("output"),
         type=Path,
-        help="Base folder for downloaded report files; daily YYYYMMDD folders are created under this path",
+        help="Folder for the CSV report file",
     )
     return parser.parse_args(argv)
 
@@ -34,10 +34,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
 
     cfg = load_config(args.config)
-    output_dir = dated_output_dir(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    xml_path = output_dir / cfg.output.xml_file
-    csv_path = output_dir / cfg.output.csv_file
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = output_csv_path(args.output_dir)
 
     client = Pa450ApiClient(cfg.pa450.host, verify_tls=cfg.pa450.verify_tls, api_key=cfg.pa450.api_key)
     if not client.api_key:
@@ -50,7 +48,6 @@ def main(argv: list[str] | None = None) -> int:
     result_root = client.wait_for_report_result(job_id)
 
     xml_text = ET.tostring(result_root, encoding="unicode")
-    xml_path.write_text(xml_text, encoding="utf-8")
 
     rows = xml_text_to_rows(xml_text)
     rows_to_csv(rows, csv_path, columns=cfg.output.columns)
@@ -72,7 +69,6 @@ def main(argv: list[str] | None = None) -> int:
         print("OK: no rows exceeded threshold")
 
     print(f"CSV written: {csv_path}")
-    print(f"XML written: {xml_path}")
     print(f"Custom report XPath: {report_definition.xpath}")
     return 0
 

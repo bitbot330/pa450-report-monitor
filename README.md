@@ -8,7 +8,7 @@ Automate a Palo Alto Networks PA-450 custom report workflow:
 4. enqueue a dynamic report job,
 5. fetch the report result XML,
 6. convert report rows to CSV using the fixed Excel column layout,
-7. save outputs under the CLI-selected `--output-dir` daily folder,
+7. save one CSV file directly under the CLI-selected `--output-dir` folder,
 8. check byte thresholds and optionally send a Discord webhook alert.
 
 This project intentionally uses the PAN-OS XML API path because Palo Alto documentation confirms custom reports can be exported as CSV manually, while the built-in email scheduler is documented under **PDF Reports > Email Scheduler**. For automated CSV, this project fetches XML results from the API and converts them to CSV locally.
@@ -124,13 +124,12 @@ The `top-sources` custom report path is now fixed from your confirmed output:
 
 Because this report is under `/config/shared/reports`, `config.yaml` no longer needs a `vsys` setting for the report lookup.
 
-Do **not** add an `output:` block to `config.yaml`. The download location is set with the CLI `--output-dir` option:
+Do **not** add an `output:` block to `config.yaml`. The CSV output folder is set with the CLI `--output-dir` option:
 
-- Default base folder: `output`
-- Custom base folder example: `--output-dir D:\\PA450\\reports`
-- Daily folder format: `YYYYMMDD`
-- XML file name: `report_result.xml`
-- CSV file name: `report_result.csv`
+- Default output folder: `output`
+- Custom output folder example: `--output-dir D:\\PA450\\reports`
+- CSV file name format: `YYYYMMDD_report.csv`
+- XML is not written to disk.
 - CSV/Excel columns:
   1. `產生時間`
   2. `來源位址`
@@ -150,14 +149,13 @@ In PowerShell:
 python -m pa450_report_monitor --config config.yaml --output-dir output
 ```
 
-`--output-dir` controls the report download base folder. The program still creates a daily `YYYYMMDD` folder under it.
+`--output-dir` controls the folder where the CSV is written. The program writes one CSV file directly in that folder, using `YYYYMMDD_report.csv`.
 
 Expected output when rows are below threshold:
 
 ```text
 OK: no rows exceeded threshold
-CSV written: output\20260430\report_result.csv
-XML written: output\20260430\report_result.xml
+CSV written: output\20260430_report.csv
 Custom report XPath: /config/shared/reports/entry[@name='top-sources']
 ```
 
@@ -165,8 +163,7 @@ Expected output when rows exceed threshold:
 
 ```text
 ALERT: 2 rows exceeded threshold
-CSV written: output\20260430\report_result.csv
-XML written: output\20260430\report_result.xml
+CSV written: output\20260430_report.csv
 Custom report XPath: /config/shared/reports/entry[@name='top-sources']
 ```
 
@@ -177,39 +174,21 @@ The `Custom report XPath` line is still printed as a verification line, but the 
 If you already have a saved report XML and only want to test conversion:
 
 ```powershell
-python -m pa450_report_monitor.convert output\20260430\report_result.xml output\20260430\report_result.csv
+python -m pa450_report_monitor.convert input_report.xml output_report.csv
 ```
 
-## Windows Task Scheduler
+## n8n execution example
 
-Create a scheduled task:
-
-```text
-Program/script:
-C:\Path\To\pa450-report-monitor\.venv\Scripts\python.exe
-
-Arguments:
--m pa450_report_monitor --config C:\Path\To\pa450-report-monitor\config.yaml --output-dir C:\Path\To\pa450-report-monitor\output
-
-Start in:
-C:\Path\To\pa450-report-monitor
-```
-
-Redirect logs by creating a small PowerShell wrapper, for example `run-pa450-monitor.ps1`:
+Use n8n to execute the CLI command. Example command:
 
 ```powershell
-Set-Location "C:\Path\To\pa450-report-monitor"
-.\.venv\Scripts\python.exe -m pa450_report_monitor --config config.yaml --output-dir output *> logs\monitor.log
+C:\Path\To\pa450-report-monitor\.venv\Scripts\python.exe -m pa450_report_monitor --config C:\Path\To\pa450-report-monitor\config.yaml --output-dir C:\Path\To\pa450-report-monitor\output
 ```
 
-Then set Task Scheduler to run:
+The command writes only the CSV file, for example:
 
 ```text
-Program/script:
-powershell.exe
-
-Arguments:
--ExecutionPolicy Bypass -File C:\Path\To\pa450-report-monitor\run-pa450-monitor.ps1
+C:\Path\To\pa450-report-monitor\output\20260430_report.csv
 ```
 
 ## Linux or WSL quick reference
@@ -226,14 +205,8 @@ cp config.example.yaml config.yaml
 python -m pa450_report_monitor --config config.yaml --output-dir output
 ```
 
-Cron example:
-
-```cron
-0 8 * * * cd /path/to/pa450-report-monitor && . .venv/bin/activate && python -m pa450_report_monitor --config config.yaml --output-dir output >> logs/monitor.log 2>&1
-```
-
 ## Security notes
 
-- Do not commit `.env`, `config.yaml`, output XML, output CSV, or logs.
+- Do not commit `.env`, `config.yaml`, output CSV, or logs.
 - Prefer a dedicated least-privilege API user for report access.
 - If you set `verify_tls: false`, the script passes `-k` equivalent behavior for self-signed lab certificates. For production, install/verify the firewall certificate and set `verify_tls: true`.
