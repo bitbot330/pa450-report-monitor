@@ -1,10 +1,6 @@
 # PA450 Report CSV Monitor
 
-PA450 Report CSV Monitor 是一個 Windows 本機執行的 PA450 report 下載工具。
-
-它目前只負責一件事：
-
-> 透過 PAN-OS XML API 下載指定的 PA450 custom report，並輸出成 CSV。
+PA450 Report CSV Monitor 是一個 Windows 本機執行的 PA450 report 下載與 AI 分析工具。
 
 ---
 
@@ -13,13 +9,15 @@ PA450 Report CSV Monitor 是一個 Windows 本機執行的 PA450 report 下載�
 ```text
 PA450 custom report
 → PAN-OS XML API
-→ Python 下載 report
-→ 轉成 CSV
-→ 輸出 YYYYMMDD_report.csv
+→ src/report.py 下載 report 並輸出 CSV
+→ src/analyze.py 讀 CSV 並送 AI Gateway 分析
+→ 輸出 JSON 分析結果
 ```
 
-目前主流程不做 AI 判斷，也不負責排程。
-AI 分析、告警通知、自動排程可由外部流程再呼叫本工具。
+`report.py` 與 `analyze.py` 是兩條獨立指令：
+
+- `src/report.py`：下載 PA450 custom report、轉 CSV、檢查 bytes threshold、輸出 alert 訊息。
+- `src/analyze.py`：讀取 CSV，餵給 AI Gateway，輸出 JSON。
 
 ---
 
@@ -27,21 +25,23 @@ AI 分析、告警通知、自動排程可由外部流程再呼叫本工具。
 
 ```text
 pa450-report-monitor/
-├── src/pa450_report_monitor/      # 主程式
-├── tests/                         # 測試
-├── .env.example                   # PA450 連線設定範本
-├── config.example.yaml            # report 與監控設定範本
-├── requirements.txt               # Python 套件
-├── pyproject.toml                 # Python package 設定
+├── src/
+│   ├── report.py        # PA450 report 下載、CSV 輸出、bytes alert
+│   ├── analyze.py       # AI 分析 CSV
+│   ├── config.py        # .env / config.yaml 設定載入
+│   └── __init__.py
+├── .env.example         # .env 範本
+├── config.example.yaml  # report 與監控設定範本
+├── requirements.txt     # Python 套件
 └── README.md
 ```
 
 實際執行時會另外建立：
 
 ```text
-.env                              # 本機 PA450 連線資料，不 commit
-config.yaml                       # 本機執行設定，不 commit
-output/                           # CSV 輸出資料夾，不 commit
+.env                 # 本機設定，不 commit
+config.yaml          # 本機執行設定，不 commit
+output/              # CSV / JSON 輸出資料夾，不 commit
 ```
 
 ---
@@ -53,6 +53,7 @@ output/                           # CSV 輸出資料夾，不 commit
 - 執行主機可連線到 PA450 management API
 - PA450 帳號需可使用 XML API
 - PA450 上已建立要下載的 custom report
+- 執行主機可連線到 AI Gateway
 
 ---
 
@@ -65,27 +66,15 @@ python -m venv .venv
 .venv\Scripts\Activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-pip install -e .
 Copy-Item .env.example .env
 Copy-Item config.example.yaml config.yaml
 ```
 
-確認 CLI 可使用：
+確認指令可使用：
 
 ```powershell
-python -m pa450_report_monitor --help
-```
-
-如果出現以下錯誤：
-
-```text
-No module named pa450_report_monitor
-```
-
-代表尚未執行：
-
-```powershell
-pip install -e .
+python src\report.py --help
+python src\analyze.py --help
 ```
 
 ---
@@ -157,19 +146,13 @@ PowerShell：
 
 ```powershell
 .venv\Scripts\Activate
-python -m pa450_report_monitor --config config.yaml --output-dir output
+python src\report.py --config config.yaml --output-dir output
 ```
 
 參數說明：
 
 - `--config config.yaml`：指定本機設定檔。
 - `--output-dir output`：指定 CSV 輸出資料夾。
-
----
-
-## 輸出結果
-
-主流程只輸出 CSV。
 
 輸出位置：
 
@@ -213,20 +196,44 @@ CSV 固定輸出以下欄位：
 
 ---
 
-## 執行結果訊息
+## Report alert 輸出
 
-成功產生 CSV 時，終端機會顯示：
-
-```text
-CSV written: <output-dir>\YYYYMMDD_report.csv
-Custom report XPath: ...
-```
-
-如果有資料超過 bytes threshold，會顯示：
+如果有資料超過 bytes threshold，`report.py` 會在終端機輸出：
 
 ```text
 ALERT: <COUNT> rows exceeded bytes threshold <THRESHOLD>.
 - <超標資料摘要>
+```
+
+如果沒有超過 threshold，會輸出：
+
+```text
+OK: no rows exceeded threshold
+```
+
+---
+
+## 執行 AI 分析
+
+PowerShell：
+
+```powershell
+.venv\Scripts\Activate
+python src\analyze.py --input output\YYYYMMDD_report.csv --output output\YYYYMMDD.json
+```
+
+參數說明：
+
+- `--input`：要餵給 AI 的 CSV 檔案。
+- `--output`：AI 分析結果 JSON 輸出位置。
+- `--query`：可選，覆蓋預設分析問題。
+
+輸出格式：
+
+```json
+{
+  "analysis": "AI 回答內容"
+}
 ```
 
 ---
@@ -236,7 +243,7 @@ ALERT: <COUNT> rows exceeded bytes threshold <THRESHOLD>.
 - `.env` 不要 commit。
 - `config.yaml` 不要 commit。
 - API key、密碼不要寫進 README。
-- 輸出的 CSV 不要 commit。
+- 輸出的 CSV / JSON 不要 commit。
 - log 檔案不要 commit。
 - 建議使用專用 PA450 API 帳號。
 

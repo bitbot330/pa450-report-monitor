@@ -20,7 +20,7 @@ def analyze_with_ai(query: str, context: str) -> str:
     from langchain_openai import ChatOpenAI
     from langchain_core.messages import HumanMessage, SystemMessage
 
-    from .config import load_dotenv
+    from config import load_dotenv
 
     load_dotenv()
     api_key = os.getenv("AI_GATEWAY_API_KEY")
