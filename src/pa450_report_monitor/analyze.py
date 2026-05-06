@@ -39,8 +39,43 @@ def analyze_with_ai(query: str, context: str) -> str:
 
     model = llm
     resp = model.invoke([
-        SystemMessage(content="你是嚴謹的問答助理，只能根據context回答，不用作多餘的解釋。"),
-        HumanMessage(content=f"問題：{query}\n\n<context>\n{context}\n</context>")
+    SystemMessage(
+        content=(
+            "你是資安流量分析助理，負責分析 PA450 firewall report。"
+            "你只能根據使用者提供的 context 內容判斷，不可以使用外部知識補充不存在的資料。"
+            "如果 context 資料不足，必須明確回答「資料不足，需人工確認」。"
+            "請用繁體中文回答。"
+            "回答要簡短、明確。"
+        )
+    ),
+    HumanMessage(
+        content=f"""
+            問題：
+            請分析以下 PA450 report 是否有異常流量，並說明原因。
+
+            判斷重點：
+            1. 是否有明顯高流量來源。
+            2. 是否有明顯高流量目的地。
+            3. 是否有可疑應用程式。
+            4. 是否有單一來源對外大量傳輸。
+            5. 若無法從資料判斷，請標示為需人工確認。
+
+            請輸出以下格式：
+
+            異常狀態：有異常 / 無明顯異常 
+            摘要：一句話說明結果
+            異常項目：
+            - 來源：
+            目的地：
+            應用程式：
+            位元組：
+            原因：
+
+        <context>
+        {context}
+        </context>
+        """
+    )
     ])
     return str(resp.content)
 
