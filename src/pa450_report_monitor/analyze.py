@@ -17,24 +17,30 @@ def build_context(input_path: str | Path) -> str:
 def analyze_with_ai(query: str, context: str) -> str:
     import httpx
     import os
-    from dotenv import load_dotenv
     from langchain_openai import ChatOpenAI
     from langchain_core.messages import HumanMessage, SystemMessage
 
+    from .config import load_dotenv
+
     load_dotenv()
-    api_key = os.getenv("api_key")
-    url = os.getenv("url")
+    api_key = os.getenv("AI_GATEWAY_API_KEY")
+    url = os.getenv("AI_GATEWAY_URL")
+    model_name = os.getenv("AI_MODEL") or "gpt-oss-20b"
+    temperature = float(os.getenv("AI_TEMPERATURE") or "0.4")
+
+    if not url:
+        raise RuntimeError("Missing AI_GATEWAY_URL in .env")
+    if not api_key:
+        raise RuntimeError("Missing AI_GATEWAY_API_KEY in .env")
 
     sync_client  = httpx.Client(verify=False)
-    async_client = httpx.AsyncClient(verify=False)
 
     llm = ChatOpenAI(
         base_url=url,
         api_key=api_key,
-        model="qwen3-vl-4b-fp8",
-        temperature=0.2,
+        model=model_name,
+        temperature=temperature,
         http_client=sync_client,
-        http_async_client=async_client,
     )
 
     model = llm

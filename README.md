@@ -98,7 +98,7 @@ pip install -e .
 notepad .env
 ```
 
-依照 `.env.example` 的欄位填入 PA450 連線資料。
+依照 `.env.example` 的欄位填入 PA450 連線資料與 AI Gateway 設定。
 
 `.env` 用來放：
 
@@ -107,6 +107,14 @@ notepad .env
 - PA450 密碼
 - PA450 API key
 - Discord webhook URL（如果需要）
+- AI Gateway URL
+- AI Gateway API key
+- AI model 與 temperature
+
+欄位用途：
+
+- `PA450_*`：PA450 report 下載使用。
+- `AI_*`：AI 分析使用。
 
 注意：
 
