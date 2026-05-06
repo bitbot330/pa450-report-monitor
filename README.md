@@ -58,13 +58,8 @@ output/
 
 ## 系統需求
 
-- Windows 10/11 或 Windows Server
-- Python 3.10 以上
-- 執行主機可連線到 PA450 management API
-- PA450 帳號可使用 XML API
-- PA450 上已建立要下載的 custom report
-- 執行主機可連線到 AI Gateway
-
+- Windows 10/11
+- Python 3.10 
 ---
 
 ## 安裝
