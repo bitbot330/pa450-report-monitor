@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
-from .config import OutputColumn, load_config
+from config import OutputColumn, load_config
 
 
 class Pa450ApiError(RuntimeError):
