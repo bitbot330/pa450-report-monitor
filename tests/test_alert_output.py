@@ -1,4 +1,4 @@
-from pa450_report_monitor.__main__ import format_alert_message
+from pa450_report_monitor.report import format_alert_message
 
 
 def test_format_alert_message_keeps_local_alert_without_webhook():

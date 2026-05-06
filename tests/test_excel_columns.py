@@ -1,6 +1,6 @@
 import csv
 
-from pa450_report_monitor.__main__ import rows_to_csv
+from pa450_report_monitor.report import rows_to_csv
 from pa450_report_monitor.config import OutputColumn
 
 
