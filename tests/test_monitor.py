@@ -1,4 +1,4 @@
-from pa450_report_monitor.monitor import parse_int, rows_exceeding_bytes_threshold
+from pa450_report_monitor.report import parse_int, rows_exceeding_bytes_threshold
 
 
 def test_parse_int_accepts_commas():

@@ -1,7 +1,7 @@
 from datetime import date
 from pathlib import Path
 
-from pa450_report_monitor.__main__ import output_csv_path, parse_args
+from pa450_report_monitor.report import output_csv_path, parse_args
 
 
 def test_output_csv_path_uses_cli_directory_without_daily_folder():

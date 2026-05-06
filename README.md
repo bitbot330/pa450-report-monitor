@@ -106,7 +106,6 @@ notepad .env
 - PA450 使用者名稱
 - PA450 密碼
 - PA450 API key
-- Discord webhook URL（如果需要）
 - AI Gateway URL
 - AI Gateway API key
 - AI model 與 temperature
@@ -226,21 +225,9 @@ Custom report XPath: ...
 如果有資料超過 bytes threshold，會顯示：
 
 ```text
-ALERT: <COUNT> rows exceeded threshold
+ALERT: <COUNT> rows exceeded bytes threshold <THRESHOLD>.
+- <超標資料摘要>
 ```
-
----
-
-## 單獨測試 XML 轉 CSV
-
-如果手上已有 XML 檔案，可單獨測試轉換：
-
-```powershell
-python -m pa450_report_monitor.convert input_report.xml output_report.csv
-```
-
-這只是轉換測試工具。
-主下載流程不會輸出 XML。
 
 ---
 

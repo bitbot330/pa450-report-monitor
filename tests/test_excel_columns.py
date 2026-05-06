@@ -1,6 +1,7 @@
 import csv
 
-from pa450_report_monitor.convert import OutputColumn, rows_to_csv
+from pa450_report_monitor.report import rows_to_csv
+from pa450_report_monitor.config import OutputColumn
 
 
 def test_rows_to_csv_uses_configured_excel_columns(tmp_path):
