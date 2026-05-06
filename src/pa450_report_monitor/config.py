@@ -5,7 +5,11 @@ from pathlib import Path
 import os
 import yaml
 
-from .convert import OutputColumn
+
+@dataclass(frozen=True)
+class OutputColumn:
+    header: str
+    candidates: list[str]
 
 DEFAULT_COLUMNS = [
     OutputColumn("產生時間", ["Generate Time", "generated-time", "receive_time", "receive-time", "time_generated"]),
@@ -42,16 +46,10 @@ class MonitorConfig:
 
 
 @dataclass(frozen=True)
-class AlertConfig:
-    discord_webhook_url: str | None
-
-
-@dataclass(frozen=True)
 class AppConfig:
     pa450: Pa450Config
     output: OutputConfig
     monitor: MonitorConfig
-    alert: AlertConfig
 
 
 def load_dotenv(path: str | Path = ".env") -> None:
@@ -77,7 +75,6 @@ def load_config(path: str | Path) -> AppConfig:
 
     pa = data["pa450"]
     monitor = data.get("monitor", {})
-    alert = data.get("alert", {})
 
     host = _env("PA450_HOST")
     if not host:
@@ -107,5 +104,4 @@ def load_config(path: str | Path) -> AppConfig:
             bytes_field_candidates=list(monitor.get("bytes_field_candidates", ["bytes", "Bytes", "位元組", "repeatcnt"])),
             bytes_threshold=int(monitor.get("bytes_threshold", 0)),
         ),
-        alert=AlertConfig(discord_webhook_url=_env("DISCORD_WEBHOOK_URL")),
     )

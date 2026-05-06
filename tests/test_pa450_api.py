@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 
-from pa450_report_monitor.pa450_api import Pa450ApiClient
+from pa450_report_monitor.__main__ import Pa450ApiClient
 
 
 class FakePa450ApiClient(Pa450ApiClient):

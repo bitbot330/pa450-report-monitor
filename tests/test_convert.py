@@ -1,4 +1,4 @@
-from pa450_report_monitor.convert import xml_text_to_rows
+from pa450_report_monitor.__main__ import xml_text_to_rows
 
 
 def test_xml_text_to_rows_extracts_entry_children():
