@@ -5,387 +5,21 @@ import csv
 import json
 from collections import Counter
 from datetime import datetime
-from functools import partial
-from html import escape
-from http import HTTPStatus
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlparse
+import tkinter as tk
+from tkinter import ttk
 
 from report import parse_int
 
-DASHBOARD_TITLE = "PA450 Daily Review UI"
-
-
-INDEX_HTML_TEMPLATE = """<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{title}</title>
-  <style>
-    :root {{
-      color-scheme: dark;
-      --bg: #0b1220;
-      --panel: #111b2e;
-      --panel-2: #16223a;
-      --line: #29405f;
-      --text: #e8eefc;
-      --muted: #9eb2d0;
-      --accent: #65b7ff;
-      --accent-bg: rgba(101, 183, 255, 0.18);
-    }}
-    * {{ box-sizing: border-box; }}
-    body {{ margin: 0; font-family: Inter, "Noto Sans TC", sans-serif; background: var(--bg); color: var(--text); }}
-    h1, h2, h3, p {{ margin: 0; }}
-    button, input, select, textarea {{ font: inherit; }}
-    .app {{ display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }}
-    .sidebar {{ border-right: 1px solid var(--line); background: #0f1728; padding: 20px; }}
-    .main {{ padding: 24px; }}
-    .brand {{ margin-bottom: 18px; }}
-    .brand h1 {{ font-size: 22px; margin-bottom: 8px; }}
-    .subtle {{ color: var(--muted); font-size: 13px; }}
-    .report-list {{ display: grid; gap: 10px; margin-top: 18px; }}
-    .report-item {{ width: 100%; text-align: left; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }}
-    .report-item:hover, .report-item.active {{ border-color: var(--accent); background: var(--accent-bg); }}
-    .layout {{ display: grid; gap: 16px; }}
-    .summary-grid {{ display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }}
-    .content-grid {{ display: grid; grid-template-columns: minmax(320px, 420px) minmax(0, 1fr); gap: 16px; align-items: start; }}
-    .stack {{ display: grid; gap: 16px; }}
-    .card {{ background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18); }}
-    .metric {{ font-size: 30px; font-weight: 700; margin-top: 10px; }}
-    .pill {{ display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; border: 1px solid var(--line); color: var(--muted); }}
-    .panel-title {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }}
-    .detail-list {{ display: grid; gap: 10px; }}
-    .detail-row {{ border-bottom: 1px dashed rgba(255,255,255,0.12); padding-bottom: 10px; }}
-    .detail-row:last-child {{ border-bottom: none; padding-bottom: 0; }}
-    .detail-key {{ color: var(--muted); font-size: 12px; margin-bottom: 4px; }}
-    .report-text {{ white-space: pre-wrap; line-height: 1.7; font-size: 14px; }}
-    .toolbar {{ display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }}
-    input, select, textarea {{ width: 100%; background: #0d1525; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }}
-    textarea {{ min-height: 120px; resize: vertical; }}
-    .toolbar .control {{ min-width: 180px; flex: 1; }}
-    .table-wrap {{ overflow: auto; border: 1px solid var(--line); border-radius: 14px; }}
-    table {{ width: 100%; border-collapse: collapse; min-width: 900px; }}
-    thead th {{ position: sticky; top: 0; background: #13213a; z-index: 1; text-align: left; }}
-    th, td {{ padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 14px; vertical-align: top; }}
-    tbody tr {{ cursor: pointer; }}
-    tbody tr:hover {{ background: rgba(101, 183, 255, 0.08); }}
-    tbody tr.is-selected {{ background: rgba(101, 183, 255, 0.18); }}
-    .empty {{ padding: 18px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); }}
-    .error {{ color: #ff9a9a; }}
-    @media (max-width: 1080px) {{
-      .app {{ grid-template-columns: 1fr; }}
-      .sidebar {{ border-right: none; border-bottom: 1px solid var(--line); }}
-      .content-grid {{ grid-template-columns: 1fr; }}
-    }}
-  </style>
-</head>
-<body>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="brand">
-        <h1>{title}</h1>
-        <p class="subtle">同一個 UI 直接切換每日報告，不用每次重生 dashboard。</p>
-      </div>
-      <div class="subtle">資料來源資料夾：<span id="dataDirLabel"></span></div>
-      <div class="report-list" id="reportList"></div>
-    </aside>
-    <main class="main">
-      <div id="loading" class="empty">載入中...</div>
-      <div id="errorBox" class="empty error" hidden></div>
-      <div id="reportApp" class="layout" hidden>
-        <section class="summary-grid" id="summaryGrid"></section>
-        <section class="content-grid">
-          <div class="stack">
-            <article class="card">
-              <div class="panel-title"><h2>AI 報告</h2><span class="pill">給人讀的摘要</span></div>
-              <div class="detail-list" id="analysisCard"></div>
-            </article>
-            <article class="card">
-              <div class="panel-title"><h2>報告回報</h2><span class="pill">localStorage</span></div>
-              <div class="detail-key">回報狀態</div>
-              <select id="reviewStatus">
-                <option value="">未設定</option>
-                <option value="normal">整體正常</option>
-                <option value="follow-up">有異常需追蹤</option>
-                <option value="ai-adjustment">AI 判讀需調整</option>
-              </select>
-              <div class="detail-key" style="margin-top:12px;">備註</div>
-              <textarea id="reviewNote" placeholder="例如：這次高流量其實是備份流量，AI 需要學會辨識。"></textarea>
-            </article>
-            <article class="card">
-              <div class="panel-title"><h2>列明細</h2><span class="pill">點右側表格列查看</span></div>
-              <div id="rowDetail" class="empty">尚未選取資料列。</div>
-            </article>
-          </div>
-          <article class="card">
-            <div class="panel-title"><h2>CSV 完整檢視</h2><span class="pill">Evidence</span></div>
-            <div class="toolbar">
-              <div class="control">
-                <div class="detail-key">搜尋 CSV</div>
-                <input id="searchInput" type="search" placeholder="輸入 IP、使用者、應用程式、主機名稱...">
-              </div>
-              <div class="control">
-                <div class="detail-key">來源 IP</div>
-                <select id="sourceFilter"></select>
-              </div>
-              <div class="control">
-                <div class="detail-key">應用程式</div>
-                <select id="appFilter"></select>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr id="tableHead"></tr></thead>
-                <tbody id="tableBody"></tbody>
-              </table>
-            </div>
-          </article>
-        </section>
-      </div>
-    </main>
-  </div>
-
-  <script>
-    const appState = {{ reports: [], current: null, selectedRowIndex: null }};
-    const dataDirLabel = document.getElementById('dataDirLabel');
-    const reportList = document.getElementById('reportList');
-    const loading = document.getElementById('loading');
-    const errorBox = document.getElementById('errorBox');
-    const reportApp = document.getElementById('reportApp');
-    const summaryGrid = document.getElementById('summaryGrid');
-    const analysisCard = document.getElementById('analysisCard');
-    const searchInput = document.getElementById('searchInput');
-    const sourceFilter = document.getElementById('sourceFilter');
-    const appFilter = document.getElementById('appFilter');
-    const tableHead = document.getElementById('tableHead');
-    const tableBody = document.getElementById('tableBody');
-    const rowDetail = document.getElementById('rowDetail');
-    const reviewStatus = document.getElementById('reviewStatus');
-    const reviewNote = document.getElementById('reviewNote');
-
-    function showError(message) {{
-      errorBox.hidden = false;
-      errorBox.textContent = message;
-      loading.hidden = true;
-      reportApp.hidden = true;
-    }}
-
-    function clearError() {{
-      errorBox.hidden = true;
-      errorBox.textContent = '';
-    }}
-
-    function formatDetailRow(key, value, secondary = '') {{
-      return `<div class="detail-row"><div class="detail-key">${{key}}</div><div>${{value || '—'}}</div>${{secondary ? `<div class="subtle">${{secondary}}</div>` : ''}}</div>`;
-    }}
-
-    function reviewStorageKey() {{
-      return appState.current ? `pa450-review::${{appState.current.date}}` : 'pa450-review';
-    }}
-
-    function saveReviewState() {{
-      if (!appState.current) return;
-      localStorage.setItem(reviewStorageKey(), JSON.stringify({{
-        reviewStatus: reviewStatus.value,
-        reviewNote: reviewNote.value,
-      }}));
-    }}
-
-    function loadReviewState() {{
-      reviewStatus.value = '';
-      reviewNote.value = '';
-      if (!appState.current) return;
-      try {{
-        const raw = localStorage.getItem(reviewStorageKey());
-        if (!raw) return;
-        const saved = JSON.parse(raw);
-        reviewStatus.value = saved.reviewStatus || '';
-        reviewNote.value = saved.reviewNote || '';
-      }} catch (_error) {{}}
-    }}
-
-    function uniqueValues(field) {{
-      if (!appState.current) return [];
-      return [...new Set(appState.current.rows.map((row) => (row[field] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
-    }}
-
-    function fillSelect(selectEl, field, label) {{
-      selectEl.innerHTML = '';
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      defaultOption.textContent = `全部${{label}}`;
-      selectEl.appendChild(defaultOption);
-      uniqueValues(field).forEach((value) => {{
-        const option = document.createElement('option');
-        option.value = value;
-        option.textContent = value;
-        selectEl.appendChild(option);
-      }});
-    }}
-
-    function renderSidebar() {{
-      reportList.innerHTML = '';
-      appState.reports.forEach((report) => {{
-        const btn = document.createElement('button');
-        btn.className = 'report-item';
-        if (appState.current && report.date === appState.current.date) btn.classList.add('active');
-        btn.innerHTML = `<div><strong>${{report.label}}</strong></div><div class="subtle">${{report.summary}}</div>`;
-        btn.addEventListener('click', () => loadReport(report.date));
-        reportList.appendChild(btn);
-      }});
-    }}
-
-    function renderSummary() {{
-      const summary = appState.current.summary;
-      const cards = [
-        ['報告日期', appState.current.label, appState.current.date],
-        ['總資料筆數', summary.total_rows, ''],
-        ['來源 IP 數', summary.unique_sources, ''],
-        ['目的地數', summary.unique_destinations, ''],
-        ['最大傳輸量', summary.max_bytes_human, summary.max_bytes_raw],
-        ['總傳輸量', summary.total_bytes_human, summary.total_bytes_raw],
-      ];
-      summaryGrid.innerHTML = cards.map(([label, value, secondary]) => `
-        <div class="card">
-          <div class="detail-key">${{label}}</div>
-          <div class="metric">${{value}}</div>
-          ${{secondary ? `<div class="subtle">${{secondary}}</div>` : ''}}
-        </div>
-      `).join('');
-    }}
-
-    function renderAnalysis() {{
-      const a = appState.current.analysis_sections;
-      analysisCard.innerHTML = [
-        formatDetailRow('異常狀態', a.status || '資料不足，需人工確認'),
-        formatDetailRow('摘要', a.summary || appState.current.analysis_text || '資料不足，需人工確認'),
-        formatDetailRow('來源', a.source),
-        formatDetailRow('目的地', a.destination),
-        formatDetailRow('應用程式', a.application),
-        formatDetailRow('傳輸量', a.bytes_human || a.bytes || '—', a.bytes_raw || ''),
-        formatDetailRow('原因', a.reason),
-      ].join('');
-    }}
-
-    function renderHead() {{
-      tableHead.innerHTML = '';
-      appState.current.headers.forEach((header) => {{
-        const th = document.createElement('th');
-        th.textContent = header;
-        tableHead.appendChild(th);
-      }});
-    }}
-
-    function matchesFilters(row) {{
-      const search = searchInput.value.trim().toLowerCase();
-      const source = sourceFilter.value;
-      const app = appFilter.value;
-      const textBlob = appState.current.headers.map((header) => row[header] || '').join(' ').toLowerCase();
-      if (search && !textBlob.includes(search)) return false;
-      if (source && (row['來源位址'] || '') !== source) return false;
-      if (app && (row['應用程式'] || '') !== app) return false;
-      return true;
-    }}
-
-    function renderDetails(row) {{
-      const wrapper = document.createElement('div');
-      wrapper.className = 'detail-list';
-      appState.current.headers.forEach((header) => {{
-        const rowWrap = document.createElement('div');
-        rowWrap.className = 'detail-row';
-        rowWrap.innerHTML = `<div class="detail-key">${{header}}</div><div>${{row[header] || '—'}}</div>`;
-        wrapper.appendChild(rowWrap);
-      }});
-      rowDetail.innerHTML = '';
-      rowDetail.className = '';
-      rowDetail.appendChild(wrapper);
-    }}
-
-    function renderRows() {{
-      tableBody.innerHTML = '';
-      const filtered = appState.current.rows.filter(matchesFilters);
-      filtered.forEach((row, filteredIndex) => {{
-        const tr = document.createElement('tr');
-        if (appState.selectedRowIndex === filteredIndex) tr.classList.add('is-selected');
-        tr.addEventListener('click', () => {{
-          appState.selectedRowIndex = filteredIndex;
-          renderRows();
-          renderDetails(row);
-        }});
-        appState.current.headers.forEach((header) => {{
-          const td = document.createElement('td');
-          td.textContent = row[header] || '';
-          tr.appendChild(td);
-        }});
-        tableBody.appendChild(tr);
-      }});
-      if (!filtered.length) {{
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = appState.current.headers.length;
-        td.textContent = '沒有符合條件的 CSV 列。';
-        tr.appendChild(td);
-        tableBody.appendChild(tr);
-      }}
-    }}
-
-    function renderCurrentReport() {{
-      if (!appState.current) return;
-      clearError();
-      loading.hidden = true;
-      reportApp.hidden = false;
-      appState.selectedRowIndex = null;
-      rowDetail.className = 'empty';
-      rowDetail.textContent = '尚未選取資料列。';
-      renderSidebar();
-      renderSummary();
-      renderAnalysis();
-      renderHead();
-      fillSelect(sourceFilter, '來源位址', '來源 IP');
-      fillSelect(appFilter, '應用程式', '應用程式');
-      loadReviewState();
-      renderRows();
-    }}
-
-    async function loadReport(date) {{
-      const response = await fetch(`/api/reports/${{encodeURIComponent(date)}}`);
-      if (!response.ok) throw new Error(`載入報告失敗：${{response.status}}`);
-      appState.current = await response.json();
-      renderCurrentReport();
-    }}
-
-    async function bootstrap() {{
-      try {{
-        const response = await fetch('/api/reports');
-        if (!response.ok) throw new Error(`載入報告列表失敗：${{response.status}}`);
-        const payload = await response.json();
-        dataDirLabel.textContent = payload.data_dir;
-        appState.reports = payload.reports;
-        if (!payload.reports.length) {{
-          loading.hidden = true;
-          reportList.innerHTML = '<div class="empty">目前找不到任何每日報告。</div>';
-          return;
-        }}
-        renderSidebar();
-        await loadReport(payload.reports[0].date);
-      }} catch (error) {{
-        showError(error.message || '載入失敗');
-      }}
-    }}
-
-    searchInput.addEventListener('input', renderRows);
-    sourceFilter.addEventListener('change', renderRows);
-    appFilter.addEventListener('change', renderRows);
-    reviewStatus.addEventListener('change', saveReviewState);
-    reviewNote.addEventListener('input', saveReviewState);
-    bootstrap();
-  </script>
-</body>
-</html>
-"""
+APP_TITLE = "PA450 Daily Review UI"
+DARK_BG = "#0b1220"
+PANEL_BG = "#111b2e"
+PANEL_BG_2 = "#16223a"
+TEXT_COLOR = "#e8eefc"
+MUTED_COLOR = "#9eb2d0"
+ACCENT_COLOR = "#65b7ff"
+TREE_BG = "#13213a"
 
 
 def format_bytes_human(value: int | None) -> str:
@@ -498,14 +132,15 @@ def discover_reports(data_dir: str | Path) -> list[dict[str, str]]:
     base = Path(data_dir)
     report_map: dict[str, dict[str, Path]] = {}
 
+    if not base.exists():
+        return []
+
     for csv_path in sorted(base.glob("*_report.csv")):
         date_key = csv_path.stem.removesuffix("_report")
         report_map.setdefault(date_key, {})["csv"] = csv_path
     for json_path in sorted(base.glob("*.json")):
-        date_key = json_path.stem
-        report_map.setdefault(date_key, {})["analysis"] = json_path
-
-    for child in sorted(base.iterdir()) if base.exists() else []:
+        report_map.setdefault(json_path.stem, {})["analysis"] = json_path
+    for child in sorted(base.iterdir()):
         if not child.is_dir():
             continue
         csv_candidate = child / "report.csv"
@@ -536,15 +171,14 @@ def load_report_bundle(data_dir: str | Path, date_key: str) -> dict[str, Any]:
         folder_csv = base / date_key / "report.csv"
         folder_json = base / date_key / "analysis.json"
         if folder_csv.exists() and folder_json.exists():
-            csv_path = folder_csv
-            json_path = folder_json
+            csv_path, json_path = folder_csv, folder_json
     if not csv_path.exists() or not json_path.exists():
         raise FileNotFoundError(f"Report bundle not found for date: {date_key}")
 
-    headers, rows = load_csv_rows(csv_path)
+    raw_headers, raw_rows = load_csv_rows(csv_path)
     analysis_payload = load_analysis_payload(json_path)
     analysis_text = str(analysis_payload.get("analysis") or "")
-    display_headers, display_rows = enrich_rows_for_display(headers, rows)
+    display_headers, display_rows = enrich_rows_for_display(raw_headers, raw_rows)
     analysis_sections = parse_analysis_sections(analysis_text)
     analysis_bytes_value = parse_int(analysis_sections.get("bytes"))
     analysis_sections["bytes_human"] = format_bytes_human(analysis_bytes_value) if analysis_bytes_value is not None else ""
@@ -558,76 +192,308 @@ def load_report_bundle(data_dir: str | Path, date_key: str) -> dict[str, Any]:
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "headers": display_headers,
         "rows": display_rows,
-        "summary": summarize_rows(rows),
+        "summary": summarize_rows(raw_rows),
         "analysis_text": analysis_text,
         "analysis_sections": analysis_sections,
     }
 
 
-class ReportUIHandler(BaseHTTPRequestHandler):
-    def __init__(self, *args: Any, data_dir: str, **kwargs: Any) -> None:
+class DesktopReportApp(tk.Tk):
+    def __init__(self, data_dir: str | Path) -> None:
+        super().__init__()
         self.data_dir = Path(data_dir)
-        super().__init__(*args, **kwargs)
+        self.reports = discover_reports(self.data_dir)
+        self.current_report: dict[str, Any] | None = None
+        self.filtered_rows: list[dict[str, str]] = []
+        self.search_var = tk.StringVar()
+        self.source_var = tk.StringVar()
+        self.app_var = tk.StringVar()
+        self.review_status_var = tk.StringVar()
 
-    def do_GET(self) -> None:
-        parsed = urlparse(self.path)
-        if parsed.path == "/":
-            self._send_html(INDEX_HTML_TEMPLATE.format(title=escape(DASHBOARD_TITLE)))
+        self.title(APP_TITLE)
+        self.geometry("1500x900")
+        self.configure(bg=DARK_BG)
+        self._configure_ttk()
+        self._build_layout()
+        self._load_initial_report()
+
+    def _configure_ttk(self) -> None:
+        style = ttk.Style(self)
+        style.theme_use("clam")
+        style.configure("Dark.Treeview", background=PANEL_BG, fieldbackground=PANEL_BG, foreground=TEXT_COLOR, rowheight=28)
+        style.configure("Dark.Treeview.Heading", background=TREE_BG, foreground=TEXT_COLOR)
+        style.map("Dark.Treeview", background=[("selected", ACCENT_COLOR)], foreground=[("selected", DARK_BG)])
+
+    def _build_layout(self) -> None:
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        sidebar = tk.Frame(self, bg="#0f1728", width=280)
+        sidebar.grid(row=0, column=0, sticky="nsew")
+        sidebar.grid_propagate(False)
+        sidebar.grid_rowconfigure(2, weight=1)
+
+        tk.Label(sidebar, text=APP_TITLE, bg="#0f1728", fg=TEXT_COLOR, font=("Segoe UI", 18, "bold")).grid(row=0, column=0, sticky="w", padx=18, pady=(18, 6))
+        tk.Label(sidebar, text=f"資料夾：{self.data_dir}", bg="#0f1728", fg=MUTED_COLOR, justify="left", wraplength=240).grid(row=1, column=0, sticky="w", padx=18)
+
+        self.report_listbox = tk.Listbox(sidebar, bg=PANEL_BG, fg=TEXT_COLOR, selectbackground=ACCENT_COLOR, selectforeground=DARK_BG, relief="flat", highlightthickness=0)
+        self.report_listbox.grid(row=2, column=0, sticky="nsew", padx=18, pady=18)
+        self.report_listbox.bind("<<ListboxSelect>>", self._on_report_selected)
+        for report in self.reports:
+            self.report_listbox.insert(tk.END, f"{report['label']}  {report['summary']}")
+
+        main = tk.Frame(self, bg=DARK_BG)
+        main.grid(row=0, column=1, sticky="nsew", padx=18, pady=18)
+        main.grid_columnconfigure(0, weight=1)
+        main.grid_rowconfigure(2, weight=1)
+
+        self.summary_frame = tk.Frame(main, bg=DARK_BG)
+        self.summary_frame.grid(row=0, column=0, sticky="ew", pady=(0, 12))
+
+        content = tk.Frame(main, bg=DARK_BG)
+        content.grid(row=2, column=0, sticky="nsew")
+        content.grid_columnconfigure(1, weight=1)
+        content.grid_rowconfigure(0, weight=1)
+
+        left = tk.Frame(content, bg=DARK_BG, width=400)
+        left.grid(row=0, column=0, sticky="nsw", padx=(0, 12))
+        left.grid_propagate(False)
+
+        self.analysis_card = self._make_card(left, "AI 報告")
+        self.analysis_card.pack(fill="x", pady=(0, 12))
+        self.analysis_content = tk.Frame(self.analysis_card, bg=PANEL_BG)
+        self.analysis_content.pack(fill="both", expand=True)
+
+        review_card = self._make_card(left, "報告回報")
+        review_card.pack(fill="x", pady=(0, 12))
+        tk.Label(review_card, text="回報狀態", bg=PANEL_BG, fg=MUTED_COLOR).pack(anchor="w")
+        self.review_status = ttk.Combobox(review_card, textvariable=self.review_status_var, state="readonly", values=["", "整體正常", "有異常需追蹤", "AI 判讀需調整"])
+        self.review_status.pack(fill="x", pady=(6, 10))
+        self.review_status.bind("<<ComboboxSelected>>", lambda _e: self._save_review_state())
+        tk.Label(review_card, text="備註", bg=PANEL_BG, fg=MUTED_COLOR).pack(anchor="w")
+        self.review_note = tk.Text(review_card, height=6, bg="#0d1525", fg=TEXT_COLOR, insertbackground=TEXT_COLOR, relief="flat")
+        self.review_note.pack(fill="x", pady=(6, 0))
+        self.review_note.bind("<KeyRelease>", lambda _e: self._save_review_state())
+
+        detail_card = self._make_card(left, "列明細")
+        detail_card.pack(fill="both", expand=True)
+        self.detail_text = tk.Text(detail_card, bg="#0d1525", fg=TEXT_COLOR, wrap="word", relief="flat")
+        self.detail_text.pack(fill="both", expand=True)
+        self.detail_text.configure(state="disabled")
+
+        right = tk.Frame(content, bg=DARK_BG)
+        right.grid(row=0, column=1, sticky="nsew")
+        right.grid_columnconfigure(0, weight=1)
+        right.grid_rowconfigure(1, weight=1)
+
+        toolbar_card = self._make_card(right, "CSV 完整檢視")
+        toolbar_card.grid(row=0, column=0, sticky="ew", pady=(0, 12))
+        toolbar = tk.Frame(toolbar_card, bg=PANEL_BG)
+        toolbar.pack(fill="x")
+        toolbar.grid_columnconfigure(0, weight=2)
+        toolbar.grid_columnconfigure(1, weight=1)
+        toolbar.grid_columnconfigure(2, weight=1)
+        tk.Label(toolbar, text="搜尋 CSV", bg=PANEL_BG, fg=MUTED_COLOR).grid(row=0, column=0, sticky="w")
+        tk.Label(toolbar, text="來源 IP", bg=PANEL_BG, fg=MUTED_COLOR).grid(row=0, column=1, sticky="w", padx=(12, 0))
+        tk.Label(toolbar, text="應用程式", bg=PANEL_BG, fg=MUTED_COLOR).grid(row=0, column=2, sticky="w", padx=(12, 0))
+        search_entry = tk.Entry(toolbar, textvariable=self.search_var, bg="#0d1525", fg=TEXT_COLOR, insertbackground=TEXT_COLOR, relief="flat")
+        search_entry.grid(row=1, column=0, sticky="ew", pady=(6, 0))
+        search_entry.bind("<KeyRelease>", lambda _e: self._apply_filters())
+        self.source_combo = ttk.Combobox(toolbar, textvariable=self.source_var, state="readonly")
+        self.source_combo.grid(row=1, column=1, sticky="ew", padx=(12, 0), pady=(6, 0))
+        self.source_combo.bind("<<ComboboxSelected>>", lambda _e: self._apply_filters())
+        self.app_combo = ttk.Combobox(toolbar, textvariable=self.app_var, state="readonly")
+        self.app_combo.grid(row=1, column=2, sticky="ew", padx=(12, 0), pady=(6, 0))
+        self.app_combo.bind("<<ComboboxSelected>>", lambda _e: self._apply_filters())
+
+        table_card = self._make_card(right, "")
+        table_card.grid(row=1, column=0, sticky="nsew")
+        table_card.grid_columnconfigure(0, weight=1)
+        table_card.grid_rowconfigure(0, weight=1)
+        self.tree = ttk.Treeview(table_card, show="headings", style="Dark.Treeview")
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        self.tree.bind("<<TreeviewSelect>>", self._on_row_selected)
+        yscroll = ttk.Scrollbar(table_card, orient="vertical", command=self.tree.yview)
+        yscroll.grid(row=0, column=1, sticky="ns")
+        xscroll = ttk.Scrollbar(table_card, orient="horizontal", command=self.tree.xview)
+        xscroll.grid(row=1, column=0, sticky="ew")
+        self.tree.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
+
+    def _make_card(self, parent: tk.Widget, title: str) -> tk.Frame:
+        frame = tk.Frame(parent, bg=PANEL_BG, highlightbackground="#29405f", highlightthickness=1, padx=14, pady=14)
+        if title:
+            tk.Label(frame, text=title, bg=PANEL_BG, fg=TEXT_COLOR, font=("Segoe UI", 13, "bold")).pack(anchor="w", pady=(0, 10))
+        return frame
+
+    def _load_initial_report(self) -> None:
+        if not self.reports:
+            self._set_text(self.detail_text, "目前找不到任何每日報告。")
             return
-        if parsed.path == "/api/reports":
-            payload = {"data_dir": str(self.data_dir), "reports": discover_reports(self.data_dir)}
-            self._send_json(payload)
+        self.report_listbox.selection_set(0)
+        self._load_report(self.reports[0]["date"])
+
+    def _review_file(self, date_key: str) -> Path:
+        review_dir = self.data_dir / ".reviews"
+        review_dir.mkdir(parents=True, exist_ok=True)
+        return review_dir / f"{date_key}.json"
+
+    def _load_review_state(self) -> None:
+        self.review_status_var.set("")
+        self.review_note.delete("1.0", tk.END)
+        if not self.current_report:
             return
-        if parsed.path.startswith("/api/reports/"):
-            date_key = unquote(parsed.path.removeprefix("/api/reports/"))
-            try:
-                payload = load_report_bundle(self.data_dir, date_key)
-            except FileNotFoundError:
-                self._send_json({"error": f"Report not found: {date_key}"}, status=HTTPStatus.NOT_FOUND)
-                return
-            self._send_json(payload)
+        review_file = self._review_file(self.current_report["date"])
+        if not review_file.exists():
             return
-        self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
+        try:
+            payload = json.loads(review_file.read_text(encoding="utf-8"))
+        except Exception:
+            return
+        self.review_status_var.set(payload.get("status", ""))
+        self.review_note.insert("1.0", payload.get("note", ""))
 
-    def log_message(self, format: str, *args: Any) -> None:
-        return
+    def _save_review_state(self) -> None:
+        if not self.current_report:
+            return
+        payload = {
+            "status": self.review_status_var.get(),
+            "note": self.review_note.get("1.0", tk.END).strip(),
+        }
+        self._review_file(self.current_report["date"]).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    def _send_html(self, html: str, status: HTTPStatus = HTTPStatus.OK) -> None:
-        encoded = html.encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(encoded)))
-        self.end_headers()
-        self.wfile.write(encoded)
+    def _load_report(self, date_key: str) -> None:
+        self.current_report = load_report_bundle(self.data_dir, date_key)
+        self._render_summary()
+        self._render_analysis()
+        self._populate_filters()
+        self._build_table()
+        self._load_review_state()
+        self._set_text(self.detail_text, "尚未選取資料列。")
 
-    def _send_json(self, payload: dict[str, Any], status: HTTPStatus = HTTPStatus.OK) -> None:
-        encoded = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(encoded)))
-        self.end_headers()
-        self.wfile.write(encoded)
+    def _render_summary(self) -> None:
+        for child in self.summary_frame.winfo_children():
+            child.destroy()
+        if not self.current_report:
+            return
+        summary = self.current_report["summary"]
+        cards = [
+            ("報告日期", self.current_report["label"], self.current_report["date"]),
+            ("總資料筆數", str(summary["total_rows"]), ""),
+            ("來源 IP 數", str(summary["unique_sources"]), ""),
+            ("目的地數", str(summary["unique_destinations"]), ""),
+            ("最大傳輸量", summary["max_bytes_human"], summary["max_bytes_raw"]),
+            ("總傳輸量", summary["total_bytes_human"], summary["total_bytes_raw"]),
+        ]
+        for index, (label, value, secondary) in enumerate(cards):
+            card = tk.Frame(self.summary_frame, bg=PANEL_BG_2, highlightbackground="#29405f", highlightthickness=1, padx=14, pady=12)
+            card.grid(row=0, column=index, padx=(0, 10), sticky="nsew")
+            tk.Label(card, text=label, bg=PANEL_BG_2, fg=MUTED_COLOR).pack(anchor="w")
+            tk.Label(card, text=value, bg=PANEL_BG_2, fg=TEXT_COLOR, font=("Segoe UI", 18, "bold")).pack(anchor="w", pady=(6, 0))
+            if secondary:
+                tk.Label(card, text=secondary, bg=PANEL_BG_2, fg=MUTED_COLOR).pack(anchor="w", pady=(4, 0))
+            self.summary_frame.grid_columnconfigure(index, weight=1)
+
+    def _render_analysis(self) -> None:
+        for child in self.analysis_content.winfo_children():
+            child.destroy()
+        if not self.current_report:
+            return
+        sections = self.current_report["analysis_sections"]
+        rows = [
+            ("異常狀態", sections.get("status") or "資料不足，需人工確認", ""),
+            ("摘要", sections.get("summary") or self.current_report["analysis_text"] or "資料不足，需人工確認", ""),
+            ("來源", sections.get("source", ""), ""),
+            ("目的地", sections.get("destination", ""), ""),
+            ("應用程式", sections.get("application", ""), ""),
+            ("傳輸量", sections.get("bytes_human") or sections.get("bytes", ""), sections.get("bytes_raw", "")),
+            ("原因", sections.get("reason", ""), ""),
+        ]
+        for label, value, secondary in rows:
+            block = tk.Frame(self.analysis_content, bg=PANEL_BG)
+            block.pack(fill="x", pady=(0, 10), anchor="w")
+            tk.Label(block, text=label, bg=PANEL_BG, fg=MUTED_COLOR).pack(anchor="w")
+            tk.Label(block, text=value or "—", bg=PANEL_BG, fg=TEXT_COLOR, justify="left", wraplength=340).pack(anchor="w", pady=(3, 0))
+            if secondary:
+                tk.Label(block, text=secondary, bg=PANEL_BG, fg=MUTED_COLOR).pack(anchor="w")
+
+    def _populate_filters(self) -> None:
+        if not self.current_report:
+            return
+        rows = self.current_report["rows"]
+        source_values = sorted({row.get("來源位址", "").strip() for row in rows if row.get("來源位址", "").strip()})
+        app_values = sorted({row.get("應用程式", "").strip() for row in rows if row.get("應用程式", "").strip()})
+        self.source_combo["values"] = [""] + source_values
+        self.app_combo["values"] = [""] + app_values
+        self.source_var.set("")
+        self.app_var.set("")
+        self.search_var.set("")
+        self._apply_filters()
+
+    def _build_table(self) -> None:
+        if not self.current_report:
+            return
+        headers = self.current_report["headers"]
+        self.tree.delete(*self.tree.get_children())
+        self.tree["columns"] = headers
+        for header in headers:
+            self.tree.heading(header, text=header)
+            self.tree.column(header, width=150, anchor="w")
+        self._apply_filters()
+
+    def _apply_filters(self) -> None:
+        if not self.current_report:
+            return
+        search = self.search_var.get().strip().lower()
+        source = self.source_var.get().strip()
+        app = self.app_var.get().strip()
+        rows = []
+        for row in self.current_report["rows"]:
+            blob = " ".join(row.get(header, "") for header in self.current_report["headers"]).lower()
+            if search and search not in blob:
+                continue
+            if source and row.get("來源位址", "") != source:
+                continue
+            if app and row.get("應用程式", "") != app:
+                continue
+            rows.append(row)
+        self.filtered_rows = rows
+        self.tree.delete(*self.tree.get_children())
+        for index, row in enumerate(rows):
+            values = [row.get(header, "") for header in self.current_report["headers"]]
+            self.tree.insert("", tk.END, iid=str(index), values=values)
+
+    def _on_report_selected(self, _event: Any) -> None:
+        selection = self.report_listbox.curselection()
+        if not selection:
+            return
+        self._load_report(self.reports[selection[0]]["date"])
+
+    def _on_row_selected(self, _event: Any) -> None:
+        selection = self.tree.selection()
+        if not selection:
+            return
+        row = self.filtered_rows[int(selection[0])]
+        text = "\n\n".join(f"{header}\n{row.get(header, '—')}" for header in self.current_report["headers"])
+        self._set_text(self.detail_text, text)
+
+    @staticmethod
+    def _set_text(widget: tk.Text, content: str) -> None:
+        widget.configure(state="normal")
+        widget.delete("1.0", tk.END)
+        widget.insert("1.0", content)
+        widget.configure(state="disabled")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Serve a persistent PA450 daily review UI")
+    parser = argparse.ArgumentParser(description="Launch the PA450 desktop review UI")
     parser.add_argument("--data-dir", default=Path("output"), type=Path, help="Folder containing daily CSV/JSON results")
-    parser.add_argument("--host", default="127.0.0.1", help="Host to bind the UI server")
-    parser.add_argument("--port", default=8765, type=int, help="Port to bind the UI server")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    handler = partial(ReportUIHandler, data_dir=str(args.data_dir))
-    server = ThreadingHTTPServer((args.host, args.port), handler)
-    print(f"PA450 Daily Review UI running at http://{args.host}:{args.port} (data dir: {args.data_dir})")
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        server.server_close()
+    app = DesktopReportApp(args.data_dir)
+    app.mainloop()
     return 0
 
 
