@@ -215,7 +215,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
                 <div id="rowDetail" class="empty">尚未選取資料列。</div>
               </div>
               <div class="review-in-detail">
-                <div class="panel-title"><h3>報告回報</h3><span class="pill">localStorage</span></div>
+                <div class="panel-title"><h3>報告回報</h3><span class="pill">report.md</span></div>
                 <div class="detail-key">回報狀態</div>
                 <select id="reviewStatus">
                   <option value="">未設定</option>
@@ -562,18 +562,43 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       return appState.current ? `pa450-review::${{appState.current.date}}` : 'pa450-review';
     }}
 
-    function saveReviewState() {{
+    function canSaveReviewToMarkdown() {{
+      return appState.current && /^\d{{8}}$/.test(appState.current.date || '') && appState.current.source !== 'manual-upload';
+    }}
+
+    async function saveReviewState() {{
       if (!appState.current) return;
-      localStorage.setItem(reviewStorageKey(), JSON.stringify({{
+      const review = {{
         reviewStatus: reviewStatus.value,
         reviewNote: reviewNote.value,
-      }}));
+      }};
+      appState.current.review = review;
+      if (!canSaveReviewToMarkdown()) {{
+        localStorage.setItem(reviewStorageKey(), JSON.stringify(review));
+        return;
+      }}
+      try {{
+        const response = await fetch(apiUrl('/api/reports/' + encodeURIComponent(appState.current.date) + '/review'), {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify(review),
+        }});
+        if (!response.ok) throw new Error(`儲存 report.md 失敗：${{response.status}}`);
+      }} catch (error) {{
+        showError(error.message || '儲存 report.md 失敗');
+      }}
     }}
 
     function loadReviewState() {{
       reviewStatus.value = '';
       reviewNote.value = '';
       if (!appState.current) return;
+      if (canSaveReviewToMarkdown()) {{
+        const saved = appState.current.review || {{}};
+        reviewStatus.value = saved.reviewStatus || '';
+        reviewNote.value = saved.reviewNote || '';
+        return;
+      }}
       try {{
         const raw = localStorage.getItem(reviewStorageKey());
         if (!raw) return;
@@ -879,8 +904,60 @@ def enrich_rows_for_display(headers: list[str], rows: list[dict[str, str]]) -> t
     return display_headers, display_rows
 
 
+REVIEW_STATUS_LABELS = {
+    "": "未設定",
+    "normal": "整體正常",
+    "follow-up": "有異常需追蹤",
+    "ai-adjustment": "AI 判讀需調整",
+}
+
+
 def _report_date_label(date_key: str) -> str:
     return f"{date_key[:4]}-{date_key[4:6]}-{date_key[6:8]}"
+
+
+def _review_markdown_path(data_dir: str | Path, date_key: str) -> Path:
+    date_key = _validated_date_key(date_key)
+    return _normalized_base(data_dir) / date_key / "report.md"
+
+
+def _review_markdown_content(date_key: str, review_status: str, review_note: str) -> str:
+    date_key = _validated_date_key(date_key)
+    status_label = REVIEW_STATUS_LABELS.get(review_status, review_status or REVIEW_STATUS_LABELS[""])
+    note = review_note.rstrip() or "未填寫"
+    return (
+        "# 報告回報\n\n"
+        f"- 報告日期：{_report_date_label(date_key)}\n"
+        f"- 回報狀態：{status_label}\n\n"
+        "## 備註\n\n"
+        f"{note}\n"
+    )
+
+
+def save_review_markdown(data_dir: str | Path, date_key: str, review_status: str, review_note: str) -> Path:
+    report_path = _review_markdown_path(data_dir, date_key)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(_review_markdown_content(date_key, review_status, review_note), encoding="utf-8")
+    return report_path
+
+
+def load_review_markdown(data_dir: str | Path, date_key: str) -> dict[str, str]:
+    report_path = _review_markdown_path(data_dir, date_key)
+    if not report_path.exists():
+        return {"reviewStatus": "", "reviewNote": ""}
+    text = report_path.read_text(encoding="utf-8")
+    status = ""
+    for key, label in REVIEW_STATUS_LABELS.items():
+        if f"- 回報狀態：{label}" in text:
+            status = key
+            break
+    note = ""
+    marker = "## 備註\n\n"
+    if marker in text:
+        note = text.split(marker, 1)[1].rstrip("\n")
+        if note == "未填寫":
+            note = ""
+    return {"reviewStatus": status, "reviewNote": note}
 
 
 def _validated_date_key(date_key: str) -> str:
@@ -1026,6 +1103,7 @@ def load_report_bundle(data_dir: str | Path, date_key: str) -> dict[str, Any]:
         "summary": summarize_rows(rows),
         "analysis_text": analysis_text,
         "analysis_sections": analysis_sections,
+        "review": load_review_markdown(data_dir, date_key),
     }
 
 
@@ -1062,6 +1140,31 @@ class ReportUIHandler(BaseHTTPRequestHandler):
                 self._send_json({"error": "Report not found"}, status=HTTPStatus.NOT_FOUND)
                 return
             self._send_json(payload)
+            return
+        self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
+
+    def do_POST(self) -> None:
+        parsed = urlparse(self.path)
+        data_dir = self._request_data_dir(parsed)
+        if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/review"):
+            date_key = unquote(parsed.path.removeprefix("/api/reports/").removesuffix("/review").strip("/"))
+            try:
+                date_key = _validated_date_key(date_key)
+                content_length = int(self.headers.get("Content-Length", "0"))
+                body = self.rfile.read(content_length).decode("utf-8")
+                payload = json.loads(body or "{}")
+                if not isinstance(payload, dict):
+                    raise ValueError("Review payload must be an object")
+                report_path = save_review_markdown(
+                    data_dir,
+                    date_key,
+                    str(payload.get("reviewStatus") or ""),
+                    str(payload.get("reviewNote") or ""),
+                )
+            except (ValueError, json.JSONDecodeError):
+                self._send_json({"error": "Invalid review payload"}, status=HTTPStatus.BAD_REQUEST)
+                return
+            self._send_json({"ok": True, "path": str(report_path), "review": load_review_markdown(data_dir, date_key)})
             return
         self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
 
