@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import threading
 import webbrowser
@@ -13,7 +14,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from report import parse_int
 
@@ -39,62 +40,117 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       --muted: #9eb2d0;
       --accent: #65b7ff;
       --accent-bg: rgba(101, 183, 255, 0.18);
+      --sidebar-w: 280px;
+      --sidebar-collapsed-w: 72px;
+      --right-rail-w: 320px;
     }}
     * {{ box-sizing: border-box; }}
     body {{ margin: 0; font-family: Inter, "Noto Sans TC", sans-serif; background: var(--bg); color: var(--text); }}
     h1, h2, h3, p {{ margin: 0; }}
     button, input, select, textarea {{ font: inherit; }}
-    .app {{ display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }}
-    .sidebar {{ border-right: 1px solid var(--line); background: #0f1728; padding: 20px; }}
-    .main {{ padding: 24px; }}
-    .brand {{ margin-bottom: 18px; }}
-    .brand h1 {{ font-size: 22px; margin-bottom: 8px; }}
+    .app {{ display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); min-height: 100vh; transition: grid-template-columns 180ms ease; }}
+    .app.sidebar-collapsed {{ grid-template-columns: var(--sidebar-collapsed-w) minmax(0, 1fr); }}
+    .sidebar {{ position: sticky; top: 0; height: 100vh; overflow: hidden; border-right: 1px solid var(--line); background: #0f1728; padding: 16px; }}
+    .sidebar-inner {{ height: 100%; overflow-y: auto; overflow-x: hidden; padding-right: 2px; }}
+    .sidebar-top {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 14px; }}
+    .sidebar-toggle {{ flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: #0d1525; color: var(--text); cursor: pointer; }}
+    .sidebar-toggle:hover {{ border-color: var(--accent); background: var(--accent-bg); }}
+    .brand {{ min-width: 0; }}
+    .brand h1 {{ font-size: 20px; line-height: 1.2; margin-bottom: 8px; }}
     .subtle {{ color: var(--muted); font-size: 13px; }}
-    .report-list {{ display: grid; gap: 10px; margin-top: 18px; }}
+    .base-picker {{ display: grid; gap: 8px; margin-top: 14px; }}
+    .base-picker-actions {{ display: flex; gap: 8px; }}
+    .base-picker-actions input {{ min-width: 0; }}
+    .base-picker-actions button {{ flex: 0 0 auto; border-radius: 10px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 8px 12px; cursor: pointer; }}
+    .base-picker-actions button:hover {{ border-color: var(--accent); background: var(--accent-bg); }}
+    .app.sidebar-collapsed .sidebar {{ padding: 16px 12px; }}
+    .app.sidebar-collapsed .sidebar-top {{ justify-content: center; }}
+    .app.sidebar-collapsed .brand, .app.sidebar-collapsed .base-picker, .app.sidebar-collapsed .report-item .report-summary {{ display: none; }}
+    .app.sidebar-collapsed .report-list {{ margin-top: 10px; }}
+    .app.sidebar-collapsed .report-item {{ min-height: 48px; padding: 8px 6px; text-align: center; border-radius: 14px; }}
+    .app.sidebar-collapsed .report-date {{ font-size: 12px; line-height: 1.15; word-break: break-all; }}
+    .main {{ min-width: 0; padding: 18px 20px 24px; }}
+    .report-list {{ display: grid; gap: 10px; margin-top: 14px; }}
     .report-item {{ width: 100%; text-align: left; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }}
     .report-item:hover, .report-item.active {{ border-color: var(--accent); background: var(--accent-bg); }}
-    .layout {{ display: grid; gap: 16px; }}
-    .summary-grid {{ display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }}
-    .content-grid {{ display: grid; grid-template-columns: minmax(320px, 420px) minmax(0, 1fr); gap: 16px; align-items: start; }}
-    .stack {{ display: grid; gap: 16px; }}
+    .report-date {{ font-size: 16px; color: var(--text); }}
+    .layout {{ display: grid; gap: 14px; }}
+    .summary-grid {{ display: grid; gap: 10px; grid-template-columns: repeat(6, minmax(110px, 1fr)); overflow-x: auto; padding-bottom: 2px; }}
+    .content-grid {{ display: grid; grid-template-columns: minmax(0, 1fr) var(--right-rail-w); gap: 16px; align-items: stretch; }}
+    .right-rail {{ display: grid; gap: 12px; align-content: start; }}
     .card {{ background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18); }}
-    .metric {{ font-size: 30px; font-weight: 700; margin-top: 10px; }}
-    .pill {{ display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; border: 1px solid var(--line); color: var(--muted); }}
+    .csv-card {{ display: flex; flex-direction: column; min-height: calc(100vh - 150px); }}
+    .summary-grid .card {{ min-width: 0; min-height: 82px; padding: 10px 12px; }}
+    .metric {{ font-size: 20px; line-height: 1.12; font-weight: 700; margin-top: 6px; word-break: break-word; }}
+    .summary-grid .subtle {{ font-size: 11px; margin-top: 4px; word-break: break-all; }}
+    .pill {{ display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }}
     .panel-title {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }}
+    .panel-title h2 {{ font-size: 22px; line-height: 1.2; }}
+    .right-rail .panel-title h2 {{ font-size: 18px; }}
     .detail-list {{ display: grid; gap: 10px; }}
     .detail-row {{ border-bottom: 1px dashed rgba(255,255,255,0.12); padding-bottom: 10px; }}
     .detail-row:last-child {{ border-bottom: none; padding-bottom: 0; }}
     .detail-key {{ color: var(--muted); font-size: 12px; margin-bottom: 4px; }}
+    .ai-card {{ font-size: 13px; }}
+    .ai-card .detail-list {{ gap: 8px; }}
+    .ai-card .detail-row {{ padding-bottom: 8px; }}
+    .ai-card .detail-row > div:not(.detail-key):not(.subtle) {{ line-height: 1.55; }}
     .report-text {{ white-space: pre-wrap; line-height: 1.7; font-size: 14px; }}
-    .toolbar {{ display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }}
-    input, select, textarea {{ width: 100%; background: #0d1525; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }}
-    textarea {{ min-height: 120px; resize: vertical; }}
-    .toolbar .control {{ min-width: 180px; flex: 1; }}
-    .table-wrap {{ overflow: auto; border: 1px solid var(--line); border-radius: 14px; }}
+    .toolbar {{ display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr) minmax(0, 0.75fr); gap: 12px; margin-bottom: 14px; min-width: 0; }}
+    .control {{ min-width: 0; }}
+    input, select, textarea {{ width: 100%; min-width: 0; background: #0d1525; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }}
+    textarea {{ min-height: 92px; resize: vertical; }}
+    .table-wrap {{ flex: 1 1 auto; min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: 14px; max-height: none; }}
+    .row-detail-card {{ display: grid; gap: 14px; }}
+    .review-in-detail {{ border-top: 1px solid rgba(255,255,255,0.10); padding-top: 14px; }}
+    .review-in-detail h3 {{ font-size: 17px; margin-bottom: 10px; }}
     table {{ width: 100%; border-collapse: collapse; min-width: 900px; }}
     thead th {{ position: sticky; top: 0; background: #13213a; z-index: 1; text-align: left; }}
-    th, td {{ padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 14px; vertical-align: top; }}
+    th, td {{ padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 13px; vertical-align: top; }}
     tbody tr {{ cursor: pointer; }}
     tbody tr:hover {{ background: rgba(101, 183, 255, 0.08); }}
     tbody tr.is-selected {{ background: rgba(101, 183, 255, 0.18); }}
     .empty {{ padding: 18px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); }}
     .error {{ color: #ff9a9a; }}
+    @media (max-width: 1320px) {{
+      .summary-grid {{ grid-template-columns: repeat(6, minmax(100px, 1fr)); }}
+      .content-grid {{ grid-template-columns: minmax(0, 1fr) 300px; }}
+    }}
     @media (max-width: 1080px) {{
-      .app {{ grid-template-columns: 1fr; }}
-      .sidebar {{ border-right: none; border-bottom: 1px solid var(--line); }}
+      .app, .app.sidebar-collapsed {{ grid-template-columns: 1fr; }}
+      .sidebar {{ position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--line); }}
+      .app.sidebar-collapsed .brand {{ display: block; }}
+      .summary-grid {{ grid-template-columns: repeat(6, minmax(96px, 1fr)); }}
       .content-grid {{ grid-template-columns: 1fr; }}
+      .right-rail {{ grid-row: 2; }}
+      .toolbar {{ grid-template-columns: 1fr; }}
+      .csv-card {{ min-height: auto; }}
+      .table-wrap {{ max-height: none; }}
     }}
   </style>
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="brand">
-        <h1>{title}</h1>
-        <p class="subtle">同一個 UI 直接切換每日報告，不用每次重生 dashboard。</p>
-        <p class="subtle">僅限本機 localhost 使用。</p>
+  <div class="app" id="appShell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <div class="sidebar-top">
+          <div class="brand">
+            <h1>{title}</h1>
+            <p class="subtle">同一個 UI 直接切換每日報告，不用每次重生 dashboard。</p>
+            <p class="subtle">僅限本機 localhost 使用。</p>
+            <div class="base-picker">
+              <div class="detail-key">資料夾 base</div>
+              <div class="base-picker-actions">
+                <input id="dataDirInput" type="text" placeholder="例如：C:\\pa450\\output 或 ./output">
+                <button id="reloadDataDir" type="button">讀取</button>
+              </div>
+              <p class="subtle">CSV 與 JSON 可在 base 底下不同子目錄。</p>
+            </div>
+          </div>
+          <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="收合側邊欄" title="收合側邊欄">‹</button>
+        </div>
+        <div class="report-list" id="reportList"></div>
       </div>
-      <div class="report-list" id="reportList"></div>
     </aside>
     <main class="main">
       <div id="loading" class="empty">載入中...</div>
@@ -102,29 +158,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       <div id="reportApp" class="layout" hidden>
         <section class="summary-grid" id="summaryGrid"></section>
         <section class="content-grid">
-          <div class="stack">
-            <article class="card">
-              <div class="panel-title"><h2>AI 報告</h2><span class="pill">給人讀的摘要</span></div>
-              <div class="detail-list" id="analysisCard"></div>
-            </article>
-            <article class="card">
-              <div class="panel-title"><h2>報告回報</h2><span class="pill">localStorage</span></div>
-              <div class="detail-key">回報狀態</div>
-              <select id="reviewStatus">
-                <option value="">未設定</option>
-                <option value="normal">整體正常</option>
-                <option value="follow-up">有異常需追蹤</option>
-                <option value="ai-adjustment">AI 判讀需調整</option>
-              </select>
-              <div class="detail-key" style="margin-top:12px;">備註</div>
-              <textarea id="reviewNote" placeholder="例如：這次高流量其實是備份流量，AI 需要學會辨識。"></textarea>
-            </article>
-            <article class="card">
-              <div class="panel-title"><h2>列明細</h2><span class="pill">點右側表格列查看</span></div>
-              <div id="rowDetail" class="empty">尚未選取資料列。</div>
-            </article>
-          </div>
-          <article class="card">
+          <article class="card csv-card">
             <div class="panel-title"><h2>CSV 完整檢視</h2><span class="pill">Evidence</span></div>
             <div class="toolbar">
               <div class="control">
@@ -147,13 +181,42 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
               </table>
             </div>
           </article>
+          <aside class="right-rail">
+            <article class="card ai-card">
+              <div class="panel-title"><h2>AI 報告</h2><span class="pill">摘要</span></div>
+              <div class="detail-list" id="analysisCard"></div>
+            </article>
+            <article class="card row-detail-card">
+              <div>
+                <div class="panel-title"><h2>列明細</h2><span class="pill">點表格列</span></div>
+                <div id="rowDetail" class="empty">尚未選取資料列。</div>
+              </div>
+              <div class="review-in-detail">
+                <div class="panel-title"><h3>報告回報</h3><span class="pill">localStorage</span></div>
+                <div class="detail-key">回報狀態</div>
+                <select id="reviewStatus">
+                  <option value="">未設定</option>
+                  <option value="normal">整體正常</option>
+                  <option value="follow-up">有異常需追蹤</option>
+                  <option value="ai-adjustment">AI 判讀需調整</option>
+                </select>
+                <div class="detail-key" style="margin-top:12px;">備註</div>
+                <textarea id="reviewNote" placeholder="例如：這次高流量其實是備份流量，AI 需要學會辨識。"></textarea>
+              </div>
+            </article>
+          </aside>
         </section>
       </div>
     </main>
   </div>
 
   <script>
+    const DEFAULT_DATA_DIR = {data_dir_json};
     const appState = {{ reports: [], current: null, selectedRowIndex: null }};
+    const appShell = document.getElementById('appShell');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const dataDirInput = document.getElementById('dataDirInput');
+    const reloadDataDir = document.getElementById('reloadDataDir');
     const reportList = document.getElementById('reportList');
     const loading = document.getElementById('loading');
     const errorBox = document.getElementById('errorBox');
@@ -193,6 +256,28 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       row.appendChild(createTextNode('div', value || '—'));
       if (secondary) row.appendChild(createTextNode('div', secondary, 'subtle'));
       return row;
+    }}
+
+    function setSidebarCollapsed(collapsed) {{
+      appShell.classList.toggle('sidebar-collapsed', collapsed);
+      sidebarToggle.textContent = collapsed ? '›' : '‹';
+      sidebarToggle.title = collapsed ? '展開側邊欄' : '收合側邊欄';
+      sidebarToggle.setAttribute('aria-label', sidebarToggle.title);
+      localStorage.setItem('pa450-sidebar-collapsed', collapsed ? '1' : '0');
+    }}
+
+    function currentDataDir() {{
+      return dataDirInput.value.trim() || DEFAULT_DATA_DIR;
+    }}
+
+    function apiUrl(path) {{
+      const params = new URLSearchParams();
+      params.set('data_dir', currentDataDir());
+      return path + '?' + params.toString();
+    }}
+
+    function persistDataDir() {{
+      localStorage.setItem('pa450-data-dir', currentDataDir());
     }}
 
     function showError(message) {{
@@ -257,8 +342,8 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         const btn = document.createElement('button');
         btn.className = 'report-item';
         if (appState.current && report.date === appState.current.date) btn.classList.add('active');
-        btn.appendChild(createTextNode('div', report.label));
-        btn.appendChild(createTextNode('div', report.summary, 'subtle'));
+        btn.appendChild(createTextNode('div', report.label, 'report-date'));
+        btn.appendChild(createTextNode('div', report.summary, 'subtle report-summary'));
         btn.addEventListener('click', () => loadReport(report.date));
         reportList.appendChild(btn);
       }});
@@ -376,7 +461,8 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     }}
 
     async function loadReport(date) {{
-      const response = await fetch(`/api/reports/${{encodeURIComponent(date)}}`);
+      persistDataDir();
+      const response = await fetch(apiUrl('/api/reports/' + encodeURIComponent(date)));
       if (!response.ok) throw new Error(`載入報告失敗：${{response.status}}`);
       appState.current = await response.json();
       renderCurrentReport();
@@ -384,21 +470,35 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
 
     async function bootstrap() {{
       try {{
-        const response = await fetch('/api/reports');
+        clearError();
+        loading.hidden = false;
+        reportApp.hidden = true;
+        appState.current = null;
+        appState.selectedRowIndex = null;
+        persistDataDir();
+        const response = await fetch(apiUrl('/api/reports'));
         if (!response.ok) throw new Error(`載入報告列表失敗：${{response.status}}`);
         const payload = await response.json();
-        appState.reports = payload.reports;
+        appState.reports = payload.reports || [];
         renderSidebar();
-        if (!payload.reports.length) {{
+        if (!appState.reports.length) {{
           loading.hidden = true;
+          setEmptyMessage(reportList, `此 base 找不到成對的 CSV/JSON：${{currentDataDir()}}`);
           return;
         }}
-        await loadReport(payload.reports[0].date);
+        await loadReport(appState.reports[0].date);
       }} catch (error) {{
         showError(error.message || '載入失敗');
       }}
     }}
 
+    dataDirInput.value = localStorage.getItem('pa450-data-dir') || DEFAULT_DATA_DIR;
+    reloadDataDir.addEventListener('click', bootstrap);
+    dataDirInput.addEventListener('keydown', (event) => {{
+      if (event.key === 'Enter') bootstrap();
+    }});
+    sidebarToggle.addEventListener('click', () => setSidebarCollapsed(!appShell.classList.contains('sidebar-collapsed')));
+    setSidebarCollapsed(localStorage.getItem('pa450-sidebar-collapsed') === '1');
     searchInput.addEventListener('input', renderRows);
     sourceFilter.addEventListener('change', renderRows);
     appFilter.addEventListener('change', renderRows);
@@ -409,7 +509,6 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
 </body>
 </html>
 """
-
 
 def format_bytes_human(value: int | None) -> str:
     if value is None:
@@ -519,27 +618,94 @@ def _validated_date_key(date_key: str) -> str:
     return date_key
 
 
-def discover_reports(data_dir: str | Path) -> list[dict[str, str]]:
-    base = Path(data_dir)
-    report_map: dict[str, dict[str, Path]] = {}
-    if not base.exists():
-        return []
+def _normalized_base(data_dir: str | Path) -> Path:
+    return Path(data_dir).expanduser()
 
-    for csv_path in sorted(base.glob("*_report.csv")):
-        date_key = csv_path.stem.removesuffix("_report")
+
+def _date_key_from_ancestors(path: Path) -> str | None:
+    for part in reversed(path.parent.parts):
+        if DATE_KEY_RE.fullmatch(part):
+            return part
+    return None
+
+
+def _csv_date_key(path: Path) -> str | None:
+    name = path.name
+    if name.endswith("_report.csv"):
+        date_key = path.stem.removesuffix("_report")
         if DATE_KEY_RE.fullmatch(date_key):
-            report_map.setdefault(date_key, {})["csv"] = csv_path
-    for json_path in sorted(base.glob("*.json")):
-        if DATE_KEY_RE.fullmatch(json_path.stem):
-            report_map.setdefault(json_path.stem, {})["analysis"] = json_path
-    for child in sorted(base.iterdir()):
-        if not child.is_dir() or not DATE_KEY_RE.fullmatch(child.name):
+            return date_key
+    if name == "report.csv":
+        return _date_key_from_ancestors(path)
+    return None
+
+
+def _analysis_date_key(path: Path) -> str | None:
+    if path.suffix.lower() != ".json":
+        return None
+    if DATE_KEY_RE.fullmatch(path.stem):
+        return path.stem
+    if path.name == "analysis.json":
+        return _date_key_from_ancestors(path)
+    return None
+
+
+def _iter_files(base: Path):
+    if not base.exists() or not base.is_dir():
+        return
+    for root, _dirs, files in os.walk(base):
+        for filename in files:
+            yield Path(root) / filename
+
+
+def _candidate_score(base: Path, path: Path) -> tuple[int, int, str]:
+    try:
+        relative = path.relative_to(base)
+    except ValueError:
+        relative = path
+    # 越靠近 base 越優先；同層級時以較新的檔案優先。
+    try:
+        mtime = int(path.stat().st_mtime)
+    except OSError:
+        mtime = 0
+    return (len(relative.parts), -mtime, str(relative))
+
+
+def _set_best_candidate(report_map: dict[str, dict[str, Path]], date_key: str, kind: str, path: Path, base: Path) -> None:
+    current = report_map.setdefault(date_key, {}).get(kind)
+    if current is None or _candidate_score(base, path) < _candidate_score(base, current):
+        report_map[date_key][kind] = path
+
+
+def _relative_label(base: Path, path: Path) -> str:
+    try:
+        return str(path.relative_to(base))
+    except ValueError:
+        return str(path)
+
+
+def build_report_map(data_dir: str | Path) -> dict[str, dict[str, Path]]:
+    base = _normalized_base(data_dir)
+    report_map: dict[str, dict[str, Path]] = {}
+
+    for path in _iter_files(base):
+        if path.suffix.lower() == ".csv":
+            date_key = _csv_date_key(path)
+            if date_key:
+                _set_best_candidate(report_map, date_key, "csv", path, base)
             continue
-        csv_candidate = child / "report.csv"
-        analysis_candidate = child / "analysis.json"
-        if csv_candidate.exists() and analysis_candidate.exists():
-            report_map.setdefault(child.name, {})["csv"] = csv_candidate
-            report_map.setdefault(child.name, {})["analysis"] = analysis_candidate
+
+        if path.suffix.lower() == ".json":
+            date_key = _analysis_date_key(path)
+            if date_key:
+                _set_best_candidate(report_map, date_key, "analysis", path, base)
+
+    return report_map
+
+
+def discover_reports(data_dir: str | Path) -> list[dict[str, str]]:
+    base = _normalized_base(data_dir)
+    report_map = build_report_map(base)
 
     reports: list[dict[str, str]] = []
     for date_key, paths in sorted(report_map.items(), reverse=True):
@@ -548,24 +714,26 @@ def discover_reports(data_dir: str | Path) -> list[dict[str, str]]:
         reports.append({
             "date": date_key,
             "label": _report_date_label(date_key),
-            "summary": f"{paths['csv'].name} · {paths['analysis'].name}",
+            "summary": f"{_relative_label(base, paths['csv'])} · {_relative_label(base, paths['analysis'])}",
+            "csv_path": str(paths["csv"]),
+            "analysis_path": str(paths["analysis"]),
         })
     return reports
 
 
+def locate_report_paths(data_dir: str | Path, date_key: str) -> tuple[Path, Path]:
+    base = _normalized_base(data_dir)
+    report_map = build_report_map(base)
+    paths = report_map.get(date_key, {})
+    csv_path = paths.get("csv")
+    json_path = paths.get("analysis")
+    if not csv_path or not json_path:
+        raise FileNotFoundError(f"Report bundle not found for date: {date_key}")
+    return csv_path, json_path
+
 def load_report_bundle(data_dir: str | Path, date_key: str) -> dict[str, Any]:
     date_key = _validated_date_key(date_key)
-    base = Path(data_dir)
-    csv_path = base / f"{date_key}_report.csv"
-    json_path = base / f"{date_key}.json"
-    if not (csv_path.exists() and json_path.exists()):
-        folder_csv = base / date_key / "report.csv"
-        folder_json = base / date_key / "analysis.json"
-        if folder_csv.exists() and folder_json.exists():
-            csv_path = folder_csv
-            json_path = folder_json
-    if not csv_path.exists() or not json_path.exists():
-        raise FileNotFoundError(f"Report bundle not found for date: {date_key}")
+    csv_path, json_path = locate_report_paths(data_dir, date_key)
 
     headers, rows = load_csv_rows(csv_path)
     analysis_payload = load_analysis_payload(json_path)
@@ -579,6 +747,9 @@ def load_report_bundle(data_dir: str | Path, date_key: str) -> dict[str, Any]:
     return {
         "date": date_key,
         "label": _report_date_label(date_key),
+        "data_dir": str(_normalized_base(data_dir)),
+        "csv_path": str(csv_path),
+        "analysis_path": str(json_path),
         "headers": display_headers,
         "rows": display_rows,
         "summary": summarize_rows(rows),
@@ -589,21 +760,30 @@ def load_report_bundle(data_dir: str | Path, date_key: str) -> dict[str, Any]:
 
 class ReportUIHandler(BaseHTTPRequestHandler):
     def __init__(self, *args: Any, data_dir: str, **kwargs: Any) -> None:
-        self.data_dir = Path(data_dir)
+        self.default_data_dir = _normalized_base(data_dir)
         super().__init__(*args, **kwargs)
+
+    def _request_data_dir(self, parsed) -> Path:
+        params = parse_qs(parsed.query)
+        requested = (params.get("data_dir") or [""])[0].strip()
+        return _normalized_base(requested) if requested else self.default_data_dir
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        data_dir = self._request_data_dir(parsed)
         if parsed.path == "/":
-            self._send_html(INDEX_HTML_TEMPLATE.format(title=escape(DASHBOARD_TITLE)))
+            self._send_html(INDEX_HTML_TEMPLATE.format(
+                title=escape(DASHBOARD_TITLE),
+                data_dir_json=json.dumps(str(self.default_data_dir), ensure_ascii=False),
+            ))
             return
         if parsed.path == "/api/reports":
-            self._send_json({"reports": discover_reports(self.data_dir)})
+            self._send_json({"data_dir": str(data_dir), "reports": discover_reports(data_dir)})
             return
         if parsed.path.startswith("/api/reports/"):
             date_key = unquote(parsed.path.removeprefix("/api/reports/"))
             try:
-                payload = load_report_bundle(self.data_dir, date_key)
+                payload = load_report_bundle(data_dir, date_key)
             except ValueError:
                 self._send_json({"error": "Invalid report date"}, status=HTTPStatus.BAD_REQUEST)
                 return
