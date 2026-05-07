@@ -14,6 +14,54 @@ from report import parse_int
 DASHBOARD_TITLE = "PA450 CSV / AI Review Dashboard"
 
 
+def format_bytes_human(value: int | None) -> str:
+    if value is None:
+        return "—"
+    units = ["bytes", "KB", "MB", "GB", "TB"]
+    size = float(value)
+    unit = units[0]
+    for current_unit in units:
+        unit = current_unit
+        if size < 1024 or current_unit == units[-1]:
+            break
+        size /= 1024
+    if unit == "bytes":
+        return f"{value:,} bytes"
+    return f"{size:.1f} {unit}"
+
+
+def parse_analysis_sections(analysis_text: str) -> dict[str, str]:
+    parsed = {
+        "status": "",
+        "summary": "",
+        "source": "",
+        "destination": "",
+        "application": "",
+        "bytes": "",
+        "reason": "",
+    }
+    for raw_line in analysis_text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        normalized = line.lstrip("- ")
+        if normalized.startswith("異常狀態："):
+            parsed["status"] = normalized.split("：", 1)[1].strip()
+        elif normalized.startswith("摘要："):
+            parsed["summary"] = normalized.split("：", 1)[1].strip()
+        elif normalized.startswith("來源："):
+            parsed["source"] = normalized.split("：", 1)[1].strip()
+        elif normalized.startswith("目的地："):
+            parsed["destination"] = normalized.split("：", 1)[1].strip()
+        elif normalized.startswith("應用程式："):
+            parsed["application"] = normalized.split("：", 1)[1].strip()
+        elif normalized.startswith("位元組："):
+            parsed["bytes"] = normalized.split("：", 1)[1].strip()
+        elif normalized.startswith("原因："):
+            parsed["reason"] = normalized.split("：", 1)[1].strip()
+    return parsed
+
+
 def load_csv_rows(csv_path: str | Path) -> tuple[list[str], list[dict[str, str]]]:
     with Path(csv_path).open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -59,21 +107,42 @@ def summarize_rows(rows: list[dict[str, str]]) -> dict[str, Any]:
     }
 
 
+def enrich_rows_for_display(headers: list[str], rows: list[dict[str, str]]) -> tuple[list[str], list[dict[str, str]]]:
+    display_headers = ["傳輸量" if header == "位元組" else header for header in headers]
+    display_rows: list[dict[str, str]] = []
+    for row in rows:
+        display_row = dict(row)
+        if "位元組" in row:
+            byte_value = parse_int(row.get("位元組"))
+            if byte_value is None:
+                display_row["傳輸量"] = row.get("位元組", "")
+            else:
+                display_row["傳輸量"] = f"{format_bytes_human(byte_value)} ({byte_value:,} bytes)"
+            display_row.pop("位元組", None)
+        display_rows.append(display_row)
+    return display_headers, display_rows
+
+
 def build_dashboard_context(csv_path: str | Path, analysis_json_path: str | Path) -> dict[str, Any]:
     headers, rows = load_csv_rows(csv_path)
     analysis_payload = load_analysis_payload(analysis_json_path)
     analysis_text = str(analysis_payload.get("analysis") or "")
+    display_headers, display_rows = enrich_rows_for_display(headers, rows)
+    analysis_sections = parse_analysis_sections(analysis_text)
+    analysis_bytes_value = parse_int(analysis_sections.get("bytes"))
+    analysis_sections["bytes_human"] = format_bytes_human(analysis_bytes_value) if analysis_bytes_value is not None else ""
+    analysis_sections["bytes_raw"] = f"{analysis_bytes_value:,} bytes" if analysis_bytes_value is not None else analysis_sections.get("bytes", "")
 
     return {
         "title": DASHBOARD_TITLE,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "csv_path": str(csv_path),
         "analysis_json_path": str(analysis_json_path),
-        "headers": headers,
-        "rows": rows,
+        "display_headers": display_headers,
+        "display_rows": display_rows,
         "summary": summarize_rows(rows),
-        "analysis_payload": analysis_payload,
         "analysis_text": analysis_text,
+        "analysis_sections": analysis_sections,
     }
 
 
@@ -83,22 +152,28 @@ def _json_for_script(data: Any) -> str:
 
 def build_dashboard_html(context: dict[str, Any]) -> str:
     summary = context["summary"]
-    analysis_text = escape(context["analysis_text"] or "資料不足，需人工確認")
-    payload_json = escape(json.dumps(context["analysis_payload"], ensure_ascii=False, indent=2))
+    analysis_sections = context["analysis_sections"]
+    status_text = escape(analysis_sections.get("status") or "資料不足，需人工確認")
+    summary_text = escape(analysis_sections.get("summary") or context["analysis_text"] or "資料不足，需人工確認")
+    source_text = escape(analysis_sections.get("source") or "—")
+    destination_text = escape(analysis_sections.get("destination") or "—")
+    application_text = escape(analysis_sections.get("application") or "—")
+    bytes_human_text = escape(analysis_sections.get("bytes_human") or analysis_sections.get("bytes") or "—")
+    bytes_raw_text = escape(analysis_sections.get("bytes_raw") or "")
+    reason_text = escape(analysis_sections.get("reason") or "—")
     dashboard_data = _json_for_script(
         {
-            "headers": context["headers"],
-            "rows": context["rows"],
+            "headers": context["display_headers"],
+            "rows": context["display_rows"],
             "summary": context["summary"],
             "analysisText": context["analysis_text"],
-            "analysisPayload": context["analysis_payload"],
             "csvPath": context["csv_path"],
             "analysisJsonPath": context["analysis_json_path"],
             "generatedAt": context["generated_at"],
         }
     )
 
-    return f"""<!doctype html>
+    return f'''<!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
@@ -113,15 +188,11 @@ def build_dashboard_html(context: dict[str, Any]) -> str:
       --line: #29405f;
       --text: #e8eefc;
       --muted: #9eb2d0;
-      --accent: #65b7ff;
-      --ok: #29c36a;
-      --warn: #ffb020;
-      --danger: #ff6b6b;
     }}
     * {{ box-sizing: border-box; }}
     body {{ margin: 0; font-family: Inter, "Noto Sans TC", sans-serif; background: var(--bg); color: var(--text); }}
     .page {{ max-width: 1600px; margin: 0 auto; padding: 24px; }}
-    h1, h2, h3 {{ margin: 0; }}
+    h1, h2 {{ margin: 0; }}
     .subtle {{ color: var(--muted); font-size: 14px; }}
     .hero {{ display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 20px; }}
     .grid {{ display: grid; gap: 16px; }}
@@ -132,7 +203,6 @@ def build_dashboard_html(context: dict[str, Any]) -> str:
     .stack {{ display: grid; gap: 16px; }}
     .label {{ color: var(--muted); font-size: 13px; margin-bottom: 6px; }}
     .panel-title {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
-    pre {{ white-space: pre-wrap; word-break: break-word; margin: 0; font-size: 13px; line-height: 1.55; }}
     .report-text {{ white-space: pre-wrap; line-height: 1.7; font-size: 14px; }}
     .toolbar {{ display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }}
     input, select, textarea {{ width: 100%; background: #0d1525; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: inherit; }}
@@ -172,8 +242,8 @@ def build_dashboard_html(context: dict[str, Any]) -> str:
       <div class="card"><div class="label">總資料筆數</div><div class="metric">{summary['total_rows']}</div></div>
       <div class="card"><div class="label">來源 IP 數</div><div class="metric">{summary['unique_sources']}</div></div>
       <div class="card"><div class="label">目的地數</div><div class="metric">{summary['unique_destinations']}</div></div>
-      <div class="card"><div class="label">最大位元組</div><div class="metric">{summary['max_bytes']:,}</div></div>
-      <div class="card"><div class="label">總位元組</div><div class="metric">{summary['total_bytes']:,}</div></div>
+      <div class="card"><div class="label">最大傳輸量</div><div class="metric">{format_bytes_human(summary['max_bytes'])}</div><div class="subtle">{summary['max_bytes']:,} bytes</div></div>
+      <div class="card"><div class="label">總傳輸量</div><div class="metric">{format_bytes_human(summary['total_bytes'])}</div><div class="subtle">{summary['total_bytes']:,} bytes</div></div>
       <div class="card"><div class="label">最多列的來源</div><div class="metric">{escape(summary['top_source']['value'])}</div><div class="subtle">{summary['top_source']['row_count']} 列</div></div>
     </section>
 
@@ -181,7 +251,15 @@ def build_dashboard_html(context: dict[str, Any]) -> str:
       <div class="stack">
         <article class="card">
           <div class="panel-title"><h2>AI 報告</h2><span class="pill">給人讀的摘要</span></div>
-          <div class="report-text">{analysis_text}</div>
+          <div class="detail-list">
+            <div class="detail-row"><div class="detail-key">異常狀態</div><div>{status_text}</div></div>
+            <div class="detail-row"><div class="detail-key">摘要</div><div class="report-text">{summary_text}</div></div>
+            <div class="detail-row"><div class="detail-key">來源</div><div>{source_text}</div></div>
+            <div class="detail-row"><div class="detail-key">目的地</div><div>{destination_text}</div></div>
+            <div class="detail-row"><div class="detail-key">應用程式</div><div>{application_text}</div></div>
+            <div class="detail-row"><div class="detail-key">傳輸量</div><div>{bytes_human_text}</div><div class="subtle">{bytes_raw_text}</div></div>
+            <div class="detail-row"><div class="detail-key">原因</div><div class="report-text">{reason_text}</div></div>
+          </div>
         </article>
 
         <article class="card">
@@ -196,11 +274,6 @@ def build_dashboard_html(context: dict[str, Any]) -> str:
           <div class="label" style="margin-top: 12px;">備註</div>
           <textarea id="reviewNote" placeholder="例如：這次高流量其實是備份流量，AI 需要學會辨識。"></textarea>
           <div class="footer-note">這版先把回報存在瀏覽器本機，方便你先用 UI 審閱流程。</div>
-        </article>
-
-        <article class="card">
-          <div class="panel-title"><h2>原始 JSON</h2><span class="pill">供 AI 調整比對</span></div>
-          <pre>{payload_json}</pre>
         </article>
 
         <article class="card">
@@ -365,8 +438,7 @@ def build_dashboard_html(context: dict[str, Any]) -> str:
     renderRows();
   </script>
 </body>
-</html>
-"""
+</html>'''
 
 
 def write_dashboard(output_path: str | Path, html: str) -> None:
