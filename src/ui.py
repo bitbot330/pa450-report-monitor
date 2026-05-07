@@ -58,14 +58,20 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     .brand {{ min-width: 0; }}
     .brand h1 {{ font-size: 20px; line-height: 1.2; margin-bottom: 8px; }}
     .subtle {{ color: var(--muted); font-size: 13px; }}
-    .base-picker {{ display: grid; gap: 8px; margin-top: 14px; }}
+    .base-picker, .file-picker {{ display: grid; gap: 8px; margin-top: 14px; }}
     .base-picker-actions {{ display: flex; gap: 8px; }}
     .base-picker-actions input {{ min-width: 0; }}
-    .base-picker-actions button {{ flex: 0 0 auto; border-radius: 10px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 8px 12px; cursor: pointer; }}
-    .base-picker-actions button:hover {{ border-color: var(--accent); background: var(--accent-bg); }}
+    .base-picker-actions button, .file-picker-actions button, .file-chip {{ flex: 0 0 auto; border-radius: 10px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 8px 12px; cursor: pointer; }}
+    .base-picker-actions button:hover, .file-picker-actions button:hover, .file-chip:hover {{ border-color: var(--accent); background: var(--accent-bg); }}
+    .file-picker-actions {{ display: grid; gap: 8px; }}
+    .file-chip-row {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }}
+    .file-chip {{ width: 100%; text-align: center; }}
+    .file-picker-actions button {{ width: 100%; }}
+    .file-picker-actions input[type="file"] {{ display: none; }}
+    .file-name {{ min-height: 18px; word-break: break-all; }}
     .app.sidebar-collapsed .sidebar {{ padding: 16px 12px; }}
     .app.sidebar-collapsed .sidebar-top {{ justify-content: center; }}
-    .app.sidebar-collapsed .brand, .app.sidebar-collapsed .base-picker, .app.sidebar-collapsed .report-item .report-summary {{ display: none; }}
+    .app.sidebar-collapsed .brand, .app.sidebar-collapsed .base-picker, .app.sidebar-collapsed .file-picker, .app.sidebar-collapsed .report-item .report-summary {{ display: none; }}
     .app.sidebar-collapsed .report-list {{ margin-top: 10px; }}
     .app.sidebar-collapsed .report-item {{ min-height: 48px; padding: 8px 6px; text-align: center; border-radius: 14px; }}
     .app.sidebar-collapsed .report-date {{ font-size: 12px; line-height: 1.15; word-break: break-all; }}
@@ -146,6 +152,22 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
               </div>
               <p class="subtle">CSV 與 JSON 可在 base 底下不同子目錄。</p>
             </div>
+            <div class="file-picker">
+              <div class="detail-key">手動載入檔案</div>
+              <div class="file-picker-actions">
+                <div class="file-chip-row">
+                  <label class="file-chip" for="csvFileInput">選 CSV</label>
+                  <label class="file-chip" for="jsonFileInput">選 AI JSON</label>
+                </div>
+                <input id="csvFileInput" type="file" accept=".csv,text/csv">
+                <input id="jsonFileInput" type="file" accept=".json,application/json">
+                <button id="loadSelectedFiles" type="button">載入已選檔案</button>
+              </div>
+              <div id="csvFileName" class="subtle file-name">尚未選擇 CSV</div>
+              <div id="jsonFileName" class="subtle file-name">尚未選擇 AI JSON</div>
+              <div id="manualLoadState" class="subtle file-name">CSV 與 AI JSON 可分別從不同資料夾挑選；兩個都選好後再載入。</div>
+              <p class="subtle">直接用瀏覽器分開選本機 CSV/JSON，不改動磁碟上的 base 掃描流程。</p>
+            </div>
           </div>
           <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="收合側邊欄" title="收合側邊欄">‹</button>
         </div>
@@ -191,6 +213,10 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
                 <div class="panel-title"><h2>列明細</h2><span class="pill">點表格列</span></div>
                 <div id="rowDetail" class="empty">尚未選取資料列。</div>
               </div>
+              <div>
+                <div class="panel-title"><h3>該列對應報告</h3><span class="pill">row match</span></div>
+                <div id="rowReportDetail" class="empty">選取資料列後，這裡會顯示與該列最相關的 AI 報告與比對證據。</div>
+              </div>
               <div class="review-in-detail">
                 <div class="panel-title"><h3>報告回報</h3><span class="pill">localStorage</span></div>
                 <div class="detail-key">回報狀態</div>
@@ -217,6 +243,12 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     const sidebarToggle = document.getElementById('sidebarToggle');
     const dataDirInput = document.getElementById('dataDirInput');
     const reloadDataDir = document.getElementById('reloadDataDir');
+    const csvFileInput = document.getElementById('csvFileInput');
+    const jsonFileInput = document.getElementById('jsonFileInput');
+    const loadSelectedFilesButton = document.getElementById('loadSelectedFiles');
+    const csvFileName = document.getElementById('csvFileName');
+    const jsonFileName = document.getElementById('jsonFileName');
+    const manualLoadState = document.getElementById('manualLoadState');
     const reportList = document.getElementById('reportList');
     const loading = document.getElementById('loading');
     const errorBox = document.getElementById('errorBox');
@@ -229,6 +261,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     const tableHead = document.getElementById('tableHead');
     const tableBody = document.getElementById('tableBody');
     const rowDetail = document.getElementById('rowDetail');
+    const rowReportDetail = document.getElementById('rowReportDetail');
     const reviewStatus = document.getElementById('reviewStatus');
     const reviewNote = document.getElementById('reviewNote');
 
@@ -258,6 +291,16 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       return row;
     }}
 
+    function createPreformattedDetailRow(key, value, secondary = '') {{
+      const row = document.createElement('div');
+      row.className = 'detail-row';
+      row.appendChild(createTextNode('div', key, 'detail-key'));
+      const valueNode = createTextNode('div', value || '—', 'report-text');
+      row.appendChild(valueNode);
+      if (secondary) row.appendChild(createTextNode('div', secondary, 'subtle'));
+      return row;
+    }}
+
     function setSidebarCollapsed(collapsed) {{
       appShell.classList.toggle('sidebar-collapsed', collapsed);
       sidebarToggle.textContent = collapsed ? '›' : '‹';
@@ -280,6 +323,23 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       localStorage.setItem('pa450-data-dir', currentDataDir());
     }}
 
+    function updateSelectedFileNames() {{
+      csvFileName.textContent = csvFileInput.files[0] ? `CSV：${{csvFileInput.files[0].name}}` : '尚未選擇 CSV';
+      jsonFileName.textContent = jsonFileInput.files[0] ? `AI JSON：${{jsonFileInput.files[0].name}}` : '尚未選擇 AI JSON';
+      const hasCsv = Boolean(csvFileInput.files[0]);
+      const hasJson = Boolean(jsonFileInput.files[0]);
+      loadSelectedFilesButton.disabled = !(hasCsv && hasJson);
+      if (hasCsv && hasJson) {{
+        manualLoadState.textContent = '已分開記住目前選擇的 CSV 與 AI JSON；即使來自不同資料夾也可直接一起載入。';
+      }} else if (hasCsv) {{
+        manualLoadState.textContent = 'CSV 已選好；可切換到另一個資料夾再挑 AI JSON。';
+      }} else if (hasJson) {{
+        manualLoadState.textContent = 'AI JSON 已選好；可切換到另一個資料夾再挑 CSV。';
+      }} else {{
+        manualLoadState.textContent = 'CSV 與 AI JSON 可分別從不同資料夾挑選；兩個都選好後再載入。';
+      }}
+    }}
+
     function showError(message) {{
       errorBox.hidden = false;
       errorBox.textContent = message;
@@ -290,6 +350,216 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     function clearError() {{
       errorBox.hidden = true;
       errorBox.textContent = '';
+    }}
+
+    function readFileAsText(file) {{
+      return new Promise((resolve, reject) => {{
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+        reader.onerror = () => reject(new Error(`讀取檔案失敗：${{file.name}}`));
+        reader.readAsText(file, 'utf-8');
+      }});
+    }}
+
+    function splitCsvLine(line) {{
+      const values = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i += 1) {{
+        const char = line[i];
+        if (char === '"') {{
+          if (inQuotes && line[i + 1] === '"') {{
+            current += '"';
+            i += 1;
+          }} else {{
+            inQuotes = !inQuotes;
+          }}
+          continue;
+        }}
+        if (char === ',' && !inQuotes) {{
+          values.push(current);
+          current = '';
+          continue;
+        }}
+        current += char;
+      }}
+      values.push(current);
+      return values;
+    }}
+
+    function parseCsvText(csvText) {{
+      const normalized = csvText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const rows = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < normalized.length; i += 1) {{
+        const char = normalized[i];
+        if (char === '"') {{
+          current += char;
+          if (inQuotes && normalized[i + 1] === '"') {{
+            current += normalized[i + 1];
+            i += 1;
+          }} else {{
+            inQuotes = !inQuotes;
+          }}
+          continue;
+        }}
+        if (char === '\n' && !inQuotes) {{
+          rows.push(current);
+          current = '';
+          continue;
+        }}
+        current += char;
+      }}
+      if (current || normalized.endsWith('\n')) rows.push(current);
+      const nonEmptyRows = rows.filter((line) => line.length > 0);
+      if (!nonEmptyRows.length) throw new Error('CSV 內容是空的');
+      const headers = splitCsvLine(nonEmptyRows[0]);
+      if (!headers.length || headers.every((header) => !header.trim())) throw new Error('CSV 缺少表頭');
+      const dataRows = nonEmptyRows.slice(1).map((line) => {{
+        const values = splitCsvLine(line);
+        const row = {{}};
+        headers.forEach((header, index) => {{
+          row[header] = values[index] || '';
+        }});
+        return row;
+      }});
+      return {{ headers, rows: dataRows }};
+    }}
+
+    function parseIntLike(value) {{
+      if (value === null || value === undefined) return null;
+      const text = String(value).replace(/[^\d-]/g, '');
+      if (!text || text === '-') return null;
+      const parsed = Number.parseInt(text, 10);
+      return Number.isNaN(parsed) ? null : parsed;
+    }}
+
+    function formatBytesHuman(value) {{
+      if (value === null || value === undefined) return '—';
+      const units = ['bytes', 'KB', 'MB', 'GB', 'TB'];
+      let size = Number(value);
+      let unit = units[0];
+      for (const currentUnit of units) {{
+        unit = currentUnit;
+        if (size < 1024 || currentUnit === units[units.length - 1]) break;
+        size /= 1024;
+      }}
+      return unit === 'bytes' ? `${{Number(value).toLocaleString('en-US')}} bytes` : `${{size.toFixed(1)}} ${{unit}}`;
+    }}
+
+    function parseAnalysisSections(analysisText) {{
+      const parsed = {{ status: '', summary: '', source: '', destination: '', application: '', bytes: '', reason: '' }};
+      analysisText.split(/\r?\n/).forEach((rawLine) => {{
+        const line = rawLine.trim();
+        if (!line) return;
+        const normalized = line.replace(/^[\-\s]+/, '');
+        if (normalized.startsWith('異常狀態：')) parsed.status = normalized.split('：', 2)[1].trim();
+        else if (normalized.startsWith('摘要：')) parsed.summary = normalized.split('：', 2)[1].trim();
+        else if (normalized.startsWith('來源：')) parsed.source = normalized.split('：', 2)[1].trim();
+        else if (normalized.startsWith('目的地：')) parsed.destination = normalized.split('：', 2)[1].trim();
+        else if (normalized.startsWith('應用程式：')) parsed.application = normalized.split('：', 2)[1].trim();
+        else if (normalized.startsWith('位元組：')) parsed.bytes = normalized.split('：', 2)[1].trim();
+        else if (normalized.startsWith('原因：')) parsed.reason = normalized.split('：', 2)[1].trim();
+      }});
+      return parsed;
+    }}
+
+    function summarizeRows(rows) {{
+      const sourceSet = new Set();
+      const destinationSet = new Set();
+      const byteValues = [];
+      rows.forEach((row) => {{
+        const source = (row['來源位址'] || '').trim();
+        const destination = (row['目的地位址'] || '').trim();
+        if (source) sourceSet.add(source);
+        if (destination) destinationSet.add(destination);
+        const byteValue = parseIntLike(row['位元組']);
+        if (byteValue !== null) byteValues.push(byteValue);
+      }});
+      const maxBytes = byteValues.length ? Math.max(...byteValues) : 0;
+      const totalBytes = byteValues.reduce((sum, value) => sum + value, 0);
+      return {{
+        total_rows: rows.length,
+        unique_sources: sourceSet.size,
+        unique_destinations: destinationSet.size,
+        max_bytes_human: formatBytesHuman(maxBytes),
+        max_bytes_raw: `${{maxBytes.toLocaleString('en-US')}} bytes`,
+        total_bytes_human: formatBytesHuman(totalBytes),
+        total_bytes_raw: `${{totalBytes.toLocaleString('en-US')}} bytes`,
+      }};
+    }}
+
+    function enrichRowsForDisplay(headers, rows) {{
+      const displayHeaders = headers.map((header) => header === '位元組' ? '傳輸量' : header);
+      const displayRows = rows.map((row) => {{
+        const displayRow = {{ ...row }};
+        if (Object.prototype.hasOwnProperty.call(row, '位元組')) {{
+          const byteValue = parseIntLike(row['位元組']);
+          displayRow['傳輸量'] = byteValue === null ? (row['位元組'] || '') : `${{formatBytesHuman(byteValue)}} (${{byteValue.toLocaleString('en-US')}} bytes)`;
+          delete displayRow['位元組'];
+        }}
+        return displayRow;
+      }});
+      return {{ displayHeaders, displayRows }};
+    }}
+
+    function deriveManualLabel(csvFile, jsonFile, analysisPayload) {{
+      const candidates = [analysisPayload.date, analysisPayload.report_date, analysisPayload.date_key, csvFile.name, jsonFile.name].filter(Boolean);
+      const matched = candidates.map((value) => String(value).match(/(\d{{8}})/)).find(Boolean);
+      if (matched) {{
+        const dateKey = matched[1];
+        return {{ date: `manual-${{dateKey}}`, label: `${{dateKey.slice(0, 4)}}-${{dateKey.slice(4, 6)}}-${{dateKey.slice(6, 8)}}` }};
+      }}
+      return {{ date: `manual-${{csvFile.name}}-${{jsonFile.name}}`, label: '手動載入' }};
+    }}
+
+    function buildManualReport(csvFile, jsonFile, csvText, jsonText) {{
+      const parsedCsv = parseCsvText(csvText);
+      const analysisPayload = JSON.parse(jsonText);
+      if (!analysisPayload || typeof analysisPayload !== 'object' || Array.isArray(analysisPayload)) {{
+        throw new Error('AI JSON 必須是物件');
+      }}
+      const analysisText = String(analysisPayload.analysis || '');
+      const analysisSections = parseAnalysisSections(analysisText);
+      const analysisBytesValue = parseIntLike(analysisSections.bytes);
+      analysisSections.bytes_human = analysisBytesValue === null ? '' : formatBytesHuman(analysisBytesValue);
+      analysisSections.bytes_raw = analysisBytesValue === null ? (analysisSections.bytes || '') : `${{analysisBytesValue.toLocaleString('en-US')}} bytes`;
+      const {{ displayHeaders, displayRows }} = enrichRowsForDisplay(parsedCsv.headers, parsedCsv.rows);
+      const labelInfo = deriveManualLabel(csvFile, jsonFile, analysisPayload);
+      return {{
+        date: labelInfo.date,
+        label: labelInfo.label,
+        data_dir: 'browser-upload',
+        csv_path: csvFile.name,
+        analysis_path: jsonFile.name,
+        headers: displayHeaders,
+        rows: displayRows,
+        summary: summarizeRows(parsedCsv.rows),
+        analysis_text: analysisText,
+        analysis_sections: analysisSections,
+        source: 'manual-upload',
+      }};
+    }}
+
+    async function loadSelectedFiles() {{
+      const csvFile = csvFileInput.files[0];
+      const jsonFile = jsonFileInput.files[0];
+      if (!csvFile || !jsonFile) {{
+        showError('請先各選 1 個 CSV 與 1 個 AI JSON。');
+        return;
+      }}
+      try {{
+        clearError();
+        loading.hidden = false;
+        reportApp.hidden = true;
+        const [csvText, jsonText] = await Promise.all([readFileAsText(csvFile), readFileAsText(jsonFile)]);
+        appState.current = buildManualReport(csvFile, jsonFile, csvText, jsonText);
+        appState.selectedRowIndex = null;
+        renderCurrentReport();
+      }} catch (error) {{
+        showError(error.message || '載入選擇檔案失敗');
+      }}
     }}
 
     function reviewStorageKey() {{
@@ -387,6 +657,96 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       ].forEach(([key, value, secondary]) => analysisCard.appendChild(createDetailRow(key, value, secondary)));
     }}
 
+    function normalizeMatchText(value) {{
+      return String(value || '').trim().toLowerCase();
+    }}
+
+    function getRowBytesValue(row) {{
+      const displayValue = String(row['傳輸量'] || row['位元組'] || '');
+      const bytesMatch = displayValue.match(/\(([\d,]+) bytes\)/i);
+      if (bytesMatch) return parseIntLike(bytesMatch[1]);
+      return parseIntLike(displayValue);
+    }}
+
+    function buildRowReportMatch(row) {{
+      const analysis = appState.current.analysis_sections || {{}};
+      const evidence = [];
+      const matchedFields = [];
+      const mismatchedFields = [];
+
+      const source = row['來源位址'] || '';
+      const destination = row['目的地位址'] || '';
+      const application = row['應用程式'] || '';
+      const rowBytes = getRowBytesValue(row);
+      const analysisBytes = parseIntLike(analysis.bytes);
+
+      const comparisons = [
+        ['來源', source, analysis.source],
+        ['目的地', destination, analysis.destination],
+        ['應用程式', application, analysis.application],
+      ];
+
+      comparisons.forEach(([label, rowValue, analysisValue]) => {{
+        const normalizedRow = normalizeMatchText(rowValue);
+        const normalizedAnalysis = normalizeMatchText(analysisValue);
+        if (!normalizedAnalysis) {{
+          evidence.push(`${{label}}：AI 報告未提供可比對值；此列為「${{rowValue || '—'}}」。`);
+          return;
+        }}
+        if (normalizedRow && normalizedRow === normalizedAnalysis) {{
+          matchedFields.push(label);
+          evidence.push(`${{label}}吻合：${{rowValue}}`);
+        }} else {{
+          mismatchedFields.push(label);
+          evidence.push(`${{label}}不一致：此列是「${{rowValue || '—'}}」，AI 報告寫的是「${{analysisValue}}」。`);
+        }}
+      }});
+
+      if (analysisBytes === null) {{
+        evidence.push(`傳輸量：AI 報告未提供可比對位元組；此列為 ${{row['傳輸量'] || '—'}}。`);
+      }} else if (rowBytes !== null && rowBytes === analysisBytes) {{
+        matchedFields.push('傳輸量');
+        evidence.push(`傳輸量吻合：${{row['傳輸量'] || formatBytesHuman(rowBytes)}}`);
+      }} else {{
+        mismatchedFields.push('傳輸量');
+        evidence.push(`傳輸量不一致：此列為 ${{row['傳輸量'] || '—'}}，AI 報告寫的是 ${{analysis.bytes_human || analysis.bytes || '—'}}。`);
+      }}
+
+      let matchLevel = '未明確對應';
+      let summary = '這列沒有和 AI 報告中的來源 / 目的地 / 應用程式 / 傳輸量形成足夠強的對應，請人工再確認。';
+      if (matchedFields.length >= 3) {{
+        matchLevel = '高度吻合';
+        summary = analysis.summary || '這列和 AI 報告描述高度吻合，可視為該報告主要指向的明細列。';
+      }} else if (matchedFields.length >= 1) {{
+        matchLevel = '部分吻合';
+        summary = analysis.summary || '這列和 AI 報告部分欄位對得上，但還不足以完全確認就是同一筆。';
+      }}
+
+      let reasonText = analysis.reason || 'AI 報告沒有額外原因文字。';
+      if (!matchedFields.length) {{
+        reasonText = '目前只找到弱關聯或無明確關聯，因此不直接把整份 AI 報告視為這列的結論。';
+      }}
+
+      return {{
+        matchLevel,
+        summary,
+        reasonText,
+        matchedFields,
+        mismatchedFields,
+        evidence,
+      }};
+    }}
+
+    function renderRowReport(row) {{
+      clearNode(rowReportDetail);
+      rowReportDetail.className = 'detail-list';
+      const rowMatch = buildRowReportMatch(row);
+      rowReportDetail.appendChild(createDetailRow('比對結果', rowMatch.matchLevel, rowMatch.matchedFields.length ? `吻合欄位：${{rowMatch.matchedFields.join('、')}}` : '目前沒有明確吻合欄位'));
+      rowReportDetail.appendChild(createDetailRow('列級摘要', rowMatch.summary));
+      rowReportDetail.appendChild(createDetailRow('列級原因 / 判讀', rowMatch.reasonText, rowMatch.mismatchedFields.length ? `未完全吻合：${{rowMatch.mismatchedFields.join('、')}}` : ''));
+      rowReportDetail.appendChild(createPreformattedDetailRow('證據比對', rowMatch.evidence.join('\n')));
+    }}
+
     function renderHead() {{
       clearNode(tableHead);
       appState.current.headers.forEach((header) => {{
@@ -413,16 +773,18 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       appState.current.headers.forEach((header) => {{
         rowDetail.appendChild(createDetailRow(header, row[header] || '—'));
       }});
+      renderRowReport(row);
     }}
 
     function renderRows() {{
       clearNode(tableBody);
       const filtered = appState.current.rows.filter(matchesFilters);
-      filtered.forEach((row, filteredIndex) => {{
+      filtered.forEach((row) => {{
         const tr = document.createElement('tr');
-        if (appState.selectedRowIndex === filteredIndex) tr.classList.add('is-selected');
+        const originalIndex = appState.current.rows.indexOf(row);
+        if (appState.selectedRowIndex === originalIndex) tr.classList.add('is-selected');
         tr.addEventListener('click', () => {{
-          appState.selectedRowIndex = filteredIndex;
+          appState.selectedRowIndex = originalIndex;
           renderRows();
           renderDetails(row);
         }});
@@ -450,6 +812,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       reportApp.hidden = false;
       appState.selectedRowIndex = null;
       setEmptyMessage(rowDetail, '尚未選取資料列。');
+      setEmptyMessage(rowReportDetail, '選取資料列後，這裡會顯示與該列最相關的 AI 報告與比對證據。');
       renderSidebar();
       renderSummary();
       renderAnalysis();
@@ -494,6 +857,9 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
 
     dataDirInput.value = localStorage.getItem('pa450-data-dir') || DEFAULT_DATA_DIR;
     reloadDataDir.addEventListener('click', bootstrap);
+    csvFileInput.addEventListener('change', updateSelectedFileNames);
+    jsonFileInput.addEventListener('change', updateSelectedFileNames);
+    loadSelectedFilesButton.addEventListener('click', loadSelectedFiles);
     dataDirInput.addEventListener('keydown', (event) => {{
       if (event.key === 'Enter') bootstrap();
     }});
@@ -504,6 +870,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     appFilter.addEventListener('change', renderRows);
     reviewStatus.addEventListener('change', saveReviewState);
     reviewNote.addEventListener('input', saveReviewState);
+    updateSelectedFileNames();
     bootstrap();
   </script>
 </body>
