@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import errno
 import json
 import os
 import re
@@ -1187,6 +1188,18 @@ def open_browser_when_ready(port: int) -> None:
     webbrowser.open(f"http://{LOCALHOST}:{port}")
 
 
+def create_server(handler, requested_port: int) -> tuple[ThreadingHTTPServer, int, bool]:
+    try:
+        server = ThreadingHTTPServer((LOCALHOST, requested_port), handler)
+        return server, requested_port, False
+    except OSError as exc:
+        if exc.errno != errno.EADDRINUSE:
+            raise
+    fallback_server = ThreadingHTTPServer((LOCALHOST, 0), handler)
+    fallback_port = int(fallback_server.server_address[1])
+    return fallback_server, fallback_port, True
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Serve a localhost-only PA450 daily review UI")
     parser.add_argument("--data-dir", default=Path("output"), type=Path, help="Folder containing daily CSV/JSON results")
@@ -1198,10 +1211,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     handler = partial(ReportUIHandler, data_dir=str(args.data_dir))
-    server = ThreadingHTTPServer((LOCALHOST, args.port), handler)
-    print(f"PA450 Daily Review UI running at http://{LOCALHOST}:{args.port}")
+    server, active_port, used_fallback_port = create_server(handler, args.port)
+    if used_fallback_port:
+        print(
+            f"Requested port {args.port} is already in use on {LOCALHOST}; "
+            f"using http://{LOCALHOST}:{active_port} instead."
+        )
+    print(f"PA450 Daily Review UI running at http://{LOCALHOST}:{active_port}")
     if not args.no_browser:
-        threading.Timer(0.6, open_browser_when_ready, args=(args.port,)).start()
+        threading.Timer(0.6, open_browser_when_ready, args=(active_port,)).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
