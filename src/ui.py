@@ -3,8 +3,10 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
+import threading
+import webbrowser
 from collections import Counter
-from datetime import datetime
 from functools import partial
 from html import escape
 from http import HTTPStatus
@@ -16,6 +18,8 @@ from urllib.parse import unquote, urlparse
 from report import parse_int
 
 DASHBOARD_TITLE = "PA450 Daily Review UI"
+LOCALHOST = "127.0.0.1"
+DATE_KEY_RE = re.compile(r"^\d{8}$")
 
 
 INDEX_HTML_TEMPLATE = """<!doctype html>
@@ -88,8 +92,8 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       <div class="brand">
         <h1>{title}</h1>
         <p class="subtle">同一個 UI 直接切換每日報告，不用每次重生 dashboard。</p>
+        <p class="subtle">僅限本機 localhost 使用。</p>
       </div>
-      <div class="subtle">資料來源資料夾：<span id="dataDirLabel"></span></div>
       <div class="report-list" id="reportList"></div>
     </aside>
     <main class="main">
@@ -150,7 +154,6 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
 
   <script>
     const appState = {{ reports: [], current: null, selectedRowIndex: null }};
-    const dataDirLabel = document.getElementById('dataDirLabel');
     const reportList = document.getElementById('reportList');
     const loading = document.getElementById('loading');
     const errorBox = document.getElementById('errorBox');
@@ -166,6 +169,32 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     const reviewStatus = document.getElementById('reviewStatus');
     const reviewNote = document.getElementById('reviewNote');
 
+    function clearNode(node) {{
+      while (node.firstChild) node.removeChild(node.firstChild);
+    }}
+
+    function setEmptyMessage(container, message, className = 'empty') {{
+      clearNode(container);
+      container.className = className;
+      container.textContent = message;
+    }}
+
+    function createTextNode(tag, text, className = '') {{
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      node.textContent = text;
+      return node;
+    }}
+
+    function createDetailRow(key, value, secondary = '') {{
+      const row = document.createElement('div');
+      row.className = 'detail-row';
+      row.appendChild(createTextNode('div', key, 'detail-key'));
+      row.appendChild(createTextNode('div', value || '—'));
+      if (secondary) row.appendChild(createTextNode('div', secondary, 'subtle'));
+      return row;
+    }}
+
     function showError(message) {{
       errorBox.hidden = false;
       errorBox.textContent = message;
@@ -176,10 +205,6 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     function clearError() {{
       errorBox.hidden = true;
       errorBox.textContent = '';
-    }}
-
-    function formatDetailRow(key, value, secondary = '') {{
-      return `<div class="detail-row"><div class="detail-key">${{key}}</div><div>${{value || '—'}}</div>${{secondary ? `<div class="subtle">${{secondary}}</div>` : ''}}</div>`;
     }}
 
     function reviewStorageKey() {{
@@ -213,7 +238,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     }}
 
     function fillSelect(selectEl, field, label) {{
-      selectEl.innerHTML = '';
+      clearNode(selectEl);
       const defaultOption = document.createElement('option');
       defaultOption.value = '';
       defaultOption.textContent = `全部${{label}}`;
@@ -227,51 +252,58 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     }}
 
     function renderSidebar() {{
-      reportList.innerHTML = '';
+      clearNode(reportList);
       appState.reports.forEach((report) => {{
         const btn = document.createElement('button');
         btn.className = 'report-item';
         if (appState.current && report.date === appState.current.date) btn.classList.add('active');
-        btn.innerHTML = `<div><strong>${{report.label}}</strong></div><div class="subtle">${{report.summary}}</div>`;
+        btn.appendChild(createTextNode('div', report.label));
+        btn.appendChild(createTextNode('div', report.summary, 'subtle'));
         btn.addEventListener('click', () => loadReport(report.date));
         reportList.appendChild(btn);
       }});
+      if (!appState.reports.length) {{
+        setEmptyMessage(reportList, '目前找不到任何每日報告。');
+      }}
     }}
 
     function renderSummary() {{
+      clearNode(summaryGrid);
       const summary = appState.current.summary;
       const cards = [
         ['報告日期', appState.current.label, appState.current.date],
-        ['總資料筆數', summary.total_rows, ''],
-        ['來源 IP 數', summary.unique_sources, ''],
-        ['目的地數', summary.unique_destinations, ''],
+        ['總資料筆數', String(summary.total_rows), ''],
+        ['來源 IP 數', String(summary.unique_sources), ''],
+        ['目的地數', String(summary.unique_destinations), ''],
         ['最大傳輸量', summary.max_bytes_human, summary.max_bytes_raw],
         ['總傳輸量', summary.total_bytes_human, summary.total_bytes_raw],
       ];
-      summaryGrid.innerHTML = cards.map(([label, value, secondary]) => `
-        <div class="card">
-          <div class="detail-key">${{label}}</div>
-          <div class="metric">${{value}}</div>
-          ${{secondary ? `<div class="subtle">${{secondary}}</div>` : ''}}
-        </div>
-      `).join('');
+      cards.forEach(([label, value, secondary]) => {{
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.appendChild(createTextNode('div', label, 'detail-key'));
+        card.appendChild(createTextNode('div', value, 'metric'));
+        if (secondary) card.appendChild(createTextNode('div', secondary, 'subtle'));
+        summaryGrid.appendChild(card);
+      }});
     }}
 
     function renderAnalysis() {{
+      clearNode(analysisCard);
       const a = appState.current.analysis_sections;
-      analysisCard.innerHTML = [
-        formatDetailRow('異常狀態', a.status || '資料不足，需人工確認'),
-        formatDetailRow('摘要', a.summary || appState.current.analysis_text || '資料不足，需人工確認'),
-        formatDetailRow('來源', a.source),
-        formatDetailRow('目的地', a.destination),
-        formatDetailRow('應用程式', a.application),
-        formatDetailRow('傳輸量', a.bytes_human || a.bytes || '—', a.bytes_raw || ''),
-        formatDetailRow('原因', a.reason),
-      ].join('');
+      [
+        ['異常狀態', a.status || '資料不足，需人工確認', ''],
+        ['摘要', a.summary || appState.current.analysis_text || '資料不足，需人工確認', ''],
+        ['來源', a.source || '', ''],
+        ['目的地', a.destination || '', ''],
+        ['應用程式', a.application || '', ''],
+        ['傳輸量', a.bytes_human || a.bytes || '—', a.bytes_raw || ''],
+        ['原因', a.reason || '', ''],
+      ].forEach(([key, value, secondary]) => analysisCard.appendChild(createDetailRow(key, value, secondary)));
     }}
 
     function renderHead() {{
-      tableHead.innerHTML = '';
+      clearNode(tableHead);
       appState.current.headers.forEach((header) => {{
         const th = document.createElement('th');
         th.textContent = header;
@@ -291,21 +323,15 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     }}
 
     function renderDetails(row) {{
-      const wrapper = document.createElement('div');
-      wrapper.className = 'detail-list';
+      clearNode(rowDetail);
+      rowDetail.className = 'detail-list';
       appState.current.headers.forEach((header) => {{
-        const rowWrap = document.createElement('div');
-        rowWrap.className = 'detail-row';
-        rowWrap.innerHTML = `<div class="detail-key">${{header}}</div><div>${{row[header] || '—'}}</div>`;
-        wrapper.appendChild(rowWrap);
+        rowDetail.appendChild(createDetailRow(header, row[header] || '—'));
       }});
-      rowDetail.innerHTML = '';
-      rowDetail.className = '';
-      rowDetail.appendChild(wrapper);
     }}
 
     function renderRows() {{
-      tableBody.innerHTML = '';
+      clearNode(tableBody);
       const filtered = appState.current.rows.filter(matchesFilters);
       filtered.forEach((row, filteredIndex) => {{
         const tr = document.createElement('tr');
@@ -338,8 +364,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       loading.hidden = true;
       reportApp.hidden = false;
       appState.selectedRowIndex = null;
-      rowDetail.className = 'empty';
-      rowDetail.textContent = '尚未選取資料列。';
+      setEmptyMessage(rowDetail, '尚未選取資料列。');
       renderSidebar();
       renderSummary();
       renderAnalysis();
@@ -362,14 +387,12 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         const response = await fetch('/api/reports');
         if (!response.ok) throw new Error(`載入報告列表失敗：${{response.status}}`);
         const payload = await response.json();
-        dataDirLabel.textContent = payload.data_dir;
         appState.reports = payload.reports;
+        renderSidebar();
         if (!payload.reports.length) {{
           loading.hidden = true;
-          reportList.innerHTML = '<div class="empty">目前找不到任何每日報告。</div>';
           return;
         }}
-        renderSidebar();
         await loadReport(payload.reports[0].date);
       }} catch (error) {{
         showError(error.message || '載入失敗');
@@ -465,10 +488,8 @@ def summarize_rows(rows: list[dict[str, str]]) -> dict[str, Any]:
         "total_rows": len(rows),
         "unique_sources": len(source_counter),
         "unique_destinations": len(destination_counter),
-        "max_bytes": max_bytes,
         "max_bytes_human": format_bytes_human(max_bytes),
         "max_bytes_raw": f"{max_bytes:,} bytes",
-        "total_bytes": total_bytes,
         "total_bytes_human": format_bytes_human(total_bytes),
         "total_bytes_raw": f"{total_bytes:,} bytes",
         "top_source": {"value": top_source_value, "row_count": top_source_count},
@@ -489,24 +510,30 @@ def enrich_rows_for_display(headers: list[str], rows: list[dict[str, str]]) -> t
 
 
 def _report_date_label(date_key: str) -> str:
-    if len(date_key) == 8 and date_key.isdigit():
-        return f"{date_key[:4]}-{date_key[4:6]}-{date_key[6:8]}"
+    return f"{date_key[:4]}-{date_key[4:6]}-{date_key[6:8]}"
+
+
+def _validated_date_key(date_key: str) -> str:
+    if not DATE_KEY_RE.fullmatch(date_key):
+        raise ValueError(f"Invalid report date: {date_key}")
     return date_key
 
 
 def discover_reports(data_dir: str | Path) -> list[dict[str, str]]:
     base = Path(data_dir)
     report_map: dict[str, dict[str, Path]] = {}
+    if not base.exists():
+        return []
 
     for csv_path in sorted(base.glob("*_report.csv")):
         date_key = csv_path.stem.removesuffix("_report")
-        report_map.setdefault(date_key, {})["csv"] = csv_path
+        if DATE_KEY_RE.fullmatch(date_key):
+            report_map.setdefault(date_key, {})["csv"] = csv_path
     for json_path in sorted(base.glob("*.json")):
-        date_key = json_path.stem
-        report_map.setdefault(date_key, {})["analysis"] = json_path
-
-    for child in sorted(base.iterdir()) if base.exists() else []:
-        if not child.is_dir():
+        if DATE_KEY_RE.fullmatch(json_path.stem):
+            report_map.setdefault(json_path.stem, {})["analysis"] = json_path
+    for child in sorted(base.iterdir()):
+        if not child.is_dir() or not DATE_KEY_RE.fullmatch(child.name):
             continue
         csv_candidate = child / "report.csv"
         analysis_candidate = child / "analysis.json"
@@ -518,17 +545,16 @@ def discover_reports(data_dir: str | Path) -> list[dict[str, str]]:
     for date_key, paths in sorted(report_map.items(), reverse=True):
         if "csv" not in paths or "analysis" not in paths:
             continue
-        reports.append(
-            {
-                "date": date_key,
-                "label": _report_date_label(date_key),
-                "summary": f"CSV: {paths['csv'].name} · AI: {paths['analysis'].name}",
-            }
-        )
+        reports.append({
+            "date": date_key,
+            "label": _report_date_label(date_key),
+            "summary": f"{paths['csv'].name} · {paths['analysis'].name}",
+        })
     return reports
 
 
 def load_report_bundle(data_dir: str | Path, date_key: str) -> dict[str, Any]:
+    date_key = _validated_date_key(date_key)
     base = Path(data_dir)
     csv_path = base / f"{date_key}_report.csv"
     json_path = base / f"{date_key}.json"
@@ -553,9 +579,6 @@ def load_report_bundle(data_dir: str | Path, date_key: str) -> dict[str, Any]:
     return {
         "date": date_key,
         "label": _report_date_label(date_key),
-        "csv_path": str(csv_path),
-        "analysis_json_path": str(json_path),
-        "generated_at": datetime.now().isoformat(timespec="seconds"),
         "headers": display_headers,
         "rows": display_rows,
         "summary": summarize_rows(rows),
@@ -575,15 +598,17 @@ class ReportUIHandler(BaseHTTPRequestHandler):
             self._send_html(INDEX_HTML_TEMPLATE.format(title=escape(DASHBOARD_TITLE)))
             return
         if parsed.path == "/api/reports":
-            payload = {"data_dir": str(self.data_dir), "reports": discover_reports(self.data_dir)}
-            self._send_json(payload)
+            self._send_json({"reports": discover_reports(self.data_dir)})
             return
         if parsed.path.startswith("/api/reports/"):
             date_key = unquote(parsed.path.removeprefix("/api/reports/"))
             try:
                 payload = load_report_bundle(self.data_dir, date_key)
+            except ValueError:
+                self._send_json({"error": "Invalid report date"}, status=HTTPStatus.BAD_REQUEST)
+                return
             except FileNotFoundError:
-                self._send_json({"error": f"Report not found: {date_key}"}, status=HTTPStatus.NOT_FOUND)
+                self._send_json({"error": "Report not found"}, status=HTTPStatus.NOT_FOUND)
                 return
             self._send_json(payload)
             return
@@ -597,6 +622,7 @@ class ReportUIHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(encoded)))
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(encoded)
 
@@ -605,23 +631,30 @@ class ReportUIHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(encoded)))
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(encoded)
 
 
+def open_browser_when_ready(port: int) -> None:
+    webbrowser.open(f"http://{LOCALHOST}:{port}")
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Serve a persistent PA450 daily review UI")
+    parser = argparse.ArgumentParser(description="Serve a localhost-only PA450 daily review UI")
     parser.add_argument("--data-dir", default=Path("output"), type=Path, help="Folder containing daily CSV/JSON results")
-    parser.add_argument("--host", default="127.0.0.1", help="Host to bind the UI server")
-    parser.add_argument("--port", default=8765, type=int, help="Port to bind the UI server")
+    parser.add_argument("--port", default=8765, type=int, help="Localhost port to bind the UI server")
+    parser.add_argument("--no-browser", action="store_true", help="Do not auto-open the browser")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     handler = partial(ReportUIHandler, data_dir=str(args.data_dir))
-    server = ThreadingHTTPServer((args.host, args.port), handler)
-    print(f"PA450 Daily Review UI running at http://{args.host}:{args.port} (data dir: {args.data_dir})")
+    server = ThreadingHTTPServer((LOCALHOST, args.port), handler)
+    print(f"PA450 Daily Review UI running at http://{LOCALHOST}:{args.port}")
+    if not args.no_browser:
+        threading.Timer(0.6, open_browser_when_ready, args=(args.port,)).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:

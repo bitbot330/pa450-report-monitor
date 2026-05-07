@@ -9,3 +9,7 @@ output/*.csv
 output/**/*.csv
 output/*.json
 logs/*.log
+build/
+dist/
+*.spec
+*.exe
