@@ -24,7 +24,11 @@ LOCALHOST = "127.0.0.1"
 DATE_KEY_RE = re.compile(r"^\d{8}$")
 
 
-INDEX_HTML_TEMPLATE = """<!doctype html>
+# -----------------------------------------------------------------------------
+# HTML template
+# -----------------------------------------------------------------------------
+
+INDEX_HTML_TEMPLATE = r"""<!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
@@ -806,6 +810,12 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
 </html>
 """
 
+# -----------------------------------------------------------------------------
+# Report data loading, discovery, and review markdown persistence
+# -----------------------------------------------------------------------------
+
+# CSV / analysis parsing helpers
+
 def format_bytes_human(value: int | None) -> str:
     if value is None:
         return "—"
@@ -1106,6 +1116,9 @@ def load_report_bundle(data_dir: str | Path, date_key: str) -> dict[str, Any]:
         "review": load_review_markdown(data_dir, date_key),
     }
 
+# -----------------------------------------------------------------------------
+# HTTP server and CLI entrypoint
+# -----------------------------------------------------------------------------
 
 class ReportUIHandler(BaseHTTPRequestHandler):
     def __init__(self, *args: Any, data_dir: str, **kwargs: Any) -> None:
