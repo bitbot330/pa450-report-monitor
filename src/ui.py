@@ -214,10 +214,6 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
                 <div class="panel-title"><h2>列明細</h2><span class="pill">點表格列</span></div>
                 <div id="rowDetail" class="empty">尚未選取資料列。</div>
               </div>
-              <div>
-                <div class="panel-title"><h3>該列對應報告</h3><span class="pill">row match</span></div>
-                <div id="rowReportDetail" class="empty">選取資料列後，這裡會顯示與該列最相關的 AI 報告與比對證據。</div>
-              </div>
               <div class="review-in-detail">
                 <div class="panel-title"><h3>報告回報</h3><span class="pill">localStorage</span></div>
                 <div class="detail-key">回報狀態</div>
@@ -262,7 +258,6 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     const tableHead = document.getElementById('tableHead');
     const tableBody = document.getElementById('tableBody');
     const rowDetail = document.getElementById('rowDetail');
-    const rowReportDetail = document.getElementById('rowReportDetail');
     const reviewStatus = document.getElementById('reviewStatus');
     const reviewNote = document.getElementById('reviewNote');
 
@@ -389,7 +384,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     }}
 
     function parseCsvText(csvText) {{
-      const normalized = csvText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const normalized = csvText.replace(/^\\uFEFF/, '').replace(/\\r\\n/g, '\\n').replace(/\\r/g, '\\n');
       const rows = [];
       let current = '';
       let inQuotes = false;
@@ -405,14 +400,14 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
           }}
           continue;
         }}
-        if (char === '\n' && !inQuotes) {{
+        if (char === '\\n' && !inQuotes) {{
           rows.push(current);
           current = '';
           continue;
         }}
         current += char;
       }}
-      if (current || normalized.endsWith('\n')) rows.push(current);
+      if (current || normalized.endsWith('\\n')) rows.push(current);
       const nonEmptyRows = rows.filter((line) => line.length > 0);
       if (!nonEmptyRows.length) throw new Error('CSV 內容是空的');
       const headers = splitCsvLine(nonEmptyRows[0]);
@@ -430,7 +425,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
 
     function parseIntLike(value) {{
       if (value === null || value === undefined) return null;
-      const text = String(value).replace(/[^\d-]/g, '');
+      const text = String(value).replace(/[^\\d-]/g, '');
       if (!text || text === '-') return null;
       const parsed = Number.parseInt(text, 10);
       return Number.isNaN(parsed) ? null : parsed;
@@ -451,10 +446,10 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
 
     function parseAnalysisSections(analysisText) {{
       const parsed = {{ status: '', summary: '', source: '', destination: '', application: '', bytes: '', reason: '' }};
-      analysisText.split(/\r?\n/).forEach((rawLine) => {{
+      analysisText.split(/\\r?\\n/).forEach((rawLine) => {{
         const line = rawLine.trim();
         if (!line) return;
-        const normalized = line.replace(/^[\-\s]+/, '');
+        const normalized = line.replace(/^[\\-\\s]+/, '');
         if (normalized.startsWith('異常狀態：')) parsed.status = normalized.split('：', 2)[1].trim();
         else if (normalized.startsWith('摘要：')) parsed.summary = normalized.split('：', 2)[1].trim();
         else if (normalized.startsWith('來源：')) parsed.source = normalized.split('：', 2)[1].trim();
@@ -507,7 +502,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
 
     function deriveManualLabel(csvFile, jsonFile, analysisPayload) {{
       const candidates = [analysisPayload.date, analysisPayload.report_date, analysisPayload.date_key, csvFile.name, jsonFile.name].filter(Boolean);
-      const matched = candidates.map((value) => String(value).match(/(\d{{8}})/)).find(Boolean);
+      const matched = candidates.map((value) => String(value).match(/(\\d{{8}})/)).find(Boolean);
       if (matched) {{
         const dateKey = matched[1];
         return {{ date: `manual-${{dateKey}}`, label: `${{dateKey.slice(0, 4)}}-${{dateKey.slice(4, 6)}}-${{dateKey.slice(6, 8)}}` }};
@@ -658,96 +653,6 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       ].forEach(([key, value, secondary]) => analysisCard.appendChild(createDetailRow(key, value, secondary)));
     }}
 
-    function normalizeMatchText(value) {{
-      return String(value || '').trim().toLowerCase();
-    }}
-
-    function getRowBytesValue(row) {{
-      const displayValue = String(row['傳輸量'] || row['位元組'] || '');
-      const bytesMatch = displayValue.match(/\(([\d,]+) bytes\)/i);
-      if (bytesMatch) return parseIntLike(bytesMatch[1]);
-      return parseIntLike(displayValue);
-    }}
-
-    function buildRowReportMatch(row) {{
-      const analysis = appState.current.analysis_sections || {{}};
-      const evidence = [];
-      const matchedFields = [];
-      const mismatchedFields = [];
-
-      const source = row['來源位址'] || '';
-      const destination = row['目的地位址'] || '';
-      const application = row['應用程式'] || '';
-      const rowBytes = getRowBytesValue(row);
-      const analysisBytes = parseIntLike(analysis.bytes);
-
-      const comparisons = [
-        ['來源', source, analysis.source],
-        ['目的地', destination, analysis.destination],
-        ['應用程式', application, analysis.application],
-      ];
-
-      comparisons.forEach(([label, rowValue, analysisValue]) => {{
-        const normalizedRow = normalizeMatchText(rowValue);
-        const normalizedAnalysis = normalizeMatchText(analysisValue);
-        if (!normalizedAnalysis) {{
-          evidence.push(`${{label}}：AI 報告未提供可比對值；此列為「${{rowValue || '—'}}」。`);
-          return;
-        }}
-        if (normalizedRow && normalizedRow === normalizedAnalysis) {{
-          matchedFields.push(label);
-          evidence.push(`${{label}}吻合：${{rowValue}}`);
-        }} else {{
-          mismatchedFields.push(label);
-          evidence.push(`${{label}}不一致：此列是「${{rowValue || '—'}}」，AI 報告寫的是「${{analysisValue}}」。`);
-        }}
-      }});
-
-      if (analysisBytes === null) {{
-        evidence.push(`傳輸量：AI 報告未提供可比對位元組；此列為 ${{row['傳輸量'] || '—'}}。`);
-      }} else if (rowBytes !== null && rowBytes === analysisBytes) {{
-        matchedFields.push('傳輸量');
-        evidence.push(`傳輸量吻合：${{row['傳輸量'] || formatBytesHuman(rowBytes)}}`);
-      }} else {{
-        mismatchedFields.push('傳輸量');
-        evidence.push(`傳輸量不一致：此列為 ${{row['傳輸量'] || '—'}}，AI 報告寫的是 ${{analysis.bytes_human || analysis.bytes || '—'}}。`);
-      }}
-
-      let matchLevel = '未明確對應';
-      let summary = '這列沒有和 AI 報告中的來源 / 目的地 / 應用程式 / 傳輸量形成足夠強的對應，請人工再確認。';
-      if (matchedFields.length >= 3) {{
-        matchLevel = '高度吻合';
-        summary = analysis.summary || '這列和 AI 報告描述高度吻合，可視為該報告主要指向的明細列。';
-      }} else if (matchedFields.length >= 1) {{
-        matchLevel = '部分吻合';
-        summary = analysis.summary || '這列和 AI 報告部分欄位對得上，但還不足以完全確認就是同一筆。';
-      }}
-
-      let reasonText = analysis.reason || 'AI 報告沒有額外原因文字。';
-      if (!matchedFields.length) {{
-        reasonText = '目前只找到弱關聯或無明確關聯，因此不直接把整份 AI 報告視為這列的結論。';
-      }}
-
-      return {{
-        matchLevel,
-        summary,
-        reasonText,
-        matchedFields,
-        mismatchedFields,
-        evidence,
-      }};
-    }}
-
-    function renderRowReport(row) {{
-      clearNode(rowReportDetail);
-      rowReportDetail.className = 'detail-list';
-      const rowMatch = buildRowReportMatch(row);
-      rowReportDetail.appendChild(createDetailRow('比對結果', rowMatch.matchLevel, rowMatch.matchedFields.length ? `吻合欄位：${{rowMatch.matchedFields.join('、')}}` : '目前沒有明確吻合欄位'));
-      rowReportDetail.appendChild(createDetailRow('列級摘要', rowMatch.summary));
-      rowReportDetail.appendChild(createDetailRow('列級原因 / 判讀', rowMatch.reasonText, rowMatch.mismatchedFields.length ? `未完全吻合：${{rowMatch.mismatchedFields.join('、')}}` : ''));
-      rowReportDetail.appendChild(createPreformattedDetailRow('證據比對', rowMatch.evidence.join('\n')));
-    }}
-
     function renderHead() {{
       clearNode(tableHead);
       appState.current.headers.forEach((header) => {{
@@ -774,7 +679,6 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       appState.current.headers.forEach((header) => {{
         rowDetail.appendChild(createDetailRow(header, row[header] || '—'));
       }});
-      renderRowReport(row);
     }}
 
     function renderRows() {{
@@ -813,7 +717,6 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       reportApp.hidden = false;
       appState.selectedRowIndex = null;
       setEmptyMessage(rowDetail, '尚未選取資料列。');
-      setEmptyMessage(rowReportDetail, '選取資料列後，這裡會顯示與該列最相關的 AI 報告與比對證據。');
       renderSidebar();
       renderSummary();
       renderAnalysis();
