@@ -51,7 +51,6 @@ ANALYSIS_USER_PROMPT_TEMPLATE = """
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 AGENT_DIR = PROJECT_ROOT / ".agent"
-AGENT_PATH = AGENT_DIR / "AGENT.md"
 REVIEW_PATH = AGENT_DIR / "review.md"
 REPORT_PATH_PATTERN = re.compile(r"report_(\d{8})\.md$")
 FEEDBACK_HEADING_PATTERN = re.compile(
@@ -64,12 +63,6 @@ RULE_PREFIX_PATTERN = re.compile(r"^(?:should|must|avoid|ensure|prefer|always|ne
 
 def build_context(input_path: str | Path) -> str:
     return Path(input_path).read_text(encoding="utf-8-sig")
-
-
-def _read_agent_instructions() -> str:
-    if not AGENT_PATH.exists():
-        raise FileNotFoundError(f"Missing required agent workflow file: {AGENT_PATH}")
-    return AGENT_PATH.read_text(encoding="utf-8")
 
 
 def _extract_report_date(path: Path) -> str | None:
@@ -205,21 +198,14 @@ def refresh_review_memory(input_path: Path | None = None) -> str:
 
 
 def load_agent_workflow(input_path: Path | None = None) -> dict[str, str]:
-    agent_instructions = _read_agent_instructions()
     review_rules = refresh_review_memory(input_path)
     return {
-        "agent_instructions": agent_instructions,
         "review_rules": review_rules,
     }
 
 
-def _compose_runtime_guidance(workflow: dict[str, str]) -> str:
-    parts = [
-        "請先遵守以下啟動工作流，再進行後續分析。",
-        "<agent_workflow>",
-        workflow["agent_instructions"].strip(),
-        "</agent_workflow>",
-    ]
+def _compose_review_guidance(workflow: dict[str, str]) -> str:
+    parts = ["以下是 runtime 預先整理的人工回饋規則。"]
     review_rules = workflow["review_rules"].strip()
     if review_rules:
         parts.extend([
@@ -240,6 +226,7 @@ def analyze_with_ai(query: str, context: str, workflow: dict[str, str] | None = 
     from langchain_core.messages import HumanMessage, SystemMessage
 
     from config import load_dotenv
+    from runtime.prompt_builder import build_system_prompt
 
     load_dotenv()
     api_key = os.getenv("AI_GATEWAY_API_KEY")
@@ -263,17 +250,18 @@ def analyze_with_ai(query: str, context: str, workflow: dict[str, str] | None = 
         model_kwargs={"reasoning_effort": "low"},
     )
 
-    messages = []
-    if workflow:
-        messages.append(SystemMessage(content=_compose_runtime_guidance(workflow)))
-    messages.extend([
+    messages = [
         SystemMessage(
-            content=ANALYSIS_SYSTEM_PROMPT
+            content=build_system_prompt(ANALYSIS_SYSTEM_PROMPT, start_dir=PROJECT_ROOT)
         ),
+    ]
+    if workflow:
+        messages.append(SystemMessage(content=_compose_review_guidance(workflow)))
+    messages.append(
         HumanMessage(
             content=ANALYSIS_USER_PROMPT_TEMPLATE.format(context=context)
-        ),
-    ])
+        )
+    )
     resp = model.invoke(messages)
     return str(resp.content)
 
