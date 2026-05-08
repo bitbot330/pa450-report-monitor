@@ -217,6 +217,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
                 </select>
                 <div class="detail-key" style="margin-top:12px;">備註</div>
                 <textarea id="reviewNote" placeholder="請先點選 CSV 表格中的單筆資料列，再填寫這筆的回報。"></textarea>
+                <button id="reviewSaveButton" type="button" style="margin-top:12px; width:100%; border-radius:10px; border:1px solid var(--line); background:#0d1525; color:var(--text); padding:10px 12px; cursor:pointer; font-weight:700;">儲存</button>
               </div>
             </article>
           </aside>
@@ -263,6 +264,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     const rowDetail = document.getElementById('rowDetail');
     const reviewStatus = document.getElementById('reviewStatus');
     const reviewNote = document.getElementById('reviewNote');
+    const reviewSaveButton = document.getElementById('reviewSaveButton');
 
     function clearNode(node) {{
       while (node.firstChild) node.removeChild(node.firstChild);
@@ -603,12 +605,6 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       return appState.current.rows[appState.selectedRowIndex] || null;
     }}
 
-    function reviewStorageKey() {{
-      return appState.current && appState.selectedRowIndex !== null
-        ? `pa450-review::${{appState.current.date}}::row-${{appState.selectedRowIndex + 1}}`
-        : 'pa450-review';
-    }}
-
     function canSaveReviewToMarkdown() {{
       return appState.current
         && appState.selectedRowIndex !== null
@@ -627,6 +623,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     function setReviewControlsEnabled(enabled) {{
       reviewStatus.disabled = !enabled;
       reviewNote.disabled = !enabled;
+      reviewSaveButton.disabled = !enabled || !canSaveReviewToMarkdown();
       if (!enabled) {{
         reviewStatus.value = '';
         reviewNote.value = '';
@@ -636,15 +633,21 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       }}
     }}
 
-    async function saveReviewState() {{
-      if (!appState.current) return;
+    function draftReviews() {{
+      if (!appState.current) return {{}};
+      if (!appState.current.draftReviews) appState.current.draftReviews = {{}};
+      return appState.current.draftReviews;
+    }}
+
+    function buildCurrentReviewPayload() {{
+      if (!appState.current) return null;
       if (appState.selectedRowIndex === null) {{
         setReviewControlsEnabled(false);
-        return;
+        return null;
       }}
       const row = selectedRow();
-      if (!row) return;
-      const review = {{
+      if (!row) return null;
+      return {{
         reviewStatus: reviewStatus.value,
         reviewNote: reviewNote.value,
         rowIndex: appState.selectedRowIndex,
@@ -653,10 +656,20 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         rowSummary: rowSummary(row),
         rowFields: row,
       }};
+    }}
+
+    function updateReviewDraft() {{
+      const review = buildCurrentReviewPayload();
+      if (!review || !appState.current) return;
+      draftReviews()[String(appState.selectedRowIndex)] = review;
+    }}
+
+    async function saveReviewState() {{
+      const review = buildCurrentReviewPayload();
+      if (!review || !appState.current) return;
       if (!appState.current.reviews) appState.current.reviews = {{}};
       appState.current.reviews[String(appState.selectedRowIndex)] = review;
       if (!canSaveReviewToMarkdown()) {{
-        localStorage.setItem(reviewStorageKey(), JSON.stringify(review));
         return;
       }}
       try {{
@@ -668,6 +681,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         if (!response.ok) throw new Error(`儲存 report_YYYYMMDD.md 失敗：${{response.status}}`);
         const payload = await response.json();
         if (payload.reviews) appState.current.reviews = payload.reviews;
+        delete draftReviews()[String(appState.selectedRowIndex)];
       }} catch (error) {{
         showError(error.message || '儲存 report_YYYYMMDD.md 失敗');
       }}
@@ -682,19 +696,18 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       }}
       setReviewControlsEnabled(true);
       const rowKey = String(appState.selectedRowIndex);
+      const draft = draftReviews()[rowKey];
+      if (draft) {{
+        reviewStatus.value = draft.reviewStatus || '';
+        reviewNote.value = draft.reviewNote || '';
+        return;
+      }}
       if (canSaveReviewToMarkdown()) {{
         const saved = (appState.current.reviews || {{}})[rowKey] || {{}};
         reviewStatus.value = saved.reviewStatus || '';
         reviewNote.value = saved.reviewNote || '';
         return;
       }}
-      try {{
-        const raw = localStorage.getItem(reviewStorageKey());
-        if (!raw) return;
-        const saved = JSON.parse(raw);
-        reviewStatus.value = saved.reviewStatus || '';
-        reviewNote.value = saved.reviewNote || '';
-      }} catch (_error) {{}}
     }}
 
     function uniqueValues(field) {{
@@ -852,6 +865,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       const response = await fetch(apiUrl('/api/reports/' + encodeURIComponent(date)));
       if (!response.ok) throw new Error(`載入報告失敗：${{response.status}}`);
       appState.current = await response.json();
+      if (!appState.current.draftReviews) appState.current.draftReviews = {{}};
       renderCurrentReport();
     }}
 
@@ -889,8 +903,9 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     searchInput.addEventListener('input', renderRows);
     sourceFilter.addEventListener('change', renderRows);
     appFilter.addEventListener('change', renderRows);
-    reviewStatus.addEventListener('change', saveReviewState);
-    reviewNote.addEventListener('input', saveReviewState);
+    reviewStatus.addEventListener('change', updateReviewDraft);
+    reviewNote.addEventListener('input', updateReviewDraft);
+    reviewSaveButton.addEventListener('click', saveReviewState);
     bootstrap();
   </script>
 </body>
@@ -1049,6 +1064,18 @@ def _minimal_review_markdown_content(review_note: str, row_fields: dict[str, Any
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _review_identity_fields(row_fields: dict[str, Any] | None = None) -> dict[str, str]:
+    row_fields = row_fields or {}
+    return {
+        header: str(row_fields.get(header) or "").strip()
+        for header in ["來源位址", "目的地位址", "應用程式", "傳輸量"]
+    }
+
+
+def _same_review_identity(left: dict[str, Any] | None, right: dict[str, Any] | None) -> bool:
+    return _review_identity_fields(left) == _review_identity_fields(right)
+
+
 def save_review_markdown(
     review_dir: str | Path,
     date_key: str,
@@ -1063,14 +1090,33 @@ def save_review_markdown(
     int(row_index)
     report_path = _review_markdown_path(review_dir, date_key)
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    entry = _minimal_review_markdown_content(review_note, row_fields)
+    normalized_row_fields = _review_identity_fields(row_fields)
+    entry = _minimal_review_markdown_content(review_note, normalized_row_fields).rstrip()
     separator = "\n---\n\n"
-    if report_path.exists() and report_path.read_text(encoding="utf-8").strip():
-        with report_path.open("a", encoding="utf-8") as handle:
-            handle.write(separator)
-            handle.write(entry)
+    if not report_path.exists() or not report_path.read_text(encoding="utf-8").strip():
+        report_path.write_text(entry + "\n", encoding="utf-8")
+        return report_path
+
+    existing_entries = [
+        _parse_review_markdown(existing_entry)
+        for existing_entry in _split_review_markdown_entries(report_path.read_text(encoding="utf-8"))
+    ]
+    replacement_index = next(
+        (index for index, existing_entry in enumerate(existing_entries) if _same_review_identity(existing_entry.get("rowFields"), normalized_row_fields)),
+        None,
+    )
+    rendered_entries = [
+        _minimal_review_markdown_content(
+            str(entry_payload.get("reviewNote") or ""),
+            _review_identity_fields(entry_payload.get("rowFields") or {}),
+        ).rstrip()
+        for entry_payload in existing_entries
+    ]
+    if replacement_index is None:
+        rendered_entries.append(entry)
     else:
-        report_path.write_text(entry, encoding="utf-8")
+        rendered_entries[replacement_index] = entry
+    report_path.write_text(separator.join(rendered_entries) + "\n", encoding="utf-8")
     return report_path
 
 
@@ -1394,10 +1440,13 @@ class ReportUIHandler(BaseHTTPRequestHandler):
                     int(payload.get("rowNumber") or int(row_index) + 1),
                     int(payload.get("csvLineNumber") or int(row_index) + 2),
                 )
+                csv_path, _json_path = locate_report_paths(folders["csv_dir"], folders["analysis_dir"], date_key)
+                headers, rows = load_csv_rows(csv_path)
+                _display_headers, display_rows = enrich_rows_for_display(headers, rows)
             except (ValueError, json.JSONDecodeError):
                 self._send_json({"error": "Invalid review payload"}, status=HTTPStatus.BAD_REQUEST)
                 return
-            self._send_json({"ok": True, "path": str(report_path), "reviews": load_review_markdown(folders["review_dir"], date_key)})
+            self._send_json({"ok": True, "path": str(report_path), "reviews": load_review_markdown(folders["review_dir"], date_key, display_rows)})
             return
         self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
 
