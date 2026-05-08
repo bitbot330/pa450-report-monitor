@@ -22,6 +22,9 @@ from report import parse_int
 DASHBOARD_TITLE = "PA450 Daily Review UI"
 LOCALHOST = "127.0.0.1"
 DATE_KEY_RE = re.compile(r"^\d{8}$")
+ANALYSIS_ITEM_RE = re.compile(
+    r"^第(?P<item_number>\d+)筆的來源：(?P<source>.*?)\s+目的地：(?P<destination>.*?)\s+應用程式：(?P<application>.*?)\s+位元組：(?P<bytes>.*)$"
+)
 
 
 INDEX_HTML_TEMPLATE = """<!doctype html>
@@ -485,19 +488,28 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     }}
 
     function parseAnalysisSections(analysisText) {{
-      const parsed = {{ status: '', summary: '', source: '', destination: '', application: '', bytes: '', reason: '' }};
+      const parsed = {{ status: '', summary: '', source: '', destination: '', application: '', bytes: '', reason: '', items: [] }};
       analysisText.split(/\\r?\\n/).forEach((rawLine) => {{
         const line = rawLine.trim();
         if (!line) return;
-        const normalized = line.replace(/^[\\-\\s]+/, '');
+        const normalized = line.replace(/^[\-\s]+/, '');
+        const itemMatch = normalized.match(/^第(\d+)筆的來源：(.*?)\s+目的地：(.*?)\s+應用程式：(.*?)\s+位元組：(.*)$/);
         if (normalized.startsWith('異常狀態：')) parsed.status = normalized.split('：', 2)[1].trim();
         else if (normalized.startsWith('摘要：')) parsed.summary = normalized.split('：', 2)[1].trim();
+        else if (itemMatch) parsed.items.push({{ item_number: itemMatch[1], source: itemMatch[2].trim(), destination: itemMatch[3].trim(), application: itemMatch[4].trim(), bytes: itemMatch[5].trim() }});
         else if (normalized.startsWith('來源：')) parsed.source = normalized.split('：', 2)[1].trim();
         else if (normalized.startsWith('目的地：')) parsed.destination = normalized.split('：', 2)[1].trim();
         else if (normalized.startsWith('應用程式：')) parsed.application = normalized.split('：', 2)[1].trim();
         else if (normalized.startsWith('位元組：')) parsed.bytes = normalized.split('：', 2)[1].trim();
         else if (normalized.startsWith('原因：')) parsed.reason = normalized.split('：', 2)[1].trim();
       }});
+      if (parsed.items.length) {{
+        const firstItem = parsed.items[0];
+        parsed.source = parsed.source || firstItem.source;
+        parsed.destination = parsed.destination || firstItem.destination;
+        parsed.application = parsed.application || firstItem.application;
+        parsed.bytes = parsed.bytes || firstItem.bytes;
+      }}
       return parsed;
     }}
 
@@ -533,6 +545,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         if (Object.prototype.hasOwnProperty.call(row, '位元組')) {{
           const byteValue = parseIntLike(row['位元組']);
           displayRow['傳輸量'] = byteValue === null ? (row['位元組'] || '') : `${{formatBytesHuman(byteValue)}} (${{byteValue.toLocaleString('en-US')}} bytes)`;
+          displayRow.__raw_bytes = row['位元組'] || '';
           delete displayRow['位元組'];
         }}
         return displayRow;
@@ -770,12 +783,22 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       [
         ['異常狀態', a.status || '資料不足，需人工確認', ''],
         ['摘要', a.summary || appState.current.analysis_text || '資料不足，需人工確認', ''],
-        ['來源', a.source || '', ''],
-        ['目的地', a.destination || '', ''],
-        ['應用程式', a.application || '', ''],
-        ['傳輸量', a.bytes_human || a.bytes || '—', a.bytes_raw || ''],
         ['原因', a.reason || '', ''],
       ].forEach(([key, value, secondary]) => analysisCard.appendChild(createDetailRow(key, value, secondary)));
+      if (a.items && a.items.length) {{
+        a.items.forEach((item) => {{
+          const itemBytesValue = parseIntLike(item.bytes);
+          const itemBytesDisplay = itemBytesValue === null ? (item.bytes || '—') : formatBytesHuman(itemBytesValue);
+          const itemBytesSecondary = itemBytesValue === null ? '' : `${{itemBytesValue.toLocaleString('en-US')}} bytes`;
+          analysisCard.appendChild(createDetailRow(
+            `第${{item.item_number}}筆`,
+            `來源：${{item.source || '—'}} 目的地：${{item.destination || '—'}} 應用程式：${{item.application || '—'}} 位元組：${{itemBytesDisplay}}`,
+            itemBytesSecondary,
+          ));
+        }});
+      }} else {{
+        analysisCard.appendChild(createDetailRow('異常項目', '—', ''));
+      }}
     }}
 
     function renderHead() {{
@@ -791,25 +814,20 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       return String(value || '').trim();
     }}
 
-    function aiMatchCriteria() {{
-      const a = appState.current ? appState.current.analysis_sections || {{}} : {{}};
-      return {{
-        source: normalizeForAiMatch(a.source),
-        destination: normalizeForAiMatch(a.destination),
-        application: normalizeForAiMatch(a.application),
-      }};
-    }}
-
-    function hasCompleteAiMatchCriteria(criteria) {{
-      return Boolean(criteria.source && criteria.destination && criteria.application);
-    }}
-
     function rowMatchesAiReport(row) {{
-      const criteria = aiMatchCriteria();
-      if (!hasCompleteAiMatchCriteria(criteria)) return false;
-      return normalizeForAiMatch(row['來源位址']) === criteria.source
-        && normalizeForAiMatch(row['目的地位址']) === criteria.destination
-        && normalizeForAiMatch(row['應用程式']) === criteria.application;
+      const a = appState.current ? appState.current.analysis_sections || {{}} : {{}};
+      const items = Array.isArray(a.items) ? a.items : [];
+      if (!items.length) return false;
+      const rowBytes = parseIntLike(row.__raw_bytes ?? row['傳輸量'] ?? row['位元組']);
+      return items.some((item) => {{
+        const itemBytes = parseIntLike(item.bytes);
+        const coreMatch = normalizeForAiMatch(row['來源位址']) === normalizeForAiMatch(item.source)
+          && normalizeForAiMatch(row['目的地位址']) === normalizeForAiMatch(item.destination)
+          && normalizeForAiMatch(row['應用程式']) === normalizeForAiMatch(item.application);
+        if (!coreMatch) return false;
+        if (itemBytes === null || rowBytes === null) return true;
+        return rowBytes === itemBytes;
+      }});
     }}
 
     function matchesFilters(row) {{
@@ -955,7 +973,7 @@ def format_bytes_human(value: int | None) -> str:
     return f"{size:.1f} {unit}"
 
 
-def parse_analysis_sections(analysis_text: str) -> dict[str, str]:
+def parse_analysis_sections(analysis_text: str) -> dict[str, Any]:
     parsed = {
         "status": "",
         "summary": "",
@@ -964,16 +982,26 @@ def parse_analysis_sections(analysis_text: str) -> dict[str, str]:
         "application": "",
         "bytes": "",
         "reason": "",
+        "items": [],
     }
     for raw_line in analysis_text.splitlines():
         line = raw_line.strip()
         if not line:
             continue
         normalized = line.lstrip("- ")
+        item_match = ANALYSIS_ITEM_RE.match(normalized)
         if normalized.startswith("異常狀態："):
             parsed["status"] = normalized.split("：", 1)[1].strip()
         elif normalized.startswith("摘要："):
             parsed["summary"] = normalized.split("：", 1)[1].strip()
+        elif item_match:
+            parsed["items"].append({
+                "item_number": item_match.group("item_number").strip(),
+                "source": item_match.group("source").strip(),
+                "destination": item_match.group("destination").strip(),
+                "application": item_match.group("application").strip(),
+                "bytes": item_match.group("bytes").strip(),
+            })
         elif normalized.startswith("來源："):
             parsed["source"] = normalized.split("：", 1)[1].strip()
         elif normalized.startswith("目的地："):
@@ -984,6 +1012,12 @@ def parse_analysis_sections(analysis_text: str) -> dict[str, str]:
             parsed["bytes"] = normalized.split("：", 1)[1].strip()
         elif normalized.startswith("原因："):
             parsed["reason"] = normalized.split("：", 1)[1].strip()
+    if parsed["items"]:
+        first_item = parsed["items"][0]
+        parsed["source"] = parsed["source"] or first_item["source"]
+        parsed["destination"] = parsed["destination"] or first_item["destination"]
+        parsed["application"] = parsed["application"] or first_item["application"]
+        parsed["bytes"] = parsed["bytes"] or first_item["bytes"]
     return parsed
 
 
@@ -1030,8 +1064,10 @@ def enrich_rows_for_display(headers: list[str], rows: list[dict[str, str]]) -> t
     for row in rows:
         display_row = dict(row)
         if "位元組" in row:
-            byte_value = parse_int(row.get("位元組"))
-            display_row["傳輸量"] = row.get("位元組", "") if byte_value is None else f"{format_bytes_human(byte_value)} ({byte_value:,} bytes)"
+            raw_bytes = row.get("位元組", "")
+            byte_value = parse_int(raw_bytes)
+            display_row["傳輸量"] = raw_bytes if byte_value is None else f"{format_bytes_human(byte_value)} ({byte_value:,} bytes)"
+            display_row["__raw_bytes"] = raw_bytes
             display_row.pop("位元組", None)
         display_rows.append(display_row)
     return display_headers, display_rows
