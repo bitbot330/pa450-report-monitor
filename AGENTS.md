@@ -1,7 +1,7 @@
 # AGENTS.md
 
 1. On every startup, runtime must preload this file into the system prompt before any LLM analysis call.
-2. Treat `output/report_YYYYMMDD.md` as a date-based filename pattern, not a literal path: scan actual files matching `output/report_*.md`, prefer the report whose `YYYYMMDD` matches the current analysis/input date when available, otherwise use the latest matching report file.
-3. Distill any new human feedback from that resolved report into `.agent/review.md` as concise judgment rules only.
-4. Read `.agent/review.md` before analysis.
-5. Reference the human feedback rules from `review.md` during later analysis, while keeping the original analyze prompt text unchanged.
+2. Runtime provides review tools for `.agent/review.md`; do not rely on the model to read or write files by itself.
+3. Before analysis, the model should call the provided `read_review_md` tool to read existing human feedback rules from `.agent/review.md`.
+4. If the model determines new concise review rules should be remembered, it may call the provided `write_review_md` tool. The model decides whether writing is needed; the actual file write must be performed only by the runtime tool.
+5. Reference review rules returned by `read_review_md` during later analysis when they are relevant to the current CSV context, while keeping the original analyze prompt text unchanged.
