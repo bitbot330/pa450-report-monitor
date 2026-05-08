@@ -24,11 +24,7 @@ LOCALHOST = "127.0.0.1"
 DATE_KEY_RE = re.compile(r"^\d{8}$")
 
 
-# -----------------------------------------------------------------------------
-# HTML template
-# -----------------------------------------------------------------------------
-
-INDEX_HTML_TEMPLATE = r"""<!doctype html>
+INDEX_HTML_TEMPLATE = """<!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
@@ -63,20 +59,16 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
     .brand {{ min-width: 0; }}
     .brand h1 {{ font-size: 20px; line-height: 1.2; margin-bottom: 8px; }}
     .subtle {{ color: var(--muted); font-size: 13px; }}
-    .base-picker, .file-picker {{ display: grid; gap: 8px; margin-top: 14px; }}
-    .base-picker-actions {{ display: flex; gap: 8px; }}
-    .base-picker-actions input {{ min-width: 0; }}
-    .base-picker-actions button, .file-picker-actions button, .file-chip {{ flex: 0 0 auto; border-radius: 10px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 8px 12px; cursor: pointer; }}
-    .base-picker-actions button:hover, .file-picker-actions button:hover, .file-chip:hover {{ border-color: var(--accent); background: var(--accent-bg); }}
-    .file-picker-actions {{ display: grid; gap: 8px; }}
-    .file-chip-row {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }}
-    .file-chip {{ width: 100%; text-align: center; }}
-    .file-picker-actions button {{ width: 100%; }}
-    .file-picker-actions input[type="file"] {{ display: none; }}
-    .file-name {{ min-height: 18px; word-break: break-all; }}
+    .folder-picker {{ display: grid; gap: 10px; margin-top: 14px; }}
+    .folder-picker-actions {{ display: grid; gap: 10px; }}
+    .folder-row {{ display: grid; gap: 6px; }}
+    .folder-button, .folder-load-button {{ width: 100%; border-radius: 10px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 10px 12px; cursor: pointer; text-align: left; }}
+    .folder-load-button {{ text-align: center; font-weight: 700; }}
+    .folder-button:hover, .folder-load-button:hover {{ border-color: var(--accent); background: var(--accent-bg); }}
+    .folder-path {{ min-height: 18px; word-break: break-all; color: var(--muted); font-size: 12px; line-height: 1.35; }}
     .app.sidebar-collapsed .sidebar {{ padding: 16px 12px; }}
     .app.sidebar-collapsed .sidebar-top {{ justify-content: center; }}
-    .app.sidebar-collapsed .brand, .app.sidebar-collapsed .base-picker, .app.sidebar-collapsed .file-picker, .app.sidebar-collapsed .report-item .report-summary {{ display: none; }}
+    .app.sidebar-collapsed .brand, .app.sidebar-collapsed .folder-picker, .app.sidebar-collapsed .report-item .report-summary {{ display: none; }}
     .app.sidebar-collapsed .report-list {{ margin-top: 10px; }}
     .app.sidebar-collapsed .report-item {{ min-height: 48px; padding: 8px 6px; text-align: center; border-radius: 14px; }}
     .app.sidebar-collapsed .report-date {{ font-size: 12px; line-height: 1.15; word-break: break-all; }}
@@ -111,6 +103,7 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
     .control {{ min-width: 0; }}
     input, select, textarea {{ width: 100%; min-width: 0; background: #0d1525; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }}
     textarea {{ min-height: 92px; resize: vertical; }}
+    select:disabled, textarea:disabled {{ opacity: 0.55; cursor: not-allowed; }}
     .table-wrap {{ flex: 1 1 auto; min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: 14px; max-height: none; }}
     .row-detail-card {{ display: grid; gap: 14px; }}
     .review-in-detail {{ border-top: 1px solid rgba(255,255,255,0.10); padding-top: 14px; }}
@@ -149,29 +142,24 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
             <h1>{title}</h1>
             <p class="subtle">同一個 UI 直接切換每日報告，不用每次重生 dashboard。</p>
             <p class="subtle">僅限本機 localhost 使用。</p>
-            <div class="base-picker">
-              <div class="detail-key">資料夾 base</div>
-              <div class="base-picker-actions">
-                <input id="dataDirInput" type="text" placeholder="例如：C:\\pa450\\output 或 ./output">
-                <button id="reloadDataDir" type="button">讀取</button>
-              </div>
-              <p class="subtle">CSV 與 JSON 可在 base 底下不同子目錄。</p>
-            </div>
-            <div class="file-picker">
-              <div class="detail-key">手動載入檔案</div>
-              <div class="file-picker-actions">
-                <div class="file-chip-row">
-                  <label class="file-chip" for="csvFileInput">選 CSV</label>
-                  <label class="file-chip" for="jsonFileInput">選 AI JSON</label>
+            <div class="folder-picker">
+              <div class="detail-key">載入資料夾</div>
+              <div class="folder-picker-actions">
+                <div class="folder-row">
+                  <button id="selectCsvFolder" class="folder-button" type="button">選 CSV load folder</button>
+                  <div id="csvFolderPath" class="folder-path">output/</div>
                 </div>
-                <input id="csvFileInput" type="file" accept=".csv,text/csv">
-                <input id="jsonFileInput" type="file" accept=".json,application/json">
-                <button id="loadSelectedFiles" type="button">載入已選檔案</button>
+                <div class="folder-row">
+                  <button id="selectAnalysisFolder" class="folder-button" type="button">選 AI JSON load folder</button>
+                  <div id="analysisFolderPath" class="folder-path">output/</div>
+                </div>
+                <div class="folder-row">
+                  <button id="selectReviewFolder" class="folder-button" type="button">選回報 load folder</button>
+                  <div id="reviewFolderPath" class="folder-path">output/</div>
+                </div>
+                <button id="reloadFolders" class="folder-load-button" type="button">讀取資料夾</button>
               </div>
-              <div id="csvFileName" class="subtle file-name">尚未選擇 CSV</div>
-              <div id="jsonFileName" class="subtle file-name">尚未選擇 AI JSON</div>
-              <div id="manualLoadState" class="subtle file-name">CSV 與 AI JSON 可分別從不同資料夾挑選；兩個都選好後再載入。</div>
-              <p class="subtle">直接用瀏覽器分開選本機 CSV/JSON，不改動磁碟上的 base 掃描流程。</p>
+              <p class="subtle">預設皆為 output/。按按鈕用資料夾選擇器挑選，不用手打路徑。</p>
             </div>
           </div>
           <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="收合側邊欄" title="收合側邊欄">‹</button>
@@ -228,7 +216,7 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
                   <option value="ai-adjustment">AI 判讀需調整</option>
                 </select>
                 <div class="detail-key" style="margin-top:12px;">備註</div>
-                <textarea id="reviewNote" placeholder="例如：這次高流量其實是備份流量，AI 需要學會辨識。"></textarea>
+                <textarea id="reviewNote" placeholder="請先點選 CSV 表格中的單筆資料列，再填寫這筆的回報。"></textarea>
               </div>
             </article>
           </aside>
@@ -238,18 +226,29 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
   </div>
 
   <script>
-    const DEFAULT_DATA_DIR = {data_dir_json};
+    const DEFAULT_CSV_DIR = {csv_dir_json};
+    const DEFAULT_ANALYSIS_DIR = {analysis_dir_json};
+    const DEFAULT_REVIEW_DIR = {review_dir_json};
     const appState = {{ reports: [], current: null, selectedRowIndex: null }};
     const appShell = document.getElementById('appShell');
     const sidebarToggle = document.getElementById('sidebarToggle');
-    const dataDirInput = document.getElementById('dataDirInput');
-    const reloadDataDir = document.getElementById('reloadDataDir');
-    const csvFileInput = document.getElementById('csvFileInput');
-    const jsonFileInput = document.getElementById('jsonFileInput');
-    const loadSelectedFilesButton = document.getElementById('loadSelectedFiles');
-    const csvFileName = document.getElementById('csvFileName');
-    const jsonFileName = document.getElementById('jsonFileName');
-    const manualLoadState = document.getElementById('manualLoadState');
+    const selectCsvFolder = document.getElementById('selectCsvFolder');
+    const selectAnalysisFolder = document.getElementById('selectAnalysisFolder');
+    const selectReviewFolder = document.getElementById('selectReviewFolder');
+    const csvFolderPath = document.getElementById('csvFolderPath');
+    const analysisFolderPath = document.getElementById('analysisFolderPath');
+    const reviewFolderPath = document.getElementById('reviewFolderPath');
+    const reloadFolders = document.getElementById('reloadFolders');
+    const folderState = {{
+      csv: localStorage.getItem('pa450-csv-dir') || DEFAULT_CSV_DIR,
+      analysis: localStorage.getItem('pa450-analysis-dir') || DEFAULT_ANALYSIS_DIR,
+      review: localStorage.getItem('pa450-review-dir') || DEFAULT_REVIEW_DIR,
+    }};
+    const folderLabels = {{
+      csv: csvFolderPath,
+      analysis: analysisFolderPath,
+      review: reviewFolderPath,
+    }};
     const reportList = document.getElementById('reportList');
     const loading = document.getElementById('loading');
     const errorBox = document.getElementById('errorBox');
@@ -309,18 +308,55 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
       localStorage.setItem('pa450-sidebar-collapsed', collapsed ? '1' : '0');
     }}
 
-    function currentDataDir() {{
-      return dataDirInput.value.trim() || DEFAULT_DATA_DIR;
+    function setFolderPath(kind, path) {{
+      folderState[kind] = path || 'output';
+      if (folderLabels[kind]) folderLabels[kind].textContent = folderState[kind];
+      persistFolderDirs();
     }}
 
-    function apiUrl(path) {{
+    function currentCsvDir() {{
+      return folderState.csv || DEFAULT_CSV_DIR;
+    }}
+
+    function currentAnalysisDir() {{
+      return folderState.analysis || DEFAULT_ANALYSIS_DIR;
+    }}
+
+    function currentReviewDir() {{
+      return folderState.review || DEFAULT_REVIEW_DIR;
+    }}
+
+    function apiUrl(path, extraParams = {{}}) {{
       const params = new URLSearchParams();
-      params.set('data_dir', currentDataDir());
+      params.set('csv_dir', currentCsvDir());
+      params.set('analysis_dir', currentAnalysisDir());
+      params.set('review_dir', currentReviewDir());
+      Object.entries(extraParams).forEach(([key, value]) => params.set(key, value));
       return path + '?' + params.toString();
     }}
 
-    function persistDataDir() {{
-      localStorage.setItem('pa450-data-dir', currentDataDir());
+    function persistFolderDirs() {{
+      localStorage.setItem('pa450-csv-dir', currentCsvDir());
+      localStorage.setItem('pa450-analysis-dir', currentAnalysisDir());
+      localStorage.setItem('pa450-review-dir', currentReviewDir());
+    }}
+
+    async function chooseFolder(kind) {{
+      try {{
+        clearError();
+        const response = await fetch(apiUrl('/api/pick-folder', {{ kind }}));
+        if (!response.ok) throw new Error(`選擇資料夾失敗：${{response.status}}`);
+        const payload = await response.json();
+        if (payload.selected && payload.path) setFolderPath(kind, payload.path);
+      }} catch (error) {{
+        showError(error.message || '選擇資料夾失敗');
+      }}
+    }}
+
+    function renderFolderPaths() {{
+      setFolderPath('csv', currentCsvDir());
+      setFolderPath('analysis', currentAnalysisDir());
+      setFolderPath('review', currentReviewDir());
     }}
 
     function updateSelectedFileNames() {{
@@ -562,21 +598,63 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
       }}
     }}
 
+    function selectedRow() {{
+      if (!appState.current || appState.selectedRowIndex === null) return null;
+      return appState.current.rows[appState.selectedRowIndex] || null;
+    }}
+
     function reviewStorageKey() {{
-      return appState.current ? `pa450-review::${{appState.current.date}}` : 'pa450-review';
+      return appState.current && appState.selectedRowIndex !== null
+        ? `pa450-review::${{appState.current.date}}::row-${{appState.selectedRowIndex + 1}}`
+        : 'pa450-review';
     }}
 
     function canSaveReviewToMarkdown() {{
-      return appState.current && /^\d{{8}}$/.test(appState.current.date || '') && appState.current.source !== 'manual-upload';
+      return appState.current
+        && appState.selectedRowIndex !== null
+        && /^\\d{{8}}$/.test(appState.current.date || '')
+        && appState.current.source !== 'manual-upload';
+    }}
+
+    function rowSummary(row) {{
+      const preferredHeaders = ['來源位址', '目的地位址', '應用程式', '傳輸量', '來源使用者', '使用者', '主機名稱'];
+      return preferredHeaders
+        .filter((header) => row && row[header])
+        .map((header) => `${{header}}=${{row[header]}}`)
+        .join('；');
+    }}
+
+    function setReviewControlsEnabled(enabled) {{
+      reviewStatus.disabled = !enabled;
+      reviewNote.disabled = !enabled;
+      if (!enabled) {{
+        reviewStatus.value = '';
+        reviewNote.value = '';
+        reviewNote.placeholder = '請先點選 CSV 表格中的單筆資料列，再填寫這筆的回報。';
+      }} else {{
+        reviewNote.placeholder = '例如：這筆高流量其實是備份流量，AI 需要學會辨識。';
+      }}
     }}
 
     async function saveReviewState() {{
       if (!appState.current) return;
+      if (appState.selectedRowIndex === null) {{
+        setReviewControlsEnabled(false);
+        return;
+      }}
+      const row = selectedRow();
+      if (!row) return;
       const review = {{
         reviewStatus: reviewStatus.value,
         reviewNote: reviewNote.value,
+        rowIndex: appState.selectedRowIndex,
+        rowNumber: appState.selectedRowIndex + 1,
+        csvLineNumber: appState.selectedRowIndex + 2,
+        rowSummary: rowSummary(row),
+        rowFields: row,
       }};
-      appState.current.review = review;
+      if (!appState.current.reviews) appState.current.reviews = {{}};
+      appState.current.reviews[String(appState.selectedRowIndex)] = review;
       if (!canSaveReviewToMarkdown()) {{
         localStorage.setItem(reviewStorageKey(), JSON.stringify(review));
         return;
@@ -588,6 +666,8 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
           body: JSON.stringify(review),
         }});
         if (!response.ok) throw new Error(`儲存 report.md 失敗：${{response.status}}`);
+        const payload = await response.json();
+        if (payload.reviews) appState.current.reviews = payload.reviews;
       }} catch (error) {{
         showError(error.message || '儲存 report.md 失敗');
       }}
@@ -596,9 +676,14 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
     function loadReviewState() {{
       reviewStatus.value = '';
       reviewNote.value = '';
-      if (!appState.current) return;
+      if (!appState.current || appState.selectedRowIndex === null) {{
+        setReviewControlsEnabled(false);
+        return;
+      }}
+      setReviewControlsEnabled(true);
+      const rowKey = String(appState.selectedRowIndex);
       if (canSaveReviewToMarkdown()) {{
-        const saved = appState.current.review || {{}};
+        const saved = (appState.current.reviews || {{}})[rowKey] || {{}};
         reviewStatus.value = saved.reviewStatus || '';
         reviewNote.value = saved.reviewNote || '';
         return;
@@ -705,17 +790,23 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
     function renderDetails(row) {{
       clearNode(rowDetail);
       rowDetail.className = 'detail-list';
+      const rowNumber = appState.selectedRowIndex === null ? 0 : appState.selectedRowIndex + 1;
+      if (rowNumber) {{
+        rowDetail.appendChild(createDetailRow('單筆識別', `第 ${{rowNumber}} 筆（CSV 第 ${{rowNumber + 1}} 行）`));
+      }}
       appState.current.headers.forEach((header) => {{
         rowDetail.appendChild(createDetailRow(header, row[header] || '—'));
       }});
+      loadReviewState();
     }}
 
     function renderRows() {{
       clearNode(tableBody);
-      const filtered = appState.current.rows.filter(matchesFilters);
-      filtered.forEach((row) => {{
+      const filtered = appState.current.rows
+        .map((row, originalIndex) => ({{ row, originalIndex }}))
+        .filter((item) => matchesFilters(item.row));
+      filtered.forEach(({{ row, originalIndex }}) => {{
         const tr = document.createElement('tr');
-        const originalIndex = appState.current.rows.indexOf(row);
         if (appState.selectedRowIndex === originalIndex) tr.classList.add('is-selected');
         tr.addEventListener('click', () => {{
           appState.selectedRowIndex = originalIndex;
@@ -752,12 +843,12 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
       renderHead();
       fillSelect(sourceFilter, '來源位址', '來源 IP');
       fillSelect(appFilter, '應用程式', '應用程式');
-      loadReviewState();
+      setReviewControlsEnabled(false);
       renderRows();
     }}
 
     async function loadReport(date) {{
-      persistDataDir();
+      persistFolderDirs();
       const response = await fetch(apiUrl('/api/reports/' + encodeURIComponent(date)));
       if (!response.ok) throw new Error(`載入報告失敗：${{response.status}}`);
       appState.current = await response.json();
@@ -771,7 +862,7 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
         reportApp.hidden = true;
         appState.current = null;
         appState.selectedRowIndex = null;
-        persistDataDir();
+        persistFolderDirs();
         const response = await fetch(apiUrl('/api/reports'));
         if (!response.ok) throw new Error(`載入報告列表失敗：${{response.status}}`);
         const payload = await response.json();
@@ -779,7 +870,7 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
         renderSidebar();
         if (!appState.reports.length) {{
           loading.hidden = true;
-          setEmptyMessage(reportList, `此 base 找不到成對的 CSV/JSON：${{currentDataDir()}}`);
+          setEmptyMessage(reportList, `找不到成對的 CSV/AI JSON。CSV：${{currentCsvDir()}}；AI JSON：${{currentAnalysisDir()}}`);
           return;
         }}
         await loadReport(appState.reports[0].date);
@@ -788,14 +879,11 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
       }}
     }}
 
-    dataDirInput.value = localStorage.getItem('pa450-data-dir') || DEFAULT_DATA_DIR;
-    reloadDataDir.addEventListener('click', bootstrap);
-    csvFileInput.addEventListener('change', updateSelectedFileNames);
-    jsonFileInput.addEventListener('change', updateSelectedFileNames);
-    loadSelectedFilesButton.addEventListener('click', loadSelectedFiles);
-    dataDirInput.addEventListener('keydown', (event) => {{
-      if (event.key === 'Enter') bootstrap();
-    }});
+    renderFolderPaths();
+    selectCsvFolder.addEventListener('click', () => chooseFolder('csv'));
+    selectAnalysisFolder.addEventListener('click', () => chooseFolder('analysis'));
+    selectReviewFolder.addEventListener('click', () => chooseFolder('review'));
+    reloadFolders.addEventListener('click', bootstrap);
     sidebarToggle.addEventListener('click', () => setSidebarCollapsed(!appShell.classList.contains('sidebar-collapsed')));
     setSidebarCollapsed(localStorage.getItem('pa450-sidebar-collapsed') === '1');
     searchInput.addEventListener('input', renderRows);
@@ -803,18 +891,11 @@ INDEX_HTML_TEMPLATE = r"""<!doctype html>
     appFilter.addEventListener('change', renderRows);
     reviewStatus.addEventListener('change', saveReviewState);
     reviewNote.addEventListener('input', saveReviewState);
-    updateSelectedFileNames();
     bootstrap();
   </script>
 </body>
 </html>
 """
-
-# -----------------------------------------------------------------------------
-# Report data loading, discovery, and review markdown persistence
-# -----------------------------------------------------------------------------
-
-# CSV / analysis parsing helpers
 
 def format_bytes_human(value: int | None) -> str:
     if value is None:
@@ -926,48 +1007,170 @@ def _report_date_label(date_key: str) -> str:
     return f"{date_key[:4]}-{date_key[4:6]}-{date_key[6:8]}"
 
 
-def _review_markdown_path(data_dir: str | Path, date_key: str) -> Path:
+def _review_markdown_path(review_dir: str | Path, date_key: str | None = None) -> Path:
+    return _normalized_base(review_dir) / "report.md"
+
+
+def _markdown_table_escape(value: Any) -> str:
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+    return text.replace("|", "\\|").replace("\n", "<br>")
+
+
+def _markdown_table_unescape(value: str) -> str:
+    return value.replace("<br>", "\n").replace("\\|", "|").strip()
+
+
+def _parse_row_fields_from_markdown(entry: str) -> dict[str, str]:
+    marker = "## 原始資料列"
+    if marker not in entry:
+        return {}
+    table = entry.split(marker, 1)[1]
+    if "## 備註" in table:
+        table = table.split("## 備註", 1)[0]
+    fields: dict[str, str] = {}
+    for raw_line in table.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("|") or line.startswith("|---") or line.startswith("| 欄位 "):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) < 2:
+            continue
+        key = _markdown_table_unescape(cells[0])
+        value = _markdown_table_unescape("|".join(cells[1:]))
+        if key:
+            fields[key] = value
+    return fields
+
+
+def _parse_review_markdown(text: str) -> dict[str, dict[str, dict[str, Any]]]:
+    reviews: dict[str, dict[str, dict[str, Any]]] = {}
+    date_pattern = re.compile(r"(?ms)^(\d{8})\n# 報告回報\n(?P<body>.*?)(?=^\d{8}\n# 報告回報\n|\Z)")
+    entry_pattern = re.compile(r"(?ms)^## 單筆：.*?(?=^## 單筆：|\Z)")
+    for date_match in date_pattern.finditer(text):
+        date_key = date_match.group(1)
+        body = date_match.group("body")
+        date_reviews: dict[str, dict[str, Any]] = {}
+        for entry_match in entry_pattern.finditer(body):
+            entry = entry_match.group(0)
+            row_index_match = re.search(r"(?m)^- row_index：\s*(\d+)\s*$", entry)
+            if not row_index_match:
+                continue
+            row_index = int(row_index_match.group(1))
+            status = ""
+            for key, label in REVIEW_STATUS_LABELS.items():
+                if f"- 回報狀態：{label}" in entry:
+                    status = key
+                    break
+            note = ""
+            marker = "## 備註\n\n"
+            if marker in entry:
+                note = entry.split(marker, 1)[1].rstrip("\n")
+                if note == "未填寫":
+                    note = ""
+            row_fields = _parse_row_fields_from_markdown(entry)
+            date_reviews[str(row_index)] = {
+                "reviewStatus": status,
+                "reviewNote": note,
+                "rowIndex": row_index,
+                "rowNumber": row_index + 1,
+                "csvLineNumber": row_index + 2,
+                "rowFields": row_fields,
+            }
+        if date_reviews:
+            reviews[date_key] = date_reviews
+    return reviews
+
+
+def _read_all_review_markdown(review_dir: str | Path) -> dict[str, dict[str, dict[str, Any]]]:
+    report_path = _review_markdown_path(review_dir)
+    if not report_path.exists():
+        return {}
+    return _parse_review_markdown(report_path.read_text(encoding="utf-8"))
+
+
+def _review_sort_key(value: str) -> tuple[int, str]:
+    try:
+        return (int(value), value)
+    except ValueError:
+        return (10**9, value)
+
+
+def _review_markdown_content(reviews: dict[str, dict[str, dict[str, Any]]]) -> str:
+    lines: list[str] = []
+    preferred_headers = ["來源位址", "目的地位址", "應用程式", "傳輸量", "來源使用者", "使用者", "主機名稱"]
+    for date_key in sorted(reviews):
+        if not DATE_KEY_RE.fullmatch(date_key):
+            continue
+        date_reviews = reviews.get(date_key) or {}
+        if not date_reviews:
+            continue
+        if lines:
+            lines.append("")
+        lines.extend([date_key, "# 報告回報", ""])
+        for row_key in sorted(date_reviews, key=_review_sort_key):
+            review = date_reviews[row_key]
+            try:
+                row_index = int(review.get("rowIndex", row_key))
+            except (TypeError, ValueError):
+                row_index = int(row_key) if str(row_key).isdigit() else 0
+            row_number = int(review.get("rowNumber") or row_index + 1)
+            csv_line_number = int(review.get("csvLineNumber") or row_index + 2)
+            status_label = REVIEW_STATUS_LABELS.get(
+                str(review.get("reviewStatus") or ""),
+                str(review.get("reviewStatus") or REVIEW_STATUS_LABELS[""]),
+            )
+            note = str(review.get("reviewNote") or "").rstrip() or "未填寫"
+            row_fields = review.get("rowFields") if isinstance(review.get("rowFields"), dict) else {}
+            lines.extend([
+                f"## 單筆：第 {row_number} 筆（CSV 第 {csv_line_number} 行）",
+                "",
+                f"- row_index：{row_index}",
+                f"- 回報狀態：{status_label}",
+            ])
+            for header in preferred_headers:
+                value = str(row_fields.get(header) or "").strip()
+                if value:
+                    lines.append(f"- {header}：{value}")
+            if row_fields:
+                lines.extend(["", "## 原始資料列", "", "| 欄位 | 值 |", "|---|---|"])
+                for header, value in row_fields.items():
+                    lines.append(f"| {_markdown_table_escape(header)} | {_markdown_table_escape(value)} |")
+            lines.extend(["", "## 備註", "", note, ""])
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def save_review_markdown(
+    review_dir: str | Path,
+    date_key: str,
+    review_status: str,
+    review_note: str,
+    row_index: int,
+    row_fields: dict[str, Any] | None = None,
+    row_number: int | None = None,
+    csv_line_number: int | None = None,
+) -> Path:
     date_key = _validated_date_key(date_key)
-    return _normalized_base(data_dir) / date_key / "report.md"
-
-
-def _review_markdown_content(date_key: str, review_status: str, review_note: str) -> str:
-    date_key = _validated_date_key(date_key)
-    status_label = REVIEW_STATUS_LABELS.get(review_status, review_status or REVIEW_STATUS_LABELS[""])
-    note = review_note.rstrip() or "未填寫"
-    return (
-        "# 報告回報\n\n"
-        f"- 報告日期：{_report_date_label(date_key)}\n"
-        f"- 回報狀態：{status_label}\n\n"
-        "## 備註\n\n"
-        f"{note}\n"
-    )
-
-
-def save_review_markdown(data_dir: str | Path, date_key: str, review_status: str, review_note: str) -> Path:
-    report_path = _review_markdown_path(data_dir, date_key)
+    row_index = int(row_index)
+    row_fields = row_fields or {}
+    report_path = _review_markdown_path(review_dir)
+    reviews = _read_all_review_markdown(review_dir)
+    date_reviews = reviews.setdefault(date_key, {})
+    date_reviews[str(row_index)] = {
+        "reviewStatus": review_status,
+        "reviewNote": review_note,
+        "rowIndex": row_index,
+        "rowNumber": int(row_number or row_index + 1),
+        "csvLineNumber": int(csv_line_number or row_index + 2),
+        "rowFields": {str(key): str(value or "") for key, value in row_fields.items()},
+    }
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(_review_markdown_content(date_key, review_status, review_note), encoding="utf-8")
+    report_path.write_text(_review_markdown_content(reviews), encoding="utf-8")
     return report_path
 
 
-def load_review_markdown(data_dir: str | Path, date_key: str) -> dict[str, str]:
-    report_path = _review_markdown_path(data_dir, date_key)
-    if not report_path.exists():
-        return {"reviewStatus": "", "reviewNote": ""}
-    text = report_path.read_text(encoding="utf-8")
-    status = ""
-    for key, label in REVIEW_STATUS_LABELS.items():
-        if f"- 回報狀態：{label}" in text:
-            status = key
-            break
-    note = ""
-    marker = "## 備註\n\n"
-    if marker in text:
-        note = text.split(marker, 1)[1].rstrip("\n")
-        if note == "未填寫":
-            note = ""
-    return {"reviewStatus": status, "reviewNote": note}
+def load_review_markdown(review_dir: str | Path, date_key: str) -> dict[str, dict[str, Any]]:
+    date_key = _validated_date_key(date_key)
+    return _read_all_review_markdown(review_dir).get(date_key, {})
 
 
 def _validated_date_key(date_key: str) -> str:
@@ -1042,28 +1245,32 @@ def _relative_label(base: Path, path: Path) -> str:
         return str(path)
 
 
-def build_report_map(data_dir: str | Path) -> dict[str, dict[str, Path]]:
-    base = _normalized_base(data_dir)
+def build_report_map(csv_dir: str | Path, analysis_dir: str | Path) -> dict[str, dict[str, Path]]:
+    csv_base = _normalized_base(csv_dir)
+    analysis_base = _normalized_base(analysis_dir)
     report_map: dict[str, dict[str, Path]] = {}
 
-    for path in _iter_files(base):
-        if path.suffix.lower() == ".csv":
-            date_key = _csv_date_key(path)
-            if date_key:
-                _set_best_candidate(report_map, date_key, "csv", path, base)
+    for path in _iter_files(csv_base):
+        if path.suffix.lower() != ".csv":
             continue
+        date_key = _csv_date_key(path)
+        if date_key:
+            _set_best_candidate(report_map, date_key, "csv", path, csv_base)
 
-        if path.suffix.lower() == ".json":
-            date_key = _analysis_date_key(path)
-            if date_key:
-                _set_best_candidate(report_map, date_key, "analysis", path, base)
+    for path in _iter_files(analysis_base):
+        if path.suffix.lower() != ".json":
+            continue
+        date_key = _analysis_date_key(path)
+        if date_key:
+            _set_best_candidate(report_map, date_key, "analysis", path, analysis_base)
 
     return report_map
 
 
-def discover_reports(data_dir: str | Path) -> list[dict[str, str]]:
-    base = _normalized_base(data_dir)
-    report_map = build_report_map(base)
+def discover_reports(csv_dir: str | Path, analysis_dir: str | Path) -> list[dict[str, str]]:
+    csv_base = _normalized_base(csv_dir)
+    analysis_base = _normalized_base(analysis_dir)
+    report_map = build_report_map(csv_base, analysis_base)
 
     reports: list[dict[str, str]] = []
     for date_key, paths in sorted(report_map.items(), reverse=True):
@@ -1072,16 +1279,15 @@ def discover_reports(data_dir: str | Path) -> list[dict[str, str]]:
         reports.append({
             "date": date_key,
             "label": _report_date_label(date_key),
-            "summary": f"{_relative_label(base, paths['csv'])} · {_relative_label(base, paths['analysis'])}",
+            "summary": f"CSV: {_relative_label(csv_base, paths['csv'])} · AI: {_relative_label(analysis_base, paths['analysis'])}",
             "csv_path": str(paths["csv"]),
             "analysis_path": str(paths["analysis"]),
         })
     return reports
 
 
-def locate_report_paths(data_dir: str | Path, date_key: str) -> tuple[Path, Path]:
-    base = _normalized_base(data_dir)
-    report_map = build_report_map(base)
+def locate_report_paths(csv_dir: str | Path, analysis_dir: str | Path, date_key: str) -> tuple[Path, Path]:
+    report_map = build_report_map(csv_dir, analysis_dir)
     paths = report_map.get(date_key, {})
     csv_path = paths.get("csv")
     json_path = paths.get("analysis")
@@ -1089,9 +1295,36 @@ def locate_report_paths(data_dir: str | Path, date_key: str) -> tuple[Path, Path
         raise FileNotFoundError(f"Report bundle not found for date: {date_key}")
     return csv_path, json_path
 
-def load_report_bundle(data_dir: str | Path, date_key: str) -> dict[str, Any]:
+
+def select_folder_dialog(initial_dir: str | Path) -> str | None:
+    initial_path = _normalized_base(initial_dir)
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except Exception as exc:
+        raise RuntimeError(f"Cannot open folder picker because tkinter is unavailable: {exc}") from exc
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        root.attributes("-topmost", True)
+    except tk.TclError:
+        pass
+    try:
+        selected = filedialog.askdirectory(
+            parent=root,
+            initialdir=str(initial_path if initial_path.exists() else Path.cwd()),
+            title="選擇資料夾",
+            mustexist=False,
+        )
+    finally:
+        root.destroy()
+    return selected or None
+
+
+def load_report_bundle(csv_dir: str | Path, analysis_dir: str | Path, review_dir: str | Path, date_key: str) -> dict[str, Any]:
     date_key = _validated_date_key(date_key)
-    csv_path, json_path = locate_report_paths(data_dir, date_key)
+    csv_path, json_path = locate_report_paths(csv_dir, analysis_dir, date_key)
 
     headers, rows = load_csv_rows(csv_path)
     analysis_payload = load_analysis_payload(json_path)
@@ -1105,7 +1338,9 @@ def load_report_bundle(data_dir: str | Path, date_key: str) -> dict[str, Any]:
     return {
         "date": date_key,
         "label": _report_date_label(date_key),
-        "data_dir": str(_normalized_base(data_dir)),
+        "csv_dir": str(_normalized_base(csv_dir)),
+        "analysis_dir": str(_normalized_base(analysis_dir)),
+        "review_dir": str(_normalized_base(review_dir)),
         "csv_path": str(csv_path),
         "analysis_path": str(json_path),
         "headers": display_headers,
@@ -1113,39 +1348,68 @@ def load_report_bundle(data_dir: str | Path, date_key: str) -> dict[str, Any]:
         "summary": summarize_rows(rows),
         "analysis_text": analysis_text,
         "analysis_sections": analysis_sections,
-        "review": load_review_markdown(data_dir, date_key),
+        "reviews": load_review_markdown(review_dir, date_key),
     }
 
-# -----------------------------------------------------------------------------
-# HTTP server and CLI entrypoint
-# -----------------------------------------------------------------------------
 
 class ReportUIHandler(BaseHTTPRequestHandler):
     def __init__(self, *args: Any, data_dir: str, **kwargs: Any) -> None:
         self.default_data_dir = _normalized_base(data_dir)
         super().__init__(*args, **kwargs)
 
-    def _request_data_dir(self, parsed) -> Path:
+    def _request_folders(self, parsed) -> dict[str, Path]:
         params = parse_qs(parsed.query)
-        requested = (params.get("data_dir") or [""])[0].strip()
-        return _normalized_base(requested) if requested else self.default_data_dir
+        legacy_data_dir = (params.get("data_dir") or [""])[0].strip()
+        default_dir = _normalized_base(legacy_data_dir) if legacy_data_dir else self.default_data_dir
+
+        def pick(name: str) -> Path:
+            requested = (params.get(name) or [""])[0].strip()
+            return _normalized_base(requested) if requested else default_dir
+
+        return {
+            "csv_dir": pick("csv_dir"),
+            "analysis_dir": pick("analysis_dir"),
+            "review_dir": pick("review_dir"),
+        }
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
-        data_dir = self._request_data_dir(parsed)
+        folders = self._request_folders(parsed)
         if parsed.path == "/":
             self._send_html(INDEX_HTML_TEMPLATE.format(
                 title=escape(DASHBOARD_TITLE),
-                data_dir_json=json.dumps(str(self.default_data_dir), ensure_ascii=False),
+                csv_dir_json=json.dumps(str(self.default_data_dir), ensure_ascii=False),
+                analysis_dir_json=json.dumps(str(self.default_data_dir), ensure_ascii=False),
+                review_dir_json=json.dumps(str(self.default_data_dir), ensure_ascii=False),
             ))
             return
+        if parsed.path == "/api/pick-folder":
+            params = parse_qs(parsed.query)
+            kind = (params.get("kind") or [""])[0].strip()
+            current_dir = {
+                "csv": folders["csv_dir"],
+                "analysis": folders["analysis_dir"],
+                "review": folders["review_dir"],
+            }.get(kind, self.default_data_dir)
+            try:
+                selected = select_folder_dialog(current_dir)
+            except RuntimeError as exc:
+                self._send_json({"error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self._send_json({"selected": bool(selected), "path": selected or ""})
+            return
         if parsed.path == "/api/reports":
-            self._send_json({"data_dir": str(data_dir), "reports": discover_reports(data_dir)})
+            self._send_json({
+                "csv_dir": str(folders["csv_dir"]),
+                "analysis_dir": str(folders["analysis_dir"]),
+                "review_dir": str(folders["review_dir"]),
+                "reports": discover_reports(folders["csv_dir"], folders["analysis_dir"]),
+            })
             return
         if parsed.path.startswith("/api/reports/"):
             date_key = unquote(parsed.path.removeprefix("/api/reports/"))
             try:
-                payload = load_report_bundle(data_dir, date_key)
+                payload = load_report_bundle(folders["csv_dir"], folders["analysis_dir"], folders["review_dir"], date_key)
             except ValueError:
                 self._send_json({"error": "Invalid report date"}, status=HTTPStatus.BAD_REQUEST)
                 return
@@ -1158,7 +1422,7 @@ class ReportUIHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
-        data_dir = self._request_data_dir(parsed)
+        folders = self._request_folders(parsed)
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/review"):
             date_key = unquote(parsed.path.removeprefix("/api/reports/").removesuffix("/review").strip("/"))
             try:
@@ -1168,16 +1432,26 @@ class ReportUIHandler(BaseHTTPRequestHandler):
                 payload = json.loads(body or "{}")
                 if not isinstance(payload, dict):
                     raise ValueError("Review payload must be an object")
+                row_index = payload.get("rowIndex")
+                if row_index is None:
+                    raise ValueError("rowIndex is required")
+                row_fields = payload.get("rowFields") or {}
+                if not isinstance(row_fields, dict):
+                    raise ValueError("rowFields must be an object")
                 report_path = save_review_markdown(
-                    data_dir,
+                    folders["review_dir"],
                     date_key,
                     str(payload.get("reviewStatus") or ""),
                     str(payload.get("reviewNote") or ""),
+                    int(row_index),
+                    row_fields,
+                    int(payload.get("rowNumber") or int(row_index) + 1),
+                    int(payload.get("csvLineNumber") or int(row_index) + 2),
                 )
             except (ValueError, json.JSONDecodeError):
                 self._send_json({"error": "Invalid review payload"}, status=HTTPStatus.BAD_REQUEST)
                 return
-            self._send_json({"ok": True, "path": str(report_path), "review": load_review_markdown(data_dir, date_key)})
+            self._send_json({"ok": True, "path": str(report_path), "reviews": load_review_markdown(folders["review_dir"], date_key)})
             return
         self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
 
