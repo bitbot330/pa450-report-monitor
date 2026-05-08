@@ -114,6 +114,10 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     tbody tr {{ cursor: pointer; }}
     tbody tr:hover {{ background: rgba(101, 183, 255, 0.08); }}
     tbody tr.is-selected {{ background: rgba(101, 183, 255, 0.18); }}
+    tbody tr.is-ai-match {{ background: rgba(255, 193, 7, 0.24); outline: 2px solid #ffd166; outline-offset: -2px; }}
+    tbody tr.is-ai-match:hover {{ background: rgba(255, 193, 7, 0.32); }}
+    tbody tr.is-ai-match td {{ border-bottom-color: rgba(255, 209, 102, 0.42); }}
+    td.ai-match-cell {{ color: #ffffff; font-weight: 800; text-shadow: 0 0 10px rgba(255, 209, 102, 0.55); }}
     .empty {{ padding: 18px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); }}
     .error {{ color: #ff9a9a; }}
     @media (max-width: 1320px) {{
@@ -783,6 +787,31 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       }});
     }}
 
+    function normalizeForAiMatch(value) {{
+      return String(value || '').trim();
+    }}
+
+    function aiMatchCriteria() {{
+      const a = appState.current ? appState.current.analysis_sections || {{}} : {{}};
+      return {{
+        source: normalizeForAiMatch(a.source),
+        destination: normalizeForAiMatch(a.destination),
+        application: normalizeForAiMatch(a.application),
+      }};
+    }}
+
+    function hasCompleteAiMatchCriteria(criteria) {{
+      return Boolean(criteria.source && criteria.destination && criteria.application);
+    }}
+
+    function rowMatchesAiReport(row) {{
+      const criteria = aiMatchCriteria();
+      if (!hasCompleteAiMatchCriteria(criteria)) return false;
+      return normalizeForAiMatch(row['來源位址']) === criteria.source
+        && normalizeForAiMatch(row['目的地位址']) === criteria.destination
+        && normalizeForAiMatch(row['應用程式']) === criteria.application;
+    }}
+
     function matchesFilters(row) {{
       const search = searchInput.value.trim().toLowerCase();
       const source = sourceFilter.value;
@@ -797,10 +826,6 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     function renderDetails(row) {{
       clearNode(rowDetail);
       rowDetail.className = 'detail-list';
-      const rowNumber = appState.selectedRowIndex === null ? 0 : appState.selectedRowIndex + 1;
-      if (rowNumber) {{
-        rowDetail.appendChild(createDetailRow('單筆識別', `第 ${{rowNumber}} 筆（CSV 第 ${{rowNumber + 1}} 行）`));
-      }}
       appState.current.headers.forEach((header) => {{
         rowDetail.appendChild(createDetailRow(header, row[header] || '—'));
       }});
@@ -814,6 +839,11 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         .filter((item) => matchesFilters(item.row));
       filtered.forEach(({{ row, originalIndex }}) => {{
         const tr = document.createElement('tr');
+        const isAiMatch = rowMatchesAiReport(row);
+        if (isAiMatch) {{
+          tr.classList.add('is-ai-match');
+          tr.title = '完整命中 AI 報告異常項目：來源 IP + 目的地 IP + 應用程式';
+        }}
         if (appState.selectedRowIndex === originalIndex) tr.classList.add('is-selected');
         tr.addEventListener('click', () => {{
           appState.selectedRowIndex = originalIndex;
@@ -823,6 +853,9 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         appState.current.headers.forEach((header) => {{
           const td = document.createElement('td');
           td.textContent = row[header] || '';
+          if (isAiMatch && ['來源位址', '目的地位址', '應用程式'].includes(header)) {{
+            td.classList.add('ai-match-cell');
+          }}
           tr.appendChild(td);
         }});
         tableBody.appendChild(tr);
