@@ -1011,131 +1011,36 @@ def _review_markdown_path(review_dir: str | Path, date_key: str | None = None) -
     return _normalized_base(review_dir) / "report.md"
 
 
-def _markdown_table_escape(value: Any) -> str:
-    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
-    return text.replace("|", "\\|").replace("\n", "<br>")
+def _parse_review_markdown(text: str) -> dict[str, str]:
+    note = ""
+    marker = "## 備註\n"
+    if marker in text:
+        note = text.split(marker, 1)[1].lstrip("\n").rstrip("\n")
+
+    row_fields: dict[str, str] = {}
+    for header in ["來源位址", "目的地位址", "應用程式", "傳輸量"]:
+        match = re.search(rf"(?m)^- {re.escape(header)}：\s*(.*)$", text)
+        row_fields[header] = match.group(1).strip() if match else ""
+
+    return {
+        "reviewStatus": "",
+        "reviewNote": note,
+        "rowIndex": 0,
+        "rowNumber": 1,
+        "csvLineNumber": 2,
+        "rowFields": row_fields,
+    }
 
 
-def _markdown_table_unescape(value: str) -> str:
-    return value.replace("<br>", "\n").replace("\\|", "|").strip()
-
-
-def _parse_row_fields_from_markdown(entry: str) -> dict[str, str]:
-    marker = "## 原始資料列"
-    if marker not in entry:
-        return {}
-    table = entry.split(marker, 1)[1]
-    if "## 備註" in table:
-        table = table.split("## 備註", 1)[0]
-    fields: dict[str, str] = {}
-    for raw_line in table.splitlines():
-        line = raw_line.strip()
-        if not line.startswith("|") or line.startswith("|---") or line.startswith("| 欄位 "):
-            continue
-        cells = [cell.strip() for cell in line.strip("|").split("|")]
-        if len(cells) < 2:
-            continue
-        key = _markdown_table_unescape(cells[0])
-        value = _markdown_table_unescape("|".join(cells[1:]))
-        if key:
-            fields[key] = value
-    return fields
-
-
-def _parse_review_markdown(text: str) -> dict[str, dict[str, dict[str, Any]]]:
-    reviews: dict[str, dict[str, dict[str, Any]]] = {}
-    date_pattern = re.compile(r"(?ms)^(\d{8})\n# 報告回報\n(?P<body>.*?)(?=^\d{8}\n# 報告回報\n|\Z)")
-    entry_pattern = re.compile(r"(?ms)^## 單筆：.*?(?=^## 單筆：|\Z)")
-    for date_match in date_pattern.finditer(text):
-        date_key = date_match.group(1)
-        body = date_match.group("body")
-        date_reviews: dict[str, dict[str, Any]] = {}
-        for entry_match in entry_pattern.finditer(body):
-            entry = entry_match.group(0)
-            row_index_match = re.search(r"(?m)^- row_index：\s*(\d+)\s*$", entry)
-            if not row_index_match:
-                continue
-            row_index = int(row_index_match.group(1))
-            status = ""
-            for key, label in REVIEW_STATUS_LABELS.items():
-                if f"- 回報狀態：{label}" in entry:
-                    status = key
-                    break
-            note = ""
-            marker = "## 備註\n\n"
-            if marker in entry:
-                note = entry.split(marker, 1)[1].rstrip("\n")
-                if note == "未填寫":
-                    note = ""
-            row_fields = _parse_row_fields_from_markdown(entry)
-            date_reviews[str(row_index)] = {
-                "reviewStatus": status,
-                "reviewNote": note,
-                "rowIndex": row_index,
-                "rowNumber": row_index + 1,
-                "csvLineNumber": row_index + 2,
-                "rowFields": row_fields,
-            }
-        if date_reviews:
-            reviews[date_key] = date_reviews
-    return reviews
-
-
-def _read_all_review_markdown(review_dir: str | Path) -> dict[str, dict[str, dict[str, Any]]]:
-    report_path = _review_markdown_path(review_dir)
-    if not report_path.exists():
-        return {}
-    return _parse_review_markdown(report_path.read_text(encoding="utf-8"))
-
-
-def _review_sort_key(value: str) -> tuple[int, str]:
-    try:
-        return (int(value), value)
-    except ValueError:
-        return (10**9, value)
-
-
-def _review_markdown_content(reviews: dict[str, dict[str, dict[str, Any]]]) -> str:
-    lines: list[str] = []
-    preferred_headers = ["來源位址", "目的地位址", "應用程式", "傳輸量", "來源使用者", "使用者", "主機名稱"]
-    for date_key in sorted(reviews):
-        if not DATE_KEY_RE.fullmatch(date_key):
-            continue
-        date_reviews = reviews.get(date_key) or {}
-        if not date_reviews:
-            continue
-        if lines:
-            lines.append("")
-        lines.extend([date_key, "# 報告回報", ""])
-        for row_key in sorted(date_reviews, key=_review_sort_key):
-            review = date_reviews[row_key]
-            try:
-                row_index = int(review.get("rowIndex", row_key))
-            except (TypeError, ValueError):
-                row_index = int(row_key) if str(row_key).isdigit() else 0
-            row_number = int(review.get("rowNumber") or row_index + 1)
-            csv_line_number = int(review.get("csvLineNumber") or row_index + 2)
-            status_label = REVIEW_STATUS_LABELS.get(
-                str(review.get("reviewStatus") or ""),
-                str(review.get("reviewStatus") or REVIEW_STATUS_LABELS[""]),
-            )
-            note = str(review.get("reviewNote") or "").rstrip() or "未填寫"
-            row_fields = review.get("rowFields") if isinstance(review.get("rowFields"), dict) else {}
-            lines.extend([
-                f"## 單筆：第 {row_number} 筆（CSV 第 {csv_line_number} 行）",
-                "",
-                f"- row_index：{row_index}",
-                f"- 回報狀態：{status_label}",
-            ])
-            for header in preferred_headers:
-                value = str(row_fields.get(header) or "").strip()
-                if value:
-                    lines.append(f"- {header}：{value}")
-            if row_fields:
-                lines.extend(["", "## 原始資料列", "", "| 欄位 | 值 |", "|---|---|"])
-                for header, value in row_fields.items():
-                    lines.append(f"| {_markdown_table_escape(header)} | {_markdown_table_escape(value)} |")
-            lines.extend(["", "## 備註", "", note, ""])
+def _minimal_review_markdown_content(review_note: str, row_fields: dict[str, Any] | None = None) -> str:
+    row_fields = row_fields or {}
+    lines = ["# 報告回報"]
+    for header in ["來源位址", "目的地位址", "應用程式", "傳輸量"]:
+        lines.append(f"- {header}：{str(row_fields.get(header) or '').strip()}")
+    lines.append("## 備註")
+    note = str(review_note or "").rstrip()
+    if note:
+        lines.extend(["", note])
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -1149,28 +1054,20 @@ def save_review_markdown(
     row_number: int | None = None,
     csv_line_number: int | None = None,
 ) -> Path:
-    date_key = _validated_date_key(date_key)
-    row_index = int(row_index)
-    row_fields = row_fields or {}
+    _validated_date_key(date_key)
+    int(row_index)
     report_path = _review_markdown_path(review_dir)
-    reviews = _read_all_review_markdown(review_dir)
-    date_reviews = reviews.setdefault(date_key, {})
-    date_reviews[str(row_index)] = {
-        "reviewStatus": review_status,
-        "reviewNote": review_note,
-        "rowIndex": row_index,
-        "rowNumber": int(row_number or row_index + 1),
-        "csvLineNumber": int(csv_line_number or row_index + 2),
-        "rowFields": {str(key): str(value or "") for key, value in row_fields.items()},
-    }
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(_review_markdown_content(reviews), encoding="utf-8")
+    report_path.write_text(_minimal_review_markdown_content(review_note, row_fields), encoding="utf-8")
     return report_path
 
 
 def load_review_markdown(review_dir: str | Path, date_key: str) -> dict[str, dict[str, Any]]:
-    date_key = _validated_date_key(date_key)
-    return _read_all_review_markdown(review_dir).get(date_key, {})
+    _validated_date_key(date_key)
+    report_path = _review_markdown_path(review_dir)
+    if not report_path.exists():
+        return {}
+    return {"0": _parse_review_markdown(report_path.read_text(encoding="utf-8"))}
 
 
 def _validated_date_key(date_key: str) -> str:
