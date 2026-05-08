@@ -113,7 +113,9 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     th, td {{ padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 13px; vertical-align: top; }}
     tbody tr {{ cursor: pointer; }}
     tbody tr:hover {{ background: rgba(101, 183, 255, 0.08); }}
+    tbody tr.is-pair-highlight {{ background: rgba(255, 214, 102, 0.22); box-shadow: inset 0 0 0 1px rgba(255, 214, 102, 0.38); }}
     tbody tr.is-selected {{ background: rgba(101, 183, 255, 0.18); }}
+    tbody tr.is-selected.is-pair-highlight {{ background: linear-gradient(90deg, rgba(255, 214, 102, 0.24), rgba(101, 183, 255, 0.20)); box-shadow: inset 0 0 0 1px rgba(255, 214, 102, 0.42); }}
     .empty {{ padding: 18px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); }}
     .error {{ color: #ff9a9a; }}
     @media (max-width: 1320px) {{
@@ -794,6 +796,32 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       return true;
     }}
 
+    function normalizeAnalysisIp(value) {{
+      return String(value || '').trim();
+    }}
+
+    function splitAnalysisFieldPairs(value) {{
+      return String(value || '')
+        .split(/\r?\n|[;,、]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }}
+
+    function analysisIpPairs() {{
+      const sections = (appState.current && appState.current.analysis_sections) || {{}};
+      const sources = splitAnalysisFieldPairs(sections.source);
+      const destinations = splitAnalysisFieldPairs(sections.destination);
+      if (!sources.length || !destinations.length || sources.length !== destinations.length) return [];
+      return sources.map((source, index) => ({{ source, destination: destinations[index] }}));
+    }}
+
+    function rowMatchesAnalysisPair(row) {{
+      const rowSource = normalizeAnalysisIp(row['來源位址']);
+      const rowDestination = normalizeAnalysisIp(row['目的地位址']);
+      if (!rowSource || !rowDestination) return false;
+      return analysisIpPairs().some((pair) => pair.source === rowSource && pair.destination === rowDestination);
+    }}
+
     function renderDetails(row) {{
       clearNode(rowDetail);
       rowDetail.className = 'detail-list';
@@ -814,6 +842,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         .filter((item) => matchesFilters(item.row));
       filtered.forEach(({{ row, originalIndex }}) => {{
         const tr = document.createElement('tr');
+        if (rowMatchesAnalysisPair(row)) tr.classList.add('is-pair-highlight');
         if (appState.selectedRowIndex === originalIndex) tr.classList.add('is-selected');
         tr.addEventListener('click', () => {{
           appState.selectedRowIndex = originalIndex;
