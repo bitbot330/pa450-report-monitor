@@ -207,7 +207,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
                 <div id="rowDetail" class="empty">尚未選取資料列。</div>
               </div>
               <div class="review-in-detail">
-                <div class="panel-title"><h3>報告回報</h3><span class="pill">report.md</span></div>
+                <div class="panel-title"><h3>報告回報</h3><span class="pill">report_YYYYMMDD.md</span></div>
                 <div class="detail-key">回報狀態</div>
                 <select id="reviewStatus">
                   <option value="">未設定</option>
@@ -665,11 +665,11 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
           headers: {{ 'Content-Type': 'application/json' }},
           body: JSON.stringify(review),
         }});
-        if (!response.ok) throw new Error(`儲存 report.md 失敗：${{response.status}}`);
+        if (!response.ok) throw new Error(`儲存 report_YYYYMMDD.md 失敗：${{response.status}}`);
         const payload = await response.json();
         if (payload.reviews) appState.current.reviews = payload.reviews;
       }} catch (error) {{
-        showError(error.message || '儲存 report.md 失敗');
+        showError(error.message || '儲存 report_YYYYMMDD.md 失敗');
       }}
     }}
 
@@ -1008,7 +1008,15 @@ def _report_date_label(date_key: str) -> str:
 
 
 def _review_markdown_path(review_dir: str | Path, date_key: str | None = None) -> Path:
-    return _normalized_base(review_dir) / "report.md"
+    if date_key is None:
+        raise ValueError("date_key is required for review markdown path")
+    _validated_date_key(date_key)
+    return _normalized_base(review_dir) / f"report_{date_key}.md"
+
+
+def _split_review_markdown_entries(text: str) -> list[str]:
+    entries = [chunk.strip() for chunk in re.split(r"\n\s*---\s*\n", text.strip())]
+    return [entry for entry in entries if entry]
 
 
 def _parse_review_markdown(text: str) -> dict[str, str]:
@@ -1025,9 +1033,6 @@ def _parse_review_markdown(text: str) -> dict[str, str]:
     return {
         "reviewStatus": "",
         "reviewNote": note,
-        "rowIndex": 0,
-        "rowNumber": 1,
-        "csvLineNumber": 2,
         "rowFields": row_fields,
     }
 
@@ -1056,18 +1061,62 @@ def save_review_markdown(
 ) -> Path:
     _validated_date_key(date_key)
     int(row_index)
-    report_path = _review_markdown_path(review_dir)
+    report_path = _review_markdown_path(review_dir, date_key)
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(_minimal_review_markdown_content(review_note, row_fields), encoding="utf-8")
+    entry = _minimal_review_markdown_content(review_note, row_fields)
+    separator = "\n---\n\n"
+    if report_path.exists() and report_path.read_text(encoding="utf-8").strip():
+        with report_path.open("a", encoding="utf-8") as handle:
+            handle.write(separator)
+            handle.write(entry)
+    else:
+        report_path.write_text(entry, encoding="utf-8")
     return report_path
 
 
-def load_review_markdown(review_dir: str | Path, date_key: str) -> dict[str, dict[str, Any]]:
+def load_review_markdown(
+    review_dir: str | Path,
+    date_key: str,
+    rows: list[dict[str, Any]] | None = None,
+) -> dict[str, dict[str, Any]]:
     _validated_date_key(date_key)
-    report_path = _review_markdown_path(review_dir)
+    report_path = _review_markdown_path(review_dir, date_key)
     if not report_path.exists():
         return {}
-    return {"0": _parse_review_markdown(report_path.read_text(encoding="utf-8"))}
+    parsed_entries = [_parse_review_markdown(entry) for entry in _split_review_markdown_entries(report_path.read_text(encoding="utf-8"))]
+    if not rows:
+        return {
+            str(index): {
+                **entry,
+                "rowIndex": index,
+                "rowNumber": index + 1,
+                "csvLineNumber": index + 2,
+            }
+            for index, entry in enumerate(parsed_entries)
+        }
+
+    reviews: dict[str, dict[str, Any]] = {}
+    used_row_indexes: set[int] = set()
+    tracked_headers = ["來源位址", "目的地位址", "應用程式", "傳輸量"]
+    for entry in parsed_entries:
+        matched_index: int | None = None
+        entry_fields = entry.get("rowFields") or {}
+        for index, row in enumerate(rows):
+            if index in used_row_indexes:
+                continue
+            if all(str(row.get(header) or "").strip() == str(entry_fields.get(header) or "").strip() for header in tracked_headers):
+                matched_index = index
+                break
+        if matched_index is None:
+            continue
+        used_row_indexes.add(matched_index)
+        reviews[str(matched_index)] = {
+            **entry,
+            "rowIndex": matched_index,
+            "rowNumber": matched_index + 1,
+            "csvLineNumber": matched_index + 2,
+        }
+    return reviews
 
 
 def _validated_date_key(date_key: str) -> str:
@@ -1245,7 +1294,7 @@ def load_report_bundle(csv_dir: str | Path, analysis_dir: str | Path, review_dir
         "summary": summarize_rows(rows),
         "analysis_text": analysis_text,
         "analysis_sections": analysis_sections,
-        "reviews": load_review_markdown(review_dir, date_key),
+        "reviews": load_review_markdown(review_dir, date_key, display_rows),
     }
 
 
