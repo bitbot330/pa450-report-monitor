@@ -25,17 +25,14 @@ ANALYSIS_USER_PROMPT_TEMPLATE = """
 
 判斷重點：
 1. 是否有明顯高流量來源。
-2. 是否有明顯高流量目的地。
 3. 是否有可疑應用程式。
 4. 是否有單一來源對外大量傳輸。
-5. 若無法從資料判斷，請標示為需人工確認。
 
 輸出規則：
 1. 只能引用 context 裡實際存在的單筆資料列。
 2. 如果有多筆可疑資料，必須逐筆列出，不可只輸出一組彙總欄位。
 3. 每筆都要用同一行格式：第N筆的來源：... 目的地：... 應用程式：... 位元組：...
 4. 來源、目的地、應用程式、位元組都要直接使用該筆 CSV 的原始值。
-5. 若沒有明確可疑資料，可省略第N筆行，但仍要輸出摘要與原因。
 
 請輸出以下格式：
 
@@ -77,15 +74,15 @@ def analyze_with_ai(query: str, context: str) -> str:
 
     sync_client  = httpx.Client(verify=False)
 
-    llm = ChatOpenAI(
+    model = ChatOpenAI(
         base_url=url,
         api_key=api_key,
         model=model_name,
         temperature=temperature,
         http_client=sync_client,
+        model_kwargs={"reasoning_effort": "low"},
     )
 
-    model = llm
     resp = model.invoke([
     SystemMessage(
         content=ANALYSIS_SYSTEM_PROMPT
