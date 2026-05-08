@@ -208,13 +208,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
               </div>
               <div class="review-in-detail">
                 <div class="panel-title"><h3>報告回報</h3><span class="pill">report_YYYYMMDD.md</span></div>
-                <div class="detail-key">回報狀態</div>
-                <select id="reviewStatus">
-                  <option value="">未設定</option>
-                  <option value="normal">整體正常</option>
-                  <option value="follow-up">有異常需追蹤</option>
-                  <option value="ai-adjustment">AI 判讀需調整</option>
-                </select>
+                <input id="reviewStatus" type="hidden" value="" />
                 <div class="detail-key" style="margin-top:12px;">備註</div>
                 <textarea id="reviewNote" placeholder="請先點選 CSV 表格中的單筆資料列，再填寫這筆的回報。"></textarea>
                 <button id="reviewSaveButton" type="button" style="margin-top:12px; width:100%; border-radius:10px; border:1px solid var(--line); background:#0d1525; color:var(--text); padding:10px 12px; cursor:pointer; font-weight:700;">儲存</button>
