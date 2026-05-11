@@ -236,66 +236,20 @@ JSON 輸出格式：
 
 ---
 
-## 啟動本機 Review UI
+## 打包 Review UI exe
 
-Review UI 是本機工具，預設只監聽 `127.0.0.1`，用來查看每日 CSV、AI JSON 分析結果，並針對單筆 CSV 資料列寫入人工 feedback。
+在專案根目錄開啟 PowerShell，執行：
 
 ```powershell
 .venv\Scripts\Activate
-python src\ui.py --data-dir output --port 8765
-```
-
-開啟網址：
-
-```text
-http://127.0.0.1:8765
-```
-
-如果不想自動開啟瀏覽器：
-
-```powershell
-python src\ui.py --data-dir output --port 8765 --no-browser
-```
-
-UI 預設讀取同一個 `output` 資料夾中的三種檔案：
-
-```text
-output\YYYYMMDD_report.csv
-output\report_YYYYMMDD.json
-output\report_YYYYMMDD.md
-```
-
-UI 主要用途：
-
-1. 切換每日 report。
-2. 查看完整 CSV。
-3. 查看 AI 分析結果。
-4. 點選 CSV 單筆資料列。
-5. 針對該筆資料填寫人工 feedback。
-6. 儲存為 `output\report_YYYYMMDD.md`。
-
-目前 UI 僅設計為 localhost 本機使用：
-
-- 只監聽 `127.0.0.1`。
-- 不提供帳號登入。
-- 不提供 HTTPS。
-- 不建議直接開放給其他電腦存取。
-
-### 打包 UI exe
-
-專案提供 PowerShell 腳本可將 UI 打包成單一 exe：
-
-```powershell
 powershell -ExecutionPolicy Bypass -File scripts\build-ui-exe.ps1
 ```
 
-輸出位置：
+打包完成後，exe 會輸出到：
 
 ```text
 dist\PA450-Daily-Review-UI.exe
 ```
-
-啟動 exe 時，請讓 exe 能讀到本機 `output` 資料夾，或從捷徑 / 命令列傳入 `--data-dir` 指定資料夾。
 
 ---
 
