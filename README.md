@@ -9,6 +9,7 @@ PA450 Report CSV Monitor 是一個 Windows 本機執行的 PA450 report 下載�
 - 透過 PAN-OS XML API 下載指定的 PA450 custom report。
 - 將 report 轉成 CSV。
 - 將 CSV 餵給 AI Gateway 分析，輸出 JSON 分析結果。
+- 提供本機 Review UI，檢視每日 CSV、AI 分析結果，並針對單筆資料寫入人工 feedback。
 - 分析開始前自動掃描 `output/report_YYYYMMDD.md`，將尚未處理過的多日人工 feedback 萃取成可重用規則，寫入 `.agent/review.md`。
 - 每次 AI 分析開始前，讀取 `.agent/review.md` 作為歷史 review 規則。
 
@@ -23,6 +24,7 @@ PA450 custom report
 → 讀取 .agent/review.md 作為 review rules
 → 分析 CSV
 → 輸出 output/report_YYYYMMDD.json
+→ src/ui.py 開啟本機 Review UI，檢視 CSV / AI JSON 並寫入 output/report_YYYYMMDD.md feedback
 ```
 
 兩個指令可分開執行：
@@ -31,6 +33,7 @@ PA450 custom report
 |---|---|
 | `src\report.py` | 下載 PA450 report、輸出 CSV |
 | `src\analyze.py` | 分析開始前處理 feedback / review memory，讀取 CSV、送 AI Gateway 分析、輸出 JSON |
+| `src\ui.py` | 開啟 localhost 本機 Review UI，檢視 CSV / AI JSON 並寫入人工 feedback |
 
 ---
 
@@ -45,6 +48,7 @@ pa450-report-monitor/
 ├── src/
 │   ├── report.py         # PA450 report 下載、CSV 輸出
 │   ├── analyze.py        # AI 分析 CSV，並在分析前處理 feedback / review memory
+│   ├── ui.py             # localhost 本機 Review UI
 │   ├── config.py         # .env / config.yaml 設定載入
 │   └── runtime/
 │       ├── prompt_builder.py # AGENTS.md / review rules prompt 組裝
@@ -103,6 +107,7 @@ Copy-Item config.example.yaml config.yaml
 ```powershell
 python src\report.py --help
 python src\analyze.py --help
+python src\ui.py --help
 ```
 
 ---
@@ -228,6 +233,69 @@ JSON 輸出格式：
   "analysis": "AI 回答內容"
 }
 ```
+
+---
+
+## 啟動本機 Review UI
+
+Review UI 是本機工具，預設只監聽 `127.0.0.1`，用來查看每日 CSV、AI JSON 分析結果，並針對單筆 CSV 資料列寫入人工 feedback。
+
+```powershell
+.venv\Scripts\Activate
+python src\ui.py --data-dir output --port 8765
+```
+
+開啟網址：
+
+```text
+http://127.0.0.1:8765
+```
+
+如果不想自動開啟瀏覽器：
+
+```powershell
+python src\ui.py --data-dir output --port 8765 --no-browser
+```
+
+UI 預設讀取同一個 `output` 資料夾中的三種檔案：
+
+```text
+output\YYYYMMDD_report.csv
+output\report_YYYYMMDD.json
+output\report_YYYYMMDD.md
+```
+
+UI 主要用途：
+
+1. 切換每日 report。
+2. 查看完整 CSV。
+3. 查看 AI 分析結果。
+4. 點選 CSV 單筆資料列。
+5. 針對該筆資料填寫人工 feedback。
+6. 儲存為 `output\report_YYYYMMDD.md`。
+
+目前 UI 僅設計為 localhost 本機使用：
+
+- 只監聽 `127.0.0.1`。
+- 不提供帳號登入。
+- 不提供 HTTPS。
+- 不建議直接開放給其他電腦存取。
+
+### 打包 UI exe
+
+專案提供 PowerShell 腳本可將 UI 打包成單一 exe：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build-ui-exe.ps1
+```
+
+輸出位置：
+
+```text
+dist\PA450-Daily-Review-UI.exe
+```
+
+啟動 exe 時，請讓 exe 能讀到本機 `output` 資料夾，或從捷徑 / 命令列傳入 `--data-dir` 指定資料夾。
 
 ---
 
