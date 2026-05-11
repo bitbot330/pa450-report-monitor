@@ -11,15 +11,16 @@
 ## Review memory workflow
 
 1. 每次分析開始前，runtime 必須先讀取 `.agent/review.md`。
-2. runtime 必須把 `.agent/review.md` 的內容放入本次分析 prompt，作為 review rules。
-3. AI 分析時可以參考 review rules，但最終結論仍只能根據本次 CSV context 中真實存在的資料列。
-4. AI 不得假裝自己讀取或寫入 `.agent/review.md`。
-5. 使用者提供 feedback 後，runtime 才啟動 feedback review 流程。
-6. feedback review 流程會要求 AI 從 feedback 中萃取簡短、可重用規則。
-7. 只有可重用規則可以寫回 `.agent/review.md`。
-8. 實際寫入 `.agent/review.md` 的動作只能由 runtime 執行。
-9. 不得把本次 CSV 原始資料、一次性結論、冗長分析或敏感資訊寫入 `.agent/review.md`。
-10. 下次分析開始時，runtime 再重新讀取更新後的 `.agent/review.md`。
+2. 每次分析開始前，runtime 必須掃描 `output/report_YYYYMMDD.md`，只處理日期晚於 `.agent/review_state.json` checkpoint 的 feedback 檔。
+3. runtime 可以一次讀取多日 feedback，要求 AI 從 feedback 中萃取簡短、可重用規則，再由 runtime 寫回 `.agent/review.md`。
+4. feedback 成功處理後，runtime 必須更新 `.agent/review_state.json` 的 `last_processed_feedback_date`，記錄已處理到哪一天。
+5. runtime 必須把 `.agent/review.md` 的內容放入本次分析 prompt，作為 review rules。
+6. AI 分析時可以參考 review rules，但最終結論仍只能根據本次 CSV context 中真實存在的資料列。
+7. AI 不得假裝自己讀取或寫入 `.agent/review.md`、`.agent/review_state.json` 或 `output/report_YYYYMMDD.md`。
+8. 只有可重用規則可以寫回 `.agent/review.md`。
+9. 實際寫入 `.agent/review.md` 與 `.agent/review_state.json` 的動作只能由 runtime 執行。
+10. 不得把本次 CSV 原始資料、一次性結論、冗長分析或敏感資訊寫入 `.agent/review.md`。
+11. 下次分析開始時，runtime 再重新讀取更新後的 `.agent/review.md`。
 
 ## Analysis constraints
 

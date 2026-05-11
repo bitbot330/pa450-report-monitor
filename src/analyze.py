@@ -134,14 +134,28 @@ def extract_review_rules_from_feedback(feedback: str, existing_rules: str = "") 
     return str(resp.content).strip()
 
 
-def remember_feedback(feedback: str) -> str:
-    from runtime.review_tools import read_review_memory, write_review_memory
+def process_pending_feedback() -> str:
+    from runtime.review_tools import (
+        mark_feedback_processed,
+        read_review_memory,
+        read_unprocessed_feedback,
+        write_review_memory,
+    )
+
+    feedback_text, latest_date = read_unprocessed_feedback(PROJECT_ROOT)
+    if latest_date is None:
+        return "No pending feedback."
+
+    if not feedback_text.strip():
+        mark_feedback_processed(latest_date, PROJECT_ROOT)
+        return f"Processed empty feedback through {latest_date}."
 
     existing_rules = read_review_memory(PROJECT_ROOT)
-    new_rules = extract_review_rules_from_feedback(feedback, existing_rules)
-    if not new_rules:
-        return "No reusable review rule extracted."
-    return write_review_memory(new_rules, PROJECT_ROOT)
+    new_rules = extract_review_rules_from_feedback(feedback_text, existing_rules)
+    if new_rules:
+        write_review_memory(new_rules, PROJECT_ROOT)
+    mark_feedback_processed(latest_date, PROJECT_ROOT)
+    return f"Processed feedback through {latest_date}."
 
 
 def write_analysis_result(output_path: str | Path, analysis: str) -> None:
@@ -152,23 +166,15 @@ def write_analysis_result(output_path: str | Path, analysis: str) -> None:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Analyze PA450 report CSV with AI")
-    parser.add_argument("--input", type=Path, help="Path to PA450 report CSV")
-    parser.add_argument("--output", type=Path, help="Path to analysis JSON output")
+    parser.add_argument("--input", required=True, type=Path, help="Path to PA450 report CSV")
+    parser.add_argument("--output", required=True, type=Path, help="Path to analysis JSON output")
     parser.add_argument("--query", default=DEFAULT_QUERY, help="Question for the AI model")
-    parser.add_argument("--feedback", help="User feedback to extract and save as reusable review rules")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    if args.feedback:
-        result = remember_feedback(args.feedback)
-        print(result)
-        return 0
-
-    if args.input is None or args.output is None:
-        raise SystemExit("--input and --output are required unless --feedback is provided")
-
+    print(process_pending_feedback())
     context = build_context(args.input)
     analysis = analyze_with_ai(args.query, context)
     write_analysis_result(args.output, analysis)
