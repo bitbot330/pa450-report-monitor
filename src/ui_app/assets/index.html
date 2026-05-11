@@ -1,14 +1,11 @@
-from __future__ import annotations
-
-
-INDEX_HTML_TEMPLATE = """<!doctype html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{title}</title>
+  <title>__TITLE__</title>
   <style>
-    :root {{
+    :root {
       color-scheme: dark;
       --bg: #0b1220;
       --panel: #111b2e;
@@ -21,99 +18,99 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       --sidebar-w: 280px;
       --sidebar-collapsed-w: 72px;
       --right-rail-w: 320px;
-    }}
-    * {{ box-sizing: border-box; }}
-    body {{ margin: 0; font-family: Inter, "Noto Sans TC", sans-serif; background: var(--bg); color: var(--text); }}
-    h1, h2, h3, p {{ margin: 0; }}
-    button, input, select, textarea {{ font: inherit; }}
-    .app {{ display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); min-height: 100vh; transition: grid-template-columns 180ms ease; }}
-    .app.sidebar-collapsed {{ grid-template-columns: var(--sidebar-collapsed-w) minmax(0, 1fr); }}
-    .sidebar {{ position: sticky; top: 0; height: 100vh; overflow: hidden; border-right: 1px solid var(--line); background: #0f1728; padding: 16px; }}
-    .sidebar-inner {{ height: 100%; overflow-y: auto; overflow-x: hidden; padding-right: 2px; }}
-    .sidebar-top {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 14px; }}
-    .sidebar-toggle {{ flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: #0d1525; color: var(--text); cursor: pointer; }}
-    .sidebar-toggle:hover {{ border-color: var(--accent); background: var(--accent-bg); }}
-    .brand {{ min-width: 0; }}
-    .brand h1 {{ font-size: 20px; line-height: 1.2; margin-bottom: 8px; }}
-    .subtle {{ color: var(--muted); font-size: 13px; }}
-    .folder-picker {{ display: grid; gap: 10px; margin-top: 14px; }}
-    .folder-picker-actions {{ display: grid; gap: 10px; }}
-    .folder-row {{ display: grid; gap: 6px; }}
-    .folder-button, .folder-load-button {{ width: 100%; border-radius: 10px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 10px 12px; cursor: pointer; text-align: left; }}
-    .folder-load-button {{ text-align: center; font-weight: 700; }}
-    .folder-button:hover, .folder-load-button:hover {{ border-color: var(--accent); background: var(--accent-bg); }}
-    .folder-path {{ min-height: 18px; word-break: break-all; color: var(--muted); font-size: 12px; line-height: 1.35; }}
-    .app.sidebar-collapsed .sidebar {{ padding: 16px 12px; }}
-    .app.sidebar-collapsed .sidebar-top {{ justify-content: center; }}
-    .app.sidebar-collapsed .brand, .app.sidebar-collapsed .folder-picker, .app.sidebar-collapsed .report-item .report-summary {{ display: none; }}
-    .app.sidebar-collapsed .report-list {{ margin-top: 10px; }}
-    .app.sidebar-collapsed .report-item {{ min-height: 48px; padding: 8px 6px; text-align: center; border-radius: 14px; }}
-    .app.sidebar-collapsed .report-date {{ font-size: 12px; line-height: 1.15; word-break: break-all; }}
-    .main {{ min-width: 0; padding: 18px 20px 24px; }}
-    .report-list {{ display: grid; gap: 10px; margin-top: 14px; }}
-    .report-item {{ width: 100%; text-align: left; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }}
-    .report-item:hover, .report-item.active {{ border-color: var(--accent); background: var(--accent-bg); }}
-    .report-date {{ font-size: 16px; color: var(--text); }}
-    .layout {{ display: grid; gap: 14px; }}
-    .summary-grid {{ display: grid; gap: 10px; grid-template-columns: repeat(6, minmax(110px, 1fr)); overflow-x: auto; padding-bottom: 2px; }}
-    .content-grid {{ display: grid; grid-template-columns: minmax(0, 1fr) var(--right-rail-w); gap: 16px; align-items: stretch; }}
-    .right-rail {{ display: grid; gap: 12px; align-content: start; }}
-    .card {{ background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18); }}
-    .csv-card {{ display: flex; flex-direction: column; min-height: calc(100vh - 150px); }}
-    .summary-grid .card {{ min-width: 0; min-height: 82px; padding: 10px 12px; }}
-    .metric {{ font-size: 20px; line-height: 1.12; font-weight: 700; margin-top: 6px; word-break: break-word; }}
-    .summary-grid .subtle {{ font-size: 11px; margin-top: 4px; word-break: break-all; }}
-    .pill {{ display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }}
-    .panel-title {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }}
-    .panel-title h2 {{ font-size: 22px; line-height: 1.2; }}
-    .right-rail .panel-title h2 {{ font-size: 18px; }}
-    .detail-list {{ display: grid; gap: 10px; }}
-    .detail-row {{ border-bottom: 1px dashed rgba(255,255,255,0.12); padding-bottom: 10px; }}
-    .detail-row:last-child {{ border-bottom: none; padding-bottom: 0; }}
-    .detail-key {{ color: var(--muted); font-size: 12px; margin-bottom: 4px; }}
-    .ai-card {{ font-size: 13px; }}
-    .ai-card .detail-list {{ gap: 8px; }}
-    .ai-card .detail-row {{ padding-bottom: 8px; }}
-    .ai-card .detail-row > div:not(.detail-key):not(.subtle) {{ line-height: 1.55; }}
-    .report-text {{ white-space: pre-wrap; line-height: 1.7; font-size: 14px; }}
-    .toolbar {{ display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr) minmax(0, 0.75fr); gap: 12px; margin-bottom: 14px; min-width: 0; }}
-    .control {{ min-width: 0; }}
-    input, select, textarea {{ width: 100%; min-width: 0; background: #0d1525; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }}
-    textarea {{ min-height: 92px; resize: vertical; }}
-    select:disabled, textarea:disabled {{ opacity: 0.55; cursor: not-allowed; }}
-    .table-wrap {{ flex: 1 1 auto; min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: 14px; max-height: none; }}
-    .row-detail-card {{ display: grid; gap: 14px; }}
-    .review-in-detail {{ border-top: 1px solid rgba(255,255,255,0.10); padding-top: 14px; }}
-    .review-in-detail h3 {{ font-size: 17px; margin-bottom: 10px; }}
-    table {{ width: 100%; border-collapse: collapse; min-width: 900px; }}
-    thead th {{ position: sticky; top: 0; background: #13213a; z-index: 1; text-align: left; }}
-    th, td {{ padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 13px; vertical-align: top; }}
-    tbody tr {{ cursor: pointer; }}
-    tbody tr:hover {{ background: rgba(101, 183, 255, 0.08); }}
-    tbody tr.is-selected {{ background: rgba(101, 183, 255, 0.18); }}
-    tbody tr.is-ai-match {{ background: rgba(255, 193, 7, 0.24); outline: 2px solid #ffd166; outline-offset: -2px; }}
-    tbody tr.is-ai-match:hover {{ background: rgba(255, 193, 7, 0.32); }}
-    tbody tr.is-ai-match td {{ border-bottom-color: rgba(255, 209, 102, 0.42); }}
-    td.ai-match-cell {{ color: #ffffff; font-weight: 800; text-shadow: 0 0 10px rgba(255, 209, 102, 0.55); }}
-    .empty {{ padding: 18px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); }}
-    .error {{ color: #ff9a9a; }}
-    .success {{ color: #85e89d; }}
-    .review-save-message {{ min-height: 18px; margin-top: 8px; font-size: 13px; }}
-    @media (max-width: 1320px) {{
-      .summary-grid {{ grid-template-columns: repeat(6, minmax(100px, 1fr)); }}
-      .content-grid {{ grid-template-columns: minmax(0, 1fr) 300px; }}
-    }}
-    @media (max-width: 1080px) {{
-      .app, .app.sidebar-collapsed {{ grid-template-columns: 1fr; }}
-      .sidebar {{ position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--line); }}
-      .app.sidebar-collapsed .brand {{ display: block; }}
-      .summary-grid {{ grid-template-columns: repeat(6, minmax(96px, 1fr)); }}
-      .content-grid {{ grid-template-columns: 1fr; }}
-      .right-rail {{ grid-row: 2; }}
-      .toolbar {{ grid-template-columns: 1fr; }}
-      .csv-card {{ min-height: auto; }}
-      .table-wrap {{ max-height: none; }}
-    }}
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, "Noto Sans TC", sans-serif; background: var(--bg); color: var(--text); }
+    h1, h2, h3, p { margin: 0; }
+    button, input, select, textarea { font: inherit; }
+    .app { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); min-height: 100vh; transition: grid-template-columns 180ms ease; }
+    .app.sidebar-collapsed { grid-template-columns: var(--sidebar-collapsed-w) minmax(0, 1fr); }
+    .sidebar { position: sticky; top: 0; height: 100vh; overflow: hidden; border-right: 1px solid var(--line); background: #0f1728; padding: 16px; }
+    .sidebar-inner { height: 100%; overflow-y: auto; overflow-x: hidden; padding-right: 2px; }
+    .sidebar-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .sidebar-toggle { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: #0d1525; color: var(--text); cursor: pointer; }
+    .sidebar-toggle:hover { border-color: var(--accent); background: var(--accent-bg); }
+    .brand { min-width: 0; }
+    .brand h1 { font-size: 20px; line-height: 1.2; margin-bottom: 8px; }
+    .subtle { color: var(--muted); font-size: 13px; }
+    .folder-picker { display: grid; gap: 10px; margin-top: 14px; }
+    .folder-picker-actions { display: grid; gap: 10px; }
+    .folder-row { display: grid; gap: 6px; }
+    .folder-button, .folder-load-button { width: 100%; border-radius: 10px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 10px 12px; cursor: pointer; text-align: left; }
+    .folder-load-button { text-align: center; font-weight: 700; }
+    .folder-button:hover, .folder-load-button:hover { border-color: var(--accent); background: var(--accent-bg); }
+    .folder-path { min-height: 18px; word-break: break-all; color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .app.sidebar-collapsed .sidebar { padding: 16px 12px; }
+    .app.sidebar-collapsed .sidebar-top { justify-content: center; }
+    .app.sidebar-collapsed .brand, .app.sidebar-collapsed .folder-picker, .app.sidebar-collapsed .report-item .report-summary { display: none; }
+    .app.sidebar-collapsed .report-list { margin-top: 10px; }
+    .app.sidebar-collapsed .report-item { min-height: 48px; padding: 8px 6px; text-align: center; border-radius: 14px; }
+    .app.sidebar-collapsed .report-date { font-size: 12px; line-height: 1.15; word-break: break-all; }
+    .main { min-width: 0; padding: 18px 20px 24px; }
+    .report-list { display: grid; gap: 10px; margin-top: 14px; }
+    .report-item { width: 100%; text-align: left; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+    .report-item:hover, .report-item.active { border-color: var(--accent); background: var(--accent-bg); }
+    .report-date { font-size: 16px; color: var(--text); }
+    .layout { display: grid; gap: 14px; }
+    .summary-grid { display: grid; gap: 10px; grid-template-columns: repeat(6, minmax(110px, 1fr)); overflow-x: auto; padding-bottom: 2px; }
+    .content-grid { display: grid; grid-template-columns: minmax(0, 1fr) var(--right-rail-w); gap: 16px; align-items: stretch; }
+    .right-rail { display: grid; gap: 12px; align-content: start; }
+    .card { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18); }
+    .csv-card { display: flex; flex-direction: column; min-height: calc(100vh - 150px); }
+    .summary-grid .card { min-width: 0; min-height: 82px; padding: 10px 12px; }
+    .metric { font-size: 20px; line-height: 1.12; font-weight: 700; margin-top: 6px; word-break: break-word; }
+    .summary-grid .subtle { font-size: 11px; margin-top: 4px; word-break: break-all; }
+    .pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+    .panel-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
+    .panel-title h2 { font-size: 22px; line-height: 1.2; }
+    .right-rail .panel-title h2 { font-size: 18px; }
+    .detail-list { display: grid; gap: 10px; }
+    .detail-row { border-bottom: 1px dashed rgba(255,255,255,0.12); padding-bottom: 10px; }
+    .detail-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .detail-key { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+    .ai-card { font-size: 13px; }
+    .ai-card .detail-list { gap: 8px; }
+    .ai-card .detail-row { padding-bottom: 8px; }
+    .ai-card .detail-row > div:not(.detail-key):not(.subtle) { line-height: 1.55; }
+    .report-text { white-space: pre-wrap; line-height: 1.7; font-size: 14px; }
+    .toolbar { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr) minmax(0, 0.75fr); gap: 12px; margin-bottom: 14px; min-width: 0; }
+    .control { min-width: 0; }
+    input, select, textarea { width: 100%; min-width: 0; background: #0d1525; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+    textarea { min-height: 92px; resize: vertical; }
+    select:disabled, textarea:disabled { opacity: 0.55; cursor: not-allowed; }
+    .table-wrap { flex: 1 1 auto; min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: 14px; max-height: none; }
+    .row-detail-card { display: grid; gap: 14px; }
+    .review-in-detail { border-top: 1px solid rgba(255,255,255,0.10); padding-top: 14px; }
+    .review-in-detail h3 { font-size: 17px; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    thead th { position: sticky; top: 0; background: #13213a; z-index: 1; text-align: left; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 13px; vertical-align: top; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: rgba(101, 183, 255, 0.08); }
+    tbody tr.is-selected { background: rgba(101, 183, 255, 0.18); }
+    tbody tr.is-ai-match { background: rgba(255, 193, 7, 0.24); outline: 2px solid #ffd166; outline-offset: -2px; }
+    tbody tr.is-ai-match:hover { background: rgba(255, 193, 7, 0.32); }
+    tbody tr.is-ai-match td { border-bottom-color: rgba(255, 209, 102, 0.42); }
+    td.ai-match-cell { color: #ffffff; font-weight: 800; text-shadow: 0 0 10px rgba(255, 209, 102, 0.55); }
+    .empty { padding: 18px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); }
+    .error { color: #ff9a9a; }
+    .success { color: #85e89d; }
+    .review-save-message { min-height: 18px; margin-top: 8px; font-size: 13px; }
+    @media (max-width: 1320px) {
+      .summary-grid { grid-template-columns: repeat(6, minmax(100px, 1fr)); }
+      .content-grid { grid-template-columns: minmax(0, 1fr) 300px; }
+    }
+    @media (max-width: 1080px) {
+      .app, .app.sidebar-collapsed { grid-template-columns: 1fr; }
+      .sidebar { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+      .app.sidebar-collapsed .brand { display: block; }
+      .summary-grid { grid-template-columns: repeat(6, minmax(96px, 1fr)); }
+      .content-grid { grid-template-columns: 1fr; }
+      .right-rail { grid-row: 2; }
+      .toolbar { grid-template-columns: 1fr; }
+      .csv-card { min-height: auto; }
+      .table-wrap { max-height: none; }
+    }
   </style>
 </head>
 <body>
@@ -122,7 +119,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       <div class="sidebar-inner">
         <div class="sidebar-top">
           <div class="brand">
-            <h1>{title}</h1>
+            <h1>__TITLE__</h1>
             <p class="subtle">同一個 UI 直接切換每日報告，不用每次重生 dashboard。</p>
             <p class="subtle">僅限本機 localhost 使用。</p>
             <div class="folder-picker">
@@ -205,10 +202,10 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
   </div>
 
   <script>
-    const DEFAULT_CSV_DIR = {csv_dir_json};
-    const DEFAULT_ANALYSIS_DIR = {analysis_dir_json};
-    const DEFAULT_REVIEW_DIR = {review_dir_json};
-    const appState = {{ reports: [], current: null, selectedRowIndex: null }};
+    const DEFAULT_CSV_DIR = __CSV_DIR_JSON__;
+    const DEFAULT_ANALYSIS_DIR = __ANALYSIS_DIR_JSON__;
+    const DEFAULT_REVIEW_DIR = __REVIEW_DIR_JSON__;
+    const appState = { reports: [], current: null, selectedRowIndex: null };
     const appShell = document.getElementById('appShell');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const selectCsvFolder = document.getElementById('selectCsvFolder');
@@ -218,16 +215,16 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     const analysisFolderPath = document.getElementById('analysisFolderPath');
     const reviewFolderPath = document.getElementById('reviewFolderPath');
     const reloadFolders = document.getElementById('reloadFolders');
-    const folderState = {{
+    const folderState = {
       csv: localStorage.getItem('pa450-csv-dir') || DEFAULT_CSV_DIR,
       analysis: localStorage.getItem('pa450-analysis-dir') || DEFAULT_ANALYSIS_DIR,
       review: localStorage.getItem('pa450-review-dir') || DEFAULT_REVIEW_DIR,
-    }};
-    const folderLabels = {{
+    };
+    const folderLabels = {
       csv: csvFolderPath,
       analysis: analysisFolderPath,
       review: reviewFolderPath,
-    }};
+    };
     const reportList = document.getElementById('reportList');
     const loading = document.getElementById('loading');
     const errorBox = document.getElementById('errorBox');
@@ -245,33 +242,33 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     const reviewSaveButton = document.getElementById('reviewSaveButton');
     const reviewSaveMessage = document.getElementById('reviewSaveMessage');
 
-    function clearNode(node) {{
+    function clearNode(node) {
       while (node.firstChild) node.removeChild(node.firstChild);
-    }}
+    }
 
-    function setEmptyMessage(container, message, className = 'empty') {{
+    function setEmptyMessage(container, message, className = 'empty') {
       clearNode(container);
       container.className = className;
       container.textContent = message;
-    }}
+    }
 
-    function createTextNode(tag, text, className = '') {{
+    function createTextNode(tag, text, className = '') {
       const node = document.createElement(tag);
       if (className) node.className = className;
       node.textContent = text;
       return node;
-    }}
+    }
 
-    function createDetailRow(key, value, secondary = '') {{
+    function createDetailRow(key, value, secondary = '') {
       const row = document.createElement('div');
       row.className = 'detail-row';
       row.appendChild(createTextNode('div', key, 'detail-key'));
       row.appendChild(createTextNode('div', value || '—'));
       if (secondary) row.appendChild(createTextNode('div', secondary, 'subtle'));
       return row;
-    }}
+    }
 
-    function createPreformattedDetailRow(key, value, secondary = '') {{
+    function createPreformattedDetailRow(key, value, secondary = '') {
       const row = document.createElement('div');
       row.className = 'detail-row';
       row.appendChild(createTextNode('div', key, 'detail-key'));
@@ -279,282 +276,282 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       row.appendChild(valueNode);
       if (secondary) row.appendChild(createTextNode('div', secondary, 'subtle'));
       return row;
-    }}
+    }
 
-    function setSidebarCollapsed(collapsed) {{
+    function setSidebarCollapsed(collapsed) {
       appShell.classList.toggle('sidebar-collapsed', collapsed);
       sidebarToggle.textContent = collapsed ? '›' : '‹';
       sidebarToggle.title = collapsed ? '展開側邊欄' : '收合側邊欄';
       sidebarToggle.setAttribute('aria-label', sidebarToggle.title);
       localStorage.setItem('pa450-sidebar-collapsed', collapsed ? '1' : '0');
-    }}
+    }
 
-    function setFolderPath(kind, path) {{
+    function setFolderPath(kind, path) {
       folderState[kind] = path || 'output';
       if (folderLabels[kind]) folderLabels[kind].textContent = folderState[kind];
       persistFolderDirs();
-    }}
+    }
 
-    function currentCsvDir() {{
+    function currentCsvDir() {
       return folderState.csv || DEFAULT_CSV_DIR;
-    }}
+    }
 
-    function currentAnalysisDir() {{
+    function currentAnalysisDir() {
       return folderState.analysis || DEFAULT_ANALYSIS_DIR;
-    }}
+    }
 
-    function currentReviewDir() {{
+    function currentReviewDir() {
       return folderState.review || DEFAULT_REVIEW_DIR;
-    }}
+    }
 
-    function apiUrl(path, extraParams = {{}}) {{
+    function apiUrl(path, extraParams = {}) {
       const params = new URLSearchParams();
       params.set('csv_dir', currentCsvDir());
       params.set('analysis_dir', currentAnalysisDir());
       params.set('review_dir', currentReviewDir());
       Object.entries(extraParams).forEach(([key, value]) => params.set(key, value));
       return path + '?' + params.toString();
-    }}
+    }
 
-    function persistFolderDirs() {{
+    function persistFolderDirs() {
       localStorage.setItem('pa450-csv-dir', currentCsvDir());
       localStorage.setItem('pa450-analysis-dir', currentAnalysisDir());
       localStorage.setItem('pa450-review-dir', currentReviewDir());
-    }}
+    }
 
-    async function chooseFolder(kind) {{
-      try {{
+    async function chooseFolder(kind) {
+      try {
         clearError();
-        const response = await fetch(apiUrl('/api/pick-folder', {{ kind }}));
-        if (!response.ok) throw new Error(`選擇資料夾失敗：${{response.status}}`);
+        const response = await fetch(apiUrl('/api/pick-folder', { kind }));
+        if (!response.ok) throw new Error(`選擇資料夾失敗：${response.status}`);
         const payload = await response.json();
         if (payload.selected && payload.path) setFolderPath(kind, payload.path);
-      }} catch (error) {{
+      } catch (error) {
         showError(error.message || '選擇資料夾失敗');
-      }}
-    }}
+      }
+    }
 
-    function renderFolderPaths() {{
+    function renderFolderPaths() {
       setFolderPath('csv', currentCsvDir());
       setFolderPath('analysis', currentAnalysisDir());
       setFolderPath('review', currentReviewDir());
-    }}
+    }
 
-    function updateSelectedFileNames() {{
-      csvFileName.textContent = csvFileInput.files[0] ? `CSV：${{csvFileInput.files[0].name}}` : '尚未選擇 CSV';
-      jsonFileName.textContent = jsonFileInput.files[0] ? `AI JSON：${{jsonFileInput.files[0].name}}` : '尚未選擇 AI JSON';
+    function updateSelectedFileNames() {
+      csvFileName.textContent = csvFileInput.files[0] ? `CSV：${csvFileInput.files[0].name}` : '尚未選擇 CSV';
+      jsonFileName.textContent = jsonFileInput.files[0] ? `AI JSON：${jsonFileInput.files[0].name}` : '尚未選擇 AI JSON';
       const hasCsv = Boolean(csvFileInput.files[0]);
       const hasJson = Boolean(jsonFileInput.files[0]);
       loadSelectedFilesButton.disabled = !(hasCsv && hasJson);
-      if (hasCsv && hasJson) {{
+      if (hasCsv && hasJson) {
         manualLoadState.textContent = '已分開記住目前選擇的 CSV 與 AI JSON；即使來自不同資料夾也可直接一起載入。';
-      }} else if (hasCsv) {{
+      } else if (hasCsv) {
         manualLoadState.textContent = 'CSV 已選好；可切換到另一個資料夾再挑 AI JSON。';
-      }} else if (hasJson) {{
+      } else if (hasJson) {
         manualLoadState.textContent = 'AI JSON 已選好；可切換到另一個資料夾再挑 CSV。';
-      }} else {{
+      } else {
         manualLoadState.textContent = 'CSV 與 AI JSON 可分別從不同資料夾挑選；兩個都選好後再載入。';
-      }}
-    }}
+      }
+    }
 
-    function showError(message) {{
+    function showError(message) {
       errorBox.hidden = false;
       errorBox.textContent = message;
       loading.hidden = true;
       reportApp.hidden = true;
-    }}
+    }
 
-    function clearError() {{
+    function clearError() {
       errorBox.hidden = true;
       errorBox.textContent = '';
-    }}
+    }
 
-    function readFileAsText(file) {{
-      return new Promise((resolve, reject) => {{
+    function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
-        reader.onerror = () => reject(new Error(`讀取檔案失敗：${{file.name}}`));
+        reader.onerror = () => reject(new Error(`讀取檔案失敗：${file.name}`));
         reader.readAsText(file, 'utf-8');
-      }});
-    }}
+      });
+    }
 
-    function splitCsvLine(line) {{
+    function splitCsvLine(line) {
       const values = [];
       let current = '';
       let inQuotes = false;
-      for (let i = 0; i < line.length; i += 1) {{
+      for (let i = 0; i < line.length; i += 1) {
         const char = line[i];
-        if (char === '"') {{
-          if (inQuotes && line[i + 1] === '"') {{
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
             current += '"';
             i += 1;
-          }} else {{
+          } else {
             inQuotes = !inQuotes;
-          }}
+          }
           continue;
-        }}
-        if (char === ',' && !inQuotes) {{
+        }
+        if (char === ',' && !inQuotes) {
           values.push(current);
           current = '';
           continue;
-        }}
+        }
         current += char;
-      }}
+      }
       values.push(current);
       return values;
-    }}
+    }
 
-    function parseCsvText(csvText) {{
-      const normalized = csvText.replace(/^\\uFEFF/, '').replace(/\\r\\n/g, '\\n').replace(/\\r/g, '\\n');
+    function parseCsvText(csvText) {
+      const normalized = csvText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
       const rows = [];
       let current = '';
       let inQuotes = false;
-      for (let i = 0; i < normalized.length; i += 1) {{
+      for (let i = 0; i < normalized.length; i += 1) {
         const char = normalized[i];
-        if (char === '"') {{
+        if (char === '"') {
           current += char;
-          if (inQuotes && normalized[i + 1] === '"') {{
+          if (inQuotes && normalized[i + 1] === '"') {
             current += normalized[i + 1];
             i += 1;
-          }} else {{
+          } else {
             inQuotes = !inQuotes;
-          }}
+          }
           continue;
-        }}
-        if (char === '\\n' && !inQuotes) {{
+        }
+        if (char === '\n' && !inQuotes) {
           rows.push(current);
           current = '';
           continue;
-        }}
+        }
         current += char;
-      }}
-      if (current || normalized.endsWith('\\n')) rows.push(current);
+      }
+      if (current || normalized.endsWith('\n')) rows.push(current);
       const nonEmptyRows = rows.filter((line) => line.length > 0);
       if (!nonEmptyRows.length) throw new Error('CSV 內容是空的');
       const headers = splitCsvLine(nonEmptyRows[0]);
       if (!headers.length || headers.every((header) => !header.trim())) throw new Error('CSV 缺少表頭');
-      const dataRows = nonEmptyRows.slice(1).map((line) => {{
+      const dataRows = nonEmptyRows.slice(1).map((line) => {
         const values = splitCsvLine(line);
-        const row = {{}};
-        headers.forEach((header, index) => {{
+        const row = {};
+        headers.forEach((header, index) => {
           row[header] = values[index] || '';
-        }});
+        });
         return row;
-      }});
-      return {{ headers, rows: dataRows }};
-    }}
+      });
+      return { headers, rows: dataRows };
+    }
 
-    function parseIntLike(value) {{
+    function parseIntLike(value) {
       if (value === null || value === undefined) return null;
-      const text = String(value).replace(/[^\\d-]/g, '');
+      const text = String(value).replace(/[^\d-]/g, '');
       if (!text || text === '-') return null;
       const parsed = Number.parseInt(text, 10);
       return Number.isNaN(parsed) ? null : parsed;
-    }}
+    }
 
-    function formatBytesHuman(value) {{
+    function formatBytesHuman(value) {
       if (value === null || value === undefined) return '—';
       const units = ['bytes', 'KB', 'MB', 'GB', 'TB'];
       let size = Number(value);
       let unit = units[0];
-      for (const currentUnit of units) {{
+      for (const currentUnit of units) {
         unit = currentUnit;
         if (size < 1024 || currentUnit === units[units.length - 1]) break;
         size /= 1024;
-      }}
-      return unit === 'bytes' ? `${{Number(value).toLocaleString('en-US')}} bytes` : `${{size.toFixed(1)}} ${{unit}}`;
-    }}
+      }
+      return unit === 'bytes' ? `${Number(value).toLocaleString('en-US')} bytes` : `${size.toFixed(1)} ${unit}`;
+    }
 
-    function parseAnalysisSections(analysisText) {{
-      const parsed = {{ status: '', summary: '', source: '', destination: '', application: '', bytes: '', reason: '', items: [] }};
-      analysisText.split(/\\r?\\n/).forEach((rawLine) => {{
+    function parseAnalysisSections(analysisText) {
+      const parsed = { status: '', summary: '', source: '', destination: '', application: '', bytes: '', reason: '', items: [] };
+      analysisText.split(/\r?\n/).forEach((rawLine) => {
         const line = rawLine.trim();
         if (!line) return;
         const normalized = line.replace(/^[\-\s]+/, '');
         const itemMatch = normalized.match(/^第(\d+)筆的來源：(.*?)\s+目的地：(.*?)\s+應用程式：(.*?)\s+位元組：(.*)$/);
         if (normalized.startsWith('異常狀態：')) parsed.status = normalized.split('：', 2)[1].trim();
         else if (normalized.startsWith('摘要：')) parsed.summary = normalized.split('：', 2)[1].trim();
-        else if (itemMatch) parsed.items.push({{ item_number: itemMatch[1], source: itemMatch[2].trim(), destination: itemMatch[3].trim(), application: itemMatch[4].trim(), bytes: itemMatch[5].trim() }});
+        else if (itemMatch) parsed.items.push({ item_number: itemMatch[1], source: itemMatch[2].trim(), destination: itemMatch[3].trim(), application: itemMatch[4].trim(), bytes: itemMatch[5].trim() });
         else if (normalized.startsWith('來源：')) parsed.source = normalized.split('：', 2)[1].trim();
         else if (normalized.startsWith('目的地：')) parsed.destination = normalized.split('：', 2)[1].trim();
         else if (normalized.startsWith('應用程式：')) parsed.application = normalized.split('：', 2)[1].trim();
         else if (normalized.startsWith('位元組：')) parsed.bytes = normalized.split('：', 2)[1].trim();
         else if (normalized.startsWith('原因：')) parsed.reason = normalized.split('：', 2)[1].trim();
-      }});
-      if (parsed.items.length) {{
+      });
+      if (parsed.items.length) {
         const firstItem = parsed.items[0];
         parsed.source = parsed.source || firstItem.source;
         parsed.destination = parsed.destination || firstItem.destination;
         parsed.application = parsed.application || firstItem.application;
         parsed.bytes = parsed.bytes || firstItem.bytes;
-      }}
+      }
       return parsed;
-    }}
+    }
 
-    function summarizeRows(rows) {{
+    function summarizeRows(rows) {
       const sourceSet = new Set();
       const destinationSet = new Set();
       const byteValues = [];
-      rows.forEach((row) => {{
+      rows.forEach((row) => {
         const source = (row['來源位址'] || '').trim();
         const destination = (row['目的地位址'] || '').trim();
         if (source) sourceSet.add(source);
         if (destination) destinationSet.add(destination);
         const byteValue = parseIntLike(row['位元組']);
         if (byteValue !== null) byteValues.push(byteValue);
-      }});
+      });
       const maxBytes = byteValues.length ? Math.max(...byteValues) : 0;
       const totalBytes = byteValues.reduce((sum, value) => sum + value, 0);
-      return {{
+      return {
         total_rows: rows.length,
         unique_sources: sourceSet.size,
         unique_destinations: destinationSet.size,
         max_bytes_human: formatBytesHuman(maxBytes),
-        max_bytes_raw: `${{maxBytes.toLocaleString('en-US')}} bytes`,
+        max_bytes_raw: `${maxBytes.toLocaleString('en-US')} bytes`,
         total_bytes_human: formatBytesHuman(totalBytes),
-        total_bytes_raw: `${{totalBytes.toLocaleString('en-US')}} bytes`,
-      }};
-    }}
+        total_bytes_raw: `${totalBytes.toLocaleString('en-US')} bytes`,
+      };
+    }
 
-    function enrichRowsForDisplay(headers, rows) {{
+    function enrichRowsForDisplay(headers, rows) {
       const displayHeaders = headers.map((header) => header === '位元組' ? '傳輸量' : header);
-      const displayRows = rows.map((row) => {{
-        const displayRow = {{ ...row }};
-        if (Object.prototype.hasOwnProperty.call(row, '位元組')) {{
+      const displayRows = rows.map((row) => {
+        const displayRow = { ...row };
+        if (Object.prototype.hasOwnProperty.call(row, '位元組')) {
           const byteValue = parseIntLike(row['位元組']);
-          displayRow['傳輸量'] = byteValue === null ? (row['位元組'] || '') : `${{formatBytesHuman(byteValue)}} (${{byteValue.toLocaleString('en-US')}} bytes)`;
+          displayRow['傳輸量'] = byteValue === null ? (row['位元組'] || '') : `${formatBytesHuman(byteValue)} (${byteValue.toLocaleString('en-US')} bytes)`;
           displayRow.__raw_bytes = row['位元組'] || '';
           delete displayRow['位元組'];
-        }}
+        }
         return displayRow;
-      }});
-      return {{ displayHeaders, displayRows }};
-    }}
+      });
+      return { displayHeaders, displayRows };
+    }
 
-    function deriveManualLabel(csvFile, jsonFile, analysisPayload) {{
+    function deriveManualLabel(csvFile, jsonFile, analysisPayload) {
       const candidates = [analysisPayload.date, analysisPayload.report_date, analysisPayload.date_key, csvFile.name, jsonFile.name].filter(Boolean);
-      const matched = candidates.map((value) => String(value).match(/(\\d{{8}})/)).find(Boolean);
-      if (matched) {{
+      const matched = candidates.map((value) => String(value).match(/(\d{8})/)).find(Boolean);
+      if (matched) {
         const dateKey = matched[1];
-        return {{ date: `manual-${{dateKey}}`, label: `${{dateKey.slice(0, 4)}}-${{dateKey.slice(4, 6)}}-${{dateKey.slice(6, 8)}}` }};
-      }}
-      return {{ date: `manual-${{csvFile.name}}-${{jsonFile.name}}`, label: '手動載入' }};
-    }}
+        return { date: `manual-${dateKey}`, label: `${dateKey.slice(0, 4)}-${dateKey.slice(4, 6)}-${dateKey.slice(6, 8)}` };
+      }
+      return { date: `manual-${csvFile.name}-${jsonFile.name}`, label: '手動載入' };
+    }
 
-    function buildManualReport(csvFile, jsonFile, csvText, jsonText) {{
+    function buildManualReport(csvFile, jsonFile, csvText, jsonText) {
       const parsedCsv = parseCsvText(csvText);
       const analysisPayload = JSON.parse(jsonText);
-      if (!analysisPayload || typeof analysisPayload !== 'object' || Array.isArray(analysisPayload)) {{
+      if (!analysisPayload || typeof analysisPayload !== 'object' || Array.isArray(analysisPayload)) {
         throw new Error('AI JSON 必須是物件');
-      }}
+      }
       const analysisText = String(analysisPayload.analysis || '');
       const analysisSections = parseAnalysisSections(analysisText);
       const analysisBytesValue = parseIntLike(analysisSections.bytes);
       analysisSections.bytes_human = analysisBytesValue === null ? '' : formatBytesHuman(analysisBytesValue);
-      analysisSections.bytes_raw = analysisBytesValue === null ? (analysisSections.bytes || '') : `${{analysisBytesValue.toLocaleString('en-US')}} bytes`;
-      const {{ displayHeaders, displayRows }} = enrichRowsForDisplay(parsedCsv.headers, parsedCsv.rows);
+      analysisSections.bytes_raw = analysisBytesValue === null ? (analysisSections.bytes || '') : `${analysisBytesValue.toLocaleString('en-US')} bytes`;
+      const { displayHeaders, displayRows } = enrichRowsForDisplay(parsedCsv.headers, parsedCsv.rows);
       const labelInfo = deriveManualLabel(csvFile, jsonFile, analysisPayload);
-      return {{
+      return {
         date: labelInfo.date,
         label: labelInfo.label,
         data_dir: 'browser-upload',
@@ -566,17 +563,17 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         analysis_text: analysisText,
         analysis_sections: analysisSections,
         source: 'manual-upload',
-      }};
-    }}
+      };
+    }
 
-    async function loadSelectedFiles() {{
+    async function loadSelectedFiles() {
       const csvFile = csvFileInput.files[0];
       const jsonFile = jsonFileInput.files[0];
-      if (!csvFile || !jsonFile) {{
+      if (!csvFile || !jsonFile) {
         showError('請先各選 1 個 CSV 與 1 個 AI JSON。');
         return;
-      }}
-      try {{
+      }
+      try {
         clearError();
         loading.hidden = false;
         reportApp.hidden = true;
@@ -584,73 +581,73 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         appState.current = buildManualReport(csvFile, jsonFile, csvText, jsonText);
         appState.selectedRowIndex = null;
         renderCurrentReport();
-      }} catch (error) {{
+      } catch (error) {
         showError(error.message || '載入選擇檔案失敗');
-      }}
-    }}
+      }
+    }
 
-    function selectedRow() {{
+    function selectedRow() {
       if (!appState.current || appState.selectedRowIndex === null) return null;
       return appState.current.rows[appState.selectedRowIndex] || null;
-    }}
+    }
 
-    function canSaveReviewToMarkdown() {{
+    function canSaveReviewToMarkdown() {
       return appState.current
         && appState.selectedRowIndex !== null
-        && /^\\d{{8}}$/.test(appState.current.date || '')
+        && /^\d{8}$/.test(appState.current.date || '')
         && appState.current.source !== 'manual-upload';
-    }}
+    }
 
-    function rowSummary(row) {{
+    function rowSummary(row) {
       const preferredHeaders = ['來源位址', '目的地位址', '應用程式', '傳輸量', '來源使用者', '使用者', '主機名稱'];
       return preferredHeaders
         .filter((header) => row && row[header])
-        .map((header) => `${{header}}=${{row[header]}}`)
+        .map((header) => `${header}=${row[header]}`)
         .join('；');
-    }}
+    }
 
-    function setReviewControlsEnabled(enabled) {{
+    function setReviewControlsEnabled(enabled) {
       reviewStatus.disabled = !enabled;
       reviewNote.disabled = !enabled;
       reviewSaveButton.disabled = !enabled || !canSaveReviewToMarkdown();
-      if (!enabled) {{
+      if (!enabled) {
         reviewStatus.value = '';
         reviewNote.value = '';
         reviewNote.placeholder = '請先點選 CSV 表格中的單筆資料列，再填寫這筆的回報。';
-      }} else {{
+      } else {
         reviewNote.placeholder = '例如：這筆高流量其實是備份流量，AI 需要學會辨識。';
-      }}
-    }}
+      }
+    }
 
-    function setReviewSaveMessage(message, className = 'subtle') {{
+    function setReviewSaveMessage(message, className = 'subtle') {
       reviewSaveMessage.textContent = message || '';
-      reviewSaveMessage.className = `review-save-message ${{className}}`;
-    }}
+      reviewSaveMessage.className = `review-save-message ${className}`;
+    }
 
-    function setReviewSaving(isSaving) {{
+    function setReviewSaving(isSaving) {
       reviewSaveButton.disabled = isSaving || !canSaveReviewToMarkdown();
-      if (isSaving) {{
+      if (isSaving) {
         reviewSaveButton.textContent = '儲存中...';
-      }} else {{
+      } else {
         reviewSaveButton.textContent = '儲存';
-      }}
-    }}
+      }
+    }
 
-    function draftReviews() {{
-      if (!appState.current) return {{}};
-      if (!appState.current.draftReviews) appState.current.draftReviews = {{}};
+    function draftReviews() {
+      if (!appState.current) return {};
+      if (!appState.current.draftReviews) appState.current.draftReviews = {};
       return appState.current.draftReviews;
-    }}
+    }
 
-    function buildCurrentReviewPayload() {{
+    function buildCurrentReviewPayload() {
       if (!appState.current) return null;
-      if (appState.selectedRowIndex === null) {{
+      if (appState.selectedRowIndex === null) {
         setReviewControlsEnabled(false);
         return null;
-      }}
+      }
       const row = selectedRow();
       if (!row) return null;
-      return {{
+      return {
         reviewStatus: reviewStatus.value,
         reviewNote: reviewNote.value,
         rowIndex: appState.selectedRowIndex,
@@ -658,93 +655,93 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         csvLineNumber: appState.selectedRowIndex + 2,
         rowSummary: rowSummary(row),
         rowFields: row,
-      }};
-    }}
+      };
+    }
 
-    function updateReviewDraft() {{
+    function updateReviewDraft() {
       const review = buildCurrentReviewPayload();
       if (!review || !appState.current) return;
       setReviewSaveMessage('', 'subtle');
       draftReviews()[String(appState.selectedRowIndex)] = review;
-    }}
+    }
 
-    async function saveReviewState() {{
+    async function saveReviewState() {
       const review = buildCurrentReviewPayload();
       if (!review || !appState.current) return;
       setReviewSaveMessage('儲存中...', 'subtle');
       setReviewSaving(true);
-      if (!appState.current.reviews) appState.current.reviews = {{}};
+      if (!appState.current.reviews) appState.current.reviews = {};
       appState.current.reviews[String(appState.selectedRowIndex)] = review;
-      if (!canSaveReviewToMarkdown()) {{
+      if (!canSaveReviewToMarkdown()) {
         setReviewSaveMessage('已暫存目前回報。', 'success');
         setReviewSaving(false);
         return;
-      }}
-      try {{
-        const response = await fetch(apiUrl('/api/reports/' + encodeURIComponent(appState.current.date) + '/review'), {{
+      }
+      try {
+        const response = await fetch(apiUrl('/api/reports/' + encodeURIComponent(appState.current.date) + '/review'), {
           method: 'POST',
-          headers: {{ 'Content-Type': 'application/json' }},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(review),
-        }});
-        if (!response.ok) throw new Error(`儲存 report_YYYYMMDD.md 失敗：${{response.status}}`);
+        });
+        if (!response.ok) throw new Error(`儲存 report_YYYYMMDD.md 失敗：${response.status}`);
         const payload = await response.json();
         if (payload.reviews) appState.current.reviews = payload.reviews;
         delete draftReviews()[String(appState.selectedRowIndex)];
         setReviewSaveMessage('已儲存回報。', 'success');
-      }} catch (error) {{
+      } catch (error) {
         setReviewSaveMessage('儲存失敗，請再試一次。', 'error');
         showError(error.message || '儲存 report_YYYYMMDD.md 失敗');
-      }} finally {{
+      } finally {
         setReviewSaving(false);
-      }}
-    }}
+      }
+    }
 
-    function loadReviewState() {{
+    function loadReviewState() {
       reviewStatus.value = '';
       reviewNote.value = '';
       setReviewSaveMessage('', 'subtle');
-      if (!appState.current || appState.selectedRowIndex === null) {{
+      if (!appState.current || appState.selectedRowIndex === null) {
         setReviewControlsEnabled(false);
         return;
-      }}
+      }
       setReviewControlsEnabled(true);
       const rowKey = String(appState.selectedRowIndex);
       const draft = draftReviews()[rowKey];
-      if (draft) {{
+      if (draft) {
         reviewStatus.value = draft.reviewStatus || '';
         reviewNote.value = draft.reviewNote || '';
         return;
-      }}
-      if (canSaveReviewToMarkdown()) {{
-        const saved = (appState.current.reviews || {{}})[rowKey] || {{}};
+      }
+      if (canSaveReviewToMarkdown()) {
+        const saved = (appState.current.reviews || {})[rowKey] || {};
         reviewStatus.value = saved.reviewStatus || '';
         reviewNote.value = saved.reviewNote || '';
         return;
-      }}
-    }}
+      }
+    }
 
-    function uniqueValues(field) {{
+    function uniqueValues(field) {
       if (!appState.current) return [];
       return [...new Set(appState.current.rows.map((row) => (row[field] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
-    }}
+    }
 
-    function fillSelect(selectEl, field, label) {{
+    function fillSelect(selectEl, field, label) {
       clearNode(selectEl);
       const defaultOption = document.createElement('option');
       defaultOption.value = '';
-      defaultOption.textContent = `全部${{label}}`;
+      defaultOption.textContent = `全部${label}`;
       selectEl.appendChild(defaultOption);
-      uniqueValues(field).forEach((value) => {{
+      uniqueValues(field).forEach((value) => {
         const option = document.createElement('option');
         option.value = value;
         option.textContent = value;
         selectEl.appendChild(option);
-      }});
-    }}
+      });
+    }
 
-    function renderSidebar() {{
+    function renderSidebar() {
       clearNode(reportList);
-      appState.reports.forEach((report) => {{
+      appState.reports.forEach((report) => {
         const btn = document.createElement('button');
         btn.className = 'report-item';
         if (appState.current && report.date === appState.current.date) btn.classList.add('active');
@@ -752,13 +749,13 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         btn.appendChild(createTextNode('div', report.summary, 'subtle report-summary'));
         btn.addEventListener('click', () => loadReport(report.date));
         reportList.appendChild(btn);
-      }});
-      if (!appState.reports.length) {{
+      });
+      if (!appState.reports.length) {
         setEmptyMessage(reportList, '目前找不到任何每日報告。');
-      }}
-    }}
+      }
+    }
 
-    function renderSummary() {{
+    function renderSummary() {
       clearNode(summaryGrid);
       const summary = appState.current.summary;
       const cards = [
@@ -769,17 +766,17 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         ['最大傳輸量', summary.max_bytes_human, summary.max_bytes_raw],
         ['總傳輸量', summary.total_bytes_human, summary.total_bytes_raw],
       ];
-      cards.forEach(([label, value, secondary]) => {{
+      cards.forEach(([label, value, secondary]) => {
         const card = document.createElement('div');
         card.className = 'card';
         card.appendChild(createTextNode('div', label, 'detail-key'));
         card.appendChild(createTextNode('div', value, 'metric'));
         if (secondary) card.appendChild(createTextNode('div', secondary, 'subtle'));
         summaryGrid.appendChild(card);
-      }});
-    }}
+      });
+    }
 
-    function renderAnalysis() {{
+    function renderAnalysis() {
       clearNode(analysisCard);
       const a = appState.current.analysis_sections;
       [
@@ -787,41 +784,41 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         ['摘要', a.summary || appState.current.analysis_text || '資料不足，需人工確認', ''],
         ['原因', a.reason || '', ''],
       ].forEach(([key, value, secondary]) => analysisCard.appendChild(createDetailRow(key, value, secondary)));
-      if (a.items && a.items.length) {{
-        a.items.forEach((item) => {{
+      if (a.items && a.items.length) {
+        a.items.forEach((item) => {
           const itemBytesValue = parseIntLike(item.bytes);
           const itemBytesDisplay = itemBytesValue === null ? (item.bytes || '—') : formatBytesHuman(itemBytesValue);
-          const itemBytesSecondary = itemBytesValue === null ? '' : `${{itemBytesValue.toLocaleString('en-US')}} bytes`;
+          const itemBytesSecondary = itemBytesValue === null ? '' : `${itemBytesValue.toLocaleString('en-US')} bytes`;
           analysisCard.appendChild(createDetailRow(
-            `第${{item.item_number}}筆`,
-            `來源：${{item.source || '—'}} 目的地：${{item.destination || '—'}} 應用程式：${{item.application || '—'}} 位元組：${{itemBytesDisplay}}`,
+            `第${item.item_number}筆`,
+            `來源：${item.source || '—'} 目的地：${item.destination || '—'} 應用程式：${item.application || '—'} 位元組：${itemBytesDisplay}`,
             itemBytesSecondary,
           ));
-        }});
-      }} else {{
+        });
+      } else {
         analysisCard.appendChild(createDetailRow('異常項目', '—', ''));
-      }}
-    }}
+      }
+    }
 
-    function renderHead() {{
+    function renderHead() {
       clearNode(tableHead);
-      appState.current.headers.forEach((header) => {{
+      appState.current.headers.forEach((header) => {
         const th = document.createElement('th');
         th.textContent = header;
         tableHead.appendChild(th);
-      }});
-    }}
+      });
+    }
 
-    function normalizeForAiMatch(value) {{
+    function normalizeForAiMatch(value) {
       return String(value || '').trim();
-    }}
+    }
 
-    function rowMatchesAiReport(row) {{
-      const a = appState.current ? appState.current.analysis_sections || {{}} : {{}};
+    function rowMatchesAiReport(row) {
+      const a = appState.current ? appState.current.analysis_sections || {} : {};
       const items = Array.isArray(a.items) ? a.items : [];
       if (!items.length) return false;
       const rowBytes = parseIntLike(row.__raw_bytes ?? row['傳輸量'] ?? row['位元組']);
-      return items.some((item) => {{
+      return items.some((item) => {
         const itemBytes = parseIntLike(item.bytes);
         const coreMatch = normalizeForAiMatch(row['來源位址']) === normalizeForAiMatch(item.source)
           && normalizeForAiMatch(row['目的地位址']) === normalizeForAiMatch(item.destination)
@@ -829,10 +826,10 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         if (!coreMatch) return false;
         if (itemBytes === null || rowBytes === null) return true;
         return rowBytes === itemBytes;
-      }});
-    }}
+      });
+    }
 
-    function matchesFilters(row) {{
+    function matchesFilters(row) {
       const search = searchInput.value.trim().toLowerCase();
       const source = sourceFilter.value;
       const app = appFilter.value;
@@ -841,56 +838,56 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       if (source && (row['來源位址'] || '') !== source) return false;
       if (app && (row['應用程式'] || '') !== app) return false;
       return true;
-    }}
+    }
 
-    function renderDetails(row) {{
+    function renderDetails(row) {
       clearNode(rowDetail);
       rowDetail.className = 'detail-list';
-      appState.current.headers.forEach((header) => {{
+      appState.current.headers.forEach((header) => {
         rowDetail.appendChild(createDetailRow(header, row[header] || '—'));
-      }});
+      });
       loadReviewState();
-    }}
+    }
 
-    function renderRows() {{
+    function renderRows() {
       clearNode(tableBody);
       const filtered = appState.current.rows
-        .map((row, originalIndex) => ({{ row, originalIndex }}))
+        .map((row, originalIndex) => ({ row, originalIndex }))
         .filter((item) => matchesFilters(item.row));
-      filtered.forEach(({{ row, originalIndex }}) => {{
+      filtered.forEach(({ row, originalIndex }) => {
         const tr = document.createElement('tr');
         const isAiMatch = rowMatchesAiReport(row);
-        if (isAiMatch) {{
+        if (isAiMatch) {
           tr.classList.add('is-ai-match');
           tr.title = '完整命中 AI 報告異常項目：來源 IP + 目的地 IP + 應用程式';
-        }}
+        }
         if (appState.selectedRowIndex === originalIndex) tr.classList.add('is-selected');
-        tr.addEventListener('click', () => {{
+        tr.addEventListener('click', () => {
           appState.selectedRowIndex = originalIndex;
           renderRows();
           renderDetails(row);
-        }});
-        appState.current.headers.forEach((header) => {{
+        });
+        appState.current.headers.forEach((header) => {
           const td = document.createElement('td');
           td.textContent = row[header] || '';
-          if (isAiMatch && ['來源位址', '目的地位址', '應用程式'].includes(header)) {{
+          if (isAiMatch && ['來源位址', '目的地位址', '應用程式'].includes(header)) {
             td.classList.add('ai-match-cell');
-          }}
+          }
           tr.appendChild(td);
-        }});
+        });
         tableBody.appendChild(tr);
-      }});
-      if (!filtered.length) {{
+      });
+      if (!filtered.length) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
         td.colSpan = appState.current.headers.length;
         td.textContent = '沒有符合條件的 CSV 列。';
         tr.appendChild(td);
         tableBody.appendChild(tr);
-      }}
-    }}
+      }
+    }
 
-    function renderCurrentReport() {{
+    function renderCurrentReport() {
       if (!appState.current) return;
       clearError();
       loading.hidden = true;
@@ -905,19 +902,19 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       fillSelect(appFilter, '應用程式', '應用程式');
       setReviewControlsEnabled(false);
       renderRows();
-    }}
+    }
 
-    async function loadReport(date) {{
+    async function loadReport(date) {
       persistFolderDirs();
       const response = await fetch(apiUrl('/api/reports/' + encodeURIComponent(date)));
-      if (!response.ok) throw new Error(`載入報告失敗：${{response.status}}`);
+      if (!response.ok) throw new Error(`載入報告失敗：${response.status}`);
       appState.current = await response.json();
-      if (!appState.current.draftReviews) appState.current.draftReviews = {{}};
+      if (!appState.current.draftReviews) appState.current.draftReviews = {};
       renderCurrentReport();
-    }}
+    }
 
-    async function bootstrap() {{
-      try {{
+    async function bootstrap() {
+      try {
         clearError();
         loading.hidden = false;
         reportApp.hidden = true;
@@ -925,20 +922,20 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         appState.selectedRowIndex = null;
         persistFolderDirs();
         const response = await fetch(apiUrl('/api/reports'));
-        if (!response.ok) throw new Error(`載入報告列表失敗：${{response.status}}`);
+        if (!response.ok) throw new Error(`載入報告列表失敗：${response.status}`);
         const payload = await response.json();
         appState.reports = payload.reports || [];
         renderSidebar();
-        if (!appState.reports.length) {{
+        if (!appState.reports.length) {
           loading.hidden = true;
-          setEmptyMessage(reportList, `找不到成對的 CSV/AI JSON。CSV：${{currentCsvDir()}}；AI JSON：${{currentAnalysisDir()}}`);
+          setEmptyMessage(reportList, `找不到成對的 CSV/AI JSON。CSV：${currentCsvDir()}；AI JSON：${currentAnalysisDir()}`);
           return;
-        }}
+        }
         await loadReport(appState.reports[0].date);
-      }} catch (error) {{
+      } catch (error) {
         showError(error.message || '載入失敗');
-      }}
-    }}
+      }
+    }
 
     renderFolderPaths();
     selectCsvFolder.addEventListener('click', () => chooseFolder('csv'));
@@ -957,4 +954,3 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
   </script>
 </body>
 </html>
-"""

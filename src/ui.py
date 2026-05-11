@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
-from ui_data import (
+from ui_app.data import (
     build_report_map,
     discover_reports,
     enrich_rows_for_display,
@@ -30,7 +30,7 @@ from ui_data import (
     _normalized_base,
     _validated_date_key,
 )
-from ui_template import INDEX_HTML_TEMPLATE
+from ui_app.assets import render_index_html
 
 
 DASHBOARD_TITLE = "PA450 Daily Review UI"
@@ -61,7 +61,7 @@ class ReportUIHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         folders = self._request_folders(parsed)
         if parsed.path == "/":
-            self._send_html(INDEX_HTML_TEMPLATE.format(
+            self._send_html(render_index_html(
                 title=escape(DASHBOARD_TITLE),
                 csv_dir_json=json.dumps(str(self.default_data_dir), ensure_ascii=False),
                 analysis_dir_json=json.dumps(str(self.default_data_dir), ensure_ascii=False),
