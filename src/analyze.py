@@ -55,16 +55,12 @@ def build_context(input_path: str | Path) -> str:
     return Path(input_path).read_text(encoding="utf-8-sig")
 
 
-def analyze_with_ai(query: str, context: str) -> str:
+def _build_ai_model():
     import httpx
     import os
     from langchain_openai import ChatOpenAI
-    from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
-    from langchain_core.tools import tool
 
     from config import load_dotenv
-    from runtime.prompt_builder import build_system_prompt
-    from runtime.review_tools import read_review_memory, write_review_memory
 
     load_dotenv()
     api_key = os.getenv("AI_GATEWAY_API_KEY")
@@ -77,9 +73,8 @@ def analyze_with_ai(query: str, context: str) -> str:
     if not api_key:
         raise RuntimeError("Missing AI_GATEWAY_API_KEY in .env")
 
-    sync_client  = httpx.Client(verify=False)
-
-    model = ChatOpenAI(
+    sync_client = httpx.Client(verify=False)
+    return ChatOpenAI(
         base_url=url,
         api_key=api_key,
         model=model_name,
@@ -88,47 +83,65 @@ def analyze_with_ai(query: str, context: str) -> str:
         model_kwargs={"reasoning_effort": "low"},
     )
 
-    @tool
-    def read_review_md() -> str:
-        """Read .agent/review.md review rules before analysis."""
-        return read_review_memory(PROJECT_ROOT)
 
-    @tool
-    def write_review_md(rules: str) -> str:
-        """Write concise AI-selected review rules to .agent/review.md when useful."""
-        return write_review_memory(rules, PROJECT_ROOT)
+def analyze_with_ai(query: str, context: str) -> str:
+    from langchain_core.messages import HumanMessage, SystemMessage
 
-    review_tools = [read_review_md, write_review_md]
-    tool_registry = {tool_obj.name: tool_obj for tool_obj in review_tools}
-    model_with_tools = model.bind_tools(review_tools)
+    from runtime.prompt_builder import build_system_prompt
+    from runtime.review_tools import read_review_memory
 
+    model = _build_ai_model()
+    review_rules = read_review_memory(PROJECT_ROOT)
     messages = [
         SystemMessage(
-            content=build_system_prompt(ANALYSIS_SYSTEM_PROMPT, start_dir=PROJECT_ROOT)
+            content=build_system_prompt(
+                ANALYSIS_SYSTEM_PROMPT,
+                start_dir=PROJECT_ROOT,
+                review_rules=review_rules,
+            )
         ),
         HumanMessage(
             content=ANALYSIS_USER_PROMPT_TEMPLATE.format(context=context)
         ),
     ]
-    for _ in range(5):
-        resp = model_with_tools.invoke(messages)
-        tool_calls = getattr(resp, "tool_calls", None) or []
-        if not tool_calls:
-            return str(resp.content)
+    resp = model.invoke(messages)
+    return str(resp.content)
 
-        messages.append(resp)
-        for tool_call in tool_calls:
-            tool_name = tool_call["name"]
-            tool_args = tool_call.get("args") or {}
-            tool_id = tool_call["id"]
-            tool_obj = tool_registry.get(tool_name)
-            if tool_obj is None:
-                result = json.dumps({"error": f"unknown tool: {tool_name}"}, ensure_ascii=False)
-            else:
-                result = tool_obj.invoke(tool_args)
-            messages.append(ToolMessage(content=str(result), tool_call_id=tool_id))
 
-    return "超過最大 review tool 呼叫輪數，請人工確認。"
+def extract_review_rules_from_feedback(feedback: str, existing_rules: str = "") -> str:
+    from langchain_core.messages import HumanMessage, SystemMessage
+
+    model = _build_ai_model()
+    messages = [
+        SystemMessage(
+            content=(
+                "你負責從使用者 feedback 萃取可重用的 PA450 report review 規則。"
+                "只輸出可重複使用的簡短 markdown bullet rules。"
+                "不要輸出本次分析結果、CSV 原始資料、一次性結論、冗長解釋或敏感資訊。"
+                "如果沒有可重用規則，輸出空字串。"
+            )
+        ),
+        HumanMessage(
+            content=(
+                "既有 review rules:\n"
+                f"{existing_rules.strip() or '(empty)'}\n\n"
+                "使用者 feedback:\n"
+                f"{feedback.strip()}"
+            )
+        ),
+    ]
+    resp = model.invoke(messages)
+    return str(resp.content).strip()
+
+
+def remember_feedback(feedback: str) -> str:
+    from runtime.review_tools import read_review_memory, write_review_memory
+
+    existing_rules = read_review_memory(PROJECT_ROOT)
+    new_rules = extract_review_rules_from_feedback(feedback, existing_rules)
+    if not new_rules:
+        return "No reusable review rule extracted."
+    return write_review_memory(new_rules, PROJECT_ROOT)
 
 
 def write_analysis_result(output_path: str | Path, analysis: str) -> None:
@@ -139,14 +152,23 @@ def write_analysis_result(output_path: str | Path, analysis: str) -> None:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Analyze PA450 report CSV with AI")
-    parser.add_argument("--input", required=True, type=Path, help="Path to PA450 report CSV")
-    parser.add_argument("--output", required=True, type=Path, help="Path to analysis JSON output")
+    parser.add_argument("--input", type=Path, help="Path to PA450 report CSV")
+    parser.add_argument("--output", type=Path, help="Path to analysis JSON output")
     parser.add_argument("--query", default=DEFAULT_QUERY, help="Question for the AI model")
+    parser.add_argument("--feedback", help="User feedback to extract and save as reusable review rules")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.feedback:
+        result = remember_feedback(args.feedback)
+        print(result)
+        return 0
+
+    if args.input is None or args.output is None:
+        raise SystemExit("--input and --output are required unless --feedback is provided")
+
     context = build_context(args.input)
     analysis = analyze_with_ai(args.query, context)
     write_analysis_result(args.output, analysis)

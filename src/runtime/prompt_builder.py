@@ -24,23 +24,36 @@ def read_agents_md(start_dir: str | Path | None = None) -> str:
     return agents_path.read_text(encoding="utf-8")
 
 
-def build_system_prompt(base_prompt: str, start_dir: str | Path | None = None) -> str:
-    """Inject AGENTS.md into the system prompt before calling the LLM.
+def build_system_prompt(
+    base_prompt: str,
+    start_dir: str | Path | None = None,
+    review_rules: str = "",
+) -> str:
+    """Inject runtime-owned project context into the system prompt.
 
-    The runtime reads AGENTS.md and passes the resulting instructions as part of
-    the SystemMessage. The model is not asked to discover or read workspace
-    files by itself.
+    Runtime reads AGENTS.md and review.md before the LLM call. The model is not
+    asked to discover or read workspace files by itself.
     """
-    agents_path = find_agents_md(start_dir)
-    if agents_path is None:
-        return base_prompt
+    prompt_parts = [base_prompt]
 
-    agents_content = agents_path.read_text(encoding="utf-8")
-    return (
-        f"{base_prompt}\n\n"
-        "以下是 runtime 預先載入的 AGENTS.md workspace 指示，請遵守。\n"
-        f"來源: {agents_path}\n\n"
-        "<agents_md>\n"
-        f"{agents_content.strip()}\n"
-        "</agents_md>"
-    )
+    agents_path = find_agents_md(start_dir)
+    if agents_path is not None:
+        agents_content = agents_path.read_text(encoding="utf-8").strip()
+        prompt_parts.append(
+            "以下是 runtime 預先載入的 AGENTS.md workspace 指示，請遵守。\n"
+            f"來源: {agents_path}\n\n"
+            "<agents_md>\n"
+            f"{agents_content}\n"
+            "</agents_md>"
+        )
+
+    if review_rules.strip():
+        prompt_parts.append(
+            "以下是 runtime 在本次任務開始前讀取的 review rules，僅可作為輔助判斷依據。\n"
+            "最終結論仍必須只根據本次 CSV context 中真實存在的資料列。\n\n"
+            "<review_rules>\n"
+            f"{review_rules.strip()}\n"
+            "</review_rules>"
+        )
+
+    return "\n\n".join(prompt_parts)
