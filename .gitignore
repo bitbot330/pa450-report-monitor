@@ -8,6 +8,10 @@ __pycache__/
 output/*.csv
 output/**/*.csv
 output/*.json
+output/**/*.json
+output/*.md
+output/**/*.md
+.agent/review_state.json
 logs/*.log
 build/
 dist/
