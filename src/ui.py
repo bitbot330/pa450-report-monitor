@@ -123,6 +123,8 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     td.ai-match-cell {{ color: #ffffff; font-weight: 800; text-shadow: 0 0 10px rgba(255, 209, 102, 0.55); }}
     .empty {{ padding: 18px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); }}
     .error {{ color: #ff9a9a; }}
+    .success {{ color: #85e89d; }}
+    .review-save-message {{ min-height: 18px; margin-top: 8px; font-size: 13px; }}
     @media (max-width: 1320px) {{
       .summary-grid {{ grid-template-columns: repeat(6, minmax(100px, 1fr)); }}
       .content-grid {{ grid-template-columns: minmax(0, 1fr) 300px; }}
@@ -219,6 +221,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
                 <div class="detail-key" style="margin-top:12px;">備註</div>
                 <textarea id="reviewNote" placeholder="請先點選 CSV 表格中的單筆資料列，再填寫這筆的回報。"></textarea>
                 <button id="reviewSaveButton" type="button" style="margin-top:12px; width:100%; border-radius:10px; border:1px solid var(--line); background:#0d1525; color:var(--text); padding:10px 12px; cursor:pointer; font-weight:700;">儲存</button>
+                <div id="reviewSaveMessage" class="review-save-message subtle" role="status" aria-live="polite"></div>
               </div>
             </article>
           </aside>
@@ -266,6 +269,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     const reviewStatus = document.getElementById('reviewStatus');
     const reviewNote = document.getElementById('reviewNote');
     const reviewSaveButton = document.getElementById('reviewSaveButton');
+    const reviewSaveMessage = document.getElementById('reviewSaveMessage');
 
     function clearNode(node) {{
       while (node.firstChild) node.removeChild(node.firstChild);
@@ -644,6 +648,20 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
       }}
     }}
 
+    function setReviewSaveMessage(message, className = 'subtle') {{
+      reviewSaveMessage.textContent = message || '';
+      reviewSaveMessage.className = `review-save-message ${{className}}`;
+    }}
+
+    function setReviewSaving(isSaving) {{
+      reviewSaveButton.disabled = isSaving || !canSaveReviewToMarkdown();
+      if (isSaving) {{
+        reviewSaveButton.textContent = '儲存中...';
+      }} else {{
+        reviewSaveButton.textContent = '儲存';
+      }}
+    }}
+
     function draftReviews() {{
       if (!appState.current) return {{}};
       if (!appState.current.draftReviews) appState.current.draftReviews = {{}};
@@ -672,15 +690,20 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     function updateReviewDraft() {{
       const review = buildCurrentReviewPayload();
       if (!review || !appState.current) return;
+      setReviewSaveMessage('', 'subtle');
       draftReviews()[String(appState.selectedRowIndex)] = review;
     }}
 
     async function saveReviewState() {{
       const review = buildCurrentReviewPayload();
       if (!review || !appState.current) return;
+      setReviewSaveMessage('儲存中...', 'subtle');
+      setReviewSaving(true);
       if (!appState.current.reviews) appState.current.reviews = {{}};
       appState.current.reviews[String(appState.selectedRowIndex)] = review;
       if (!canSaveReviewToMarkdown()) {{
+        setReviewSaveMessage('已暫存目前回報。', 'success');
+        setReviewSaving(false);
         return;
       }}
       try {{
@@ -693,14 +716,19 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
         const payload = await response.json();
         if (payload.reviews) appState.current.reviews = payload.reviews;
         delete draftReviews()[String(appState.selectedRowIndex)];
+        setReviewSaveMessage('已儲存回報。', 'success');
       }} catch (error) {{
+        setReviewSaveMessage('儲存失敗，請再試一次。', 'error');
         showError(error.message || '儲存 report_YYYYMMDD.md 失敗');
+      }} finally {{
+        setReviewSaving(false);
       }}
     }}
 
     function loadReviewState() {{
       reviewStatus.value = '';
       reviewNote.value = '';
+      setReviewSaveMessage('', 'subtle');
       if (!appState.current || appState.selectedRowIndex === null) {{
         setReviewControlsEnabled(false);
         return;
