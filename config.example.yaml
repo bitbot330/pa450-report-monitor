@@ -2,11 +2,3 @@ pa450:
   verify_tls: false
   report_name: YOUR_CUSTOM_REPORT_NAME
   report_job_name: pa450-custom-dynamic-report
-
-monitor:
-  bytes_field_candidates:
-    - bytes
-    - Bytes
-    - 位元組
-    - repeatcnt
-  bytes_threshold: 1000000000

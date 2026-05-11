@@ -40,16 +40,9 @@ class OutputConfig:
 
 
 @dataclass(frozen=True)
-class MonitorConfig:
-    bytes_field_candidates: list[str]
-    bytes_threshold: int
-
-
-@dataclass(frozen=True)
 class AppConfig:
     pa450: Pa450Config
     output: OutputConfig
-    monitor: MonitorConfig
 
 
 def load_dotenv(path: str | Path = ".env") -> None:
@@ -74,7 +67,6 @@ def load_config(path: str | Path) -> AppConfig:
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
     pa = data["pa450"]
-    monitor = data.get("monitor", {})
 
     host = _env("PA450_HOST")
     if not host:
@@ -100,8 +92,4 @@ def load_config(path: str | Path) -> AppConfig:
             report_job_name=pa.get("report_job_name", "pa450-custom-dynamic-report"),
         ),
         output=OutputConfig(columns=DEFAULT_COLUMNS),
-        monitor=MonitorConfig(
-            bytes_field_candidates=list(monitor.get("bytes_field_candidates", ["bytes", "Bytes", "位元組", "repeatcnt"])),
-            bytes_threshold=int(monitor.get("bytes_threshold", 0)),
-        ),
     )

@@ -176,40 +176,13 @@ def parse_int(value: str | int | None) -> int | None:
         return None
 
 
-def rows_exceeding_bytes_threshold(
-    rows: list[dict[str, str]],
-    field_candidates: list[str],
-    threshold: int,
-) -> list[dict[str, str]]:
-    alerts: list[dict[str, str]] = []
-    for row in rows:
-        value = None
-        for field in field_candidates:
-            value = parse_int(row.get(field))
-            if value is not None:
-                break
-        if value is not None and value > threshold:
-            alerts.append(row)
-    return alerts
-
-
-def format_alert_message(alert_rows: list[dict[str, str]], threshold: int) -> str:
-    lines = [f"ALERT: {len(alert_rows)} rows exceeded bytes threshold {threshold}."]
-    for row in alert_rows[:10]:
-        preview = ", ".join(f"{key}={value}" for key, value in sorted(row.items())[:8])
-        lines.append(f"- {preview}")
-    if len(alert_rows) > 10:
-        lines.append(f"... and {len(alert_rows) - 10} more rows")
-    return "\n".join(lines)
-
-
 def output_csv_path(output_dir: Path, today: date | None = None) -> Path:
     today = today or date.today()
     return output_dir / f"{today.strftime('%Y%m%d')}_report.csv"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Fetch PA450 custom report, convert to CSV, and monitor bytes")
+    parser = argparse.ArgumentParser(description="Fetch PA450 custom report and convert it to CSV")
     parser.add_argument("--config", default="config.yaml", help="Path to config.yaml")
     parser.add_argument(
         "--output-dir",
@@ -241,17 +214,6 @@ def main(argv: list[str] | None = None) -> int:
 
     rows = xml_text_to_rows(xml_text)
     rows_to_csv(rows, csv_path, columns=cfg.output.columns)
-
-    alert_rows = rows_exceeding_bytes_threshold(
-        rows,
-        cfg.monitor.bytes_field_candidates,
-        cfg.monitor.bytes_threshold,
-    )
-
-    if alert_rows:
-        print(format_alert_message(alert_rows, cfg.monitor.bytes_threshold))
-    else:
-        print("OK: no rows exceeded threshold")
 
     print(f"CSV written: {csv_path}")
     print(f"Custom report XPath: {report_definition.xpath}")
