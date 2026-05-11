@@ -8,10 +8,9 @@ PA450 Report CSV Monitor 是一個 Windows 本機執行的 PA450 report 下載�
 
 - 透過 PAN-OS XML API 下載指定的 PA450 custom report。
 - 將 report 轉成 CSV。
-- 檢查 bytes threshold，並在終端機輸出 alert 結果。
 - 將 CSV 餵給 AI Gateway 分析，輸出 JSON 分析結果。
+- 分析開始前自動掃描 `output/report_YYYYMMDD.md`，將尚未處理過的多日人工 feedback 萃取成可重用規則，寫入 `.agent/review.md`。
 - 每次 AI 分析開始前，讀取 `.agent/review.md` 作為歷史 review 規則。
-- 分析開始前自動掃描 `output/report_YYYYMMDD.md`，將尚未處理過的多日 feedback 萃取成可重用規則。
 
 ---
 
@@ -30,7 +29,7 @@ PA450 custom report
 
 | 指令 | 用途 |
 |---|---|
-| `src\report.py` | 下載 PA450 report、輸出 CSV、檢查 bytes threshold |
+| `src\report.py` | 下載 PA450 report、輸出 CSV |
 | `src\analyze.py` | 分析開始前處理 feedback / review memory，讀取 CSV、送 AI Gateway 分析、輸出 JSON |
 
 ---
@@ -44,7 +43,7 @@ pa450-report-monitor/
 │   ├── review.md         # 歷史 review 規則
 │   └── review_state.json # feedback 已處理到哪一天的 checkpoint
 ├── src/
-│   ├── report.py         # PA450 report 下載、CSV 輸出、bytes alert
+│   ├── report.py         # PA450 report 下載、CSV 輸出
 │   ├── analyze.py        # AI 分析 CSV，並在分析前處理 feedback / review memory
 │   ├── config.py         # .env / config.yaml 設定載入
 │   └── runtime/
@@ -151,8 +150,6 @@ notepad config.yaml
 | `pa450.verify_tls` | 是否驗證 PA450 TLS 憑證 |
 | `pa450.report_name` | PA450 custom report 名稱 |
 | `pa450.report_job_name` | PA450 dynamic report job 名稱 |
-| `monitor.bytes_field_candidates` | 判斷流量大小時可接受的 bytes 欄位名稱 |
-| `monitor.bytes_threshold` | bytes alert 門檻 |
 
 ---
 
@@ -196,23 +193,6 @@ CSV 固定輸出以下欄位：
 6. `目的地主機名稱`
 7. `應用程式`
 8. `位元組`
-
----
-
-## Report alert 輸出
-
-如果有資料超過 bytes threshold，`report.py` 會輸出：
-
-```text
-ALERT: <COUNT> rows exceeded bytes threshold <THRESHOLD>.
-- <超標資料摘要>
-```
-
-如果沒有超過 threshold，會輸出：
-
-```text
-OK: no rows exceeded threshold
-```
 
 ---
 
