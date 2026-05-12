@@ -278,6 +278,19 @@ report_YYYYMMDD.md
 
 UI 可用來檢視每日 CSV、AI 分析結果，並針對單筆資料寫入回報。
 
+### Review UI 使用方式
+
+1. 執行 `dist\PA450-Daily-Review-UI.exe`。
+2. 在左側選擇資料夾：
+   - `CSV load folder`：放 `YYYYMMDD_report.csv` 的資料夾。
+   - `AI JSON load folder`：放 `report_YYYYMMDD.json` 的資料夾。
+   - `回報 load folder`：讀寫 `report_YYYYMMDD.md` 的資料夾。
+3. 按 `讀取資料夾`，UI 會列出可配對的每日報告。
+4. 點選左側日期切換報告。
+5. 在 `CSV 完整檢視` 搜尋、依來源 IP 或應用程式篩選資料列。
+6. 點選單筆 CSV 資料列後，右側會顯示列明細。
+7. 在 `報告回報` 填寫備註並按 `儲存`，回報會寫入對應日期的 `report_YYYYMMDD.md`。
+
 ---
 
 ## Feedback 與 review memory
