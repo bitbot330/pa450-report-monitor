@@ -30,7 +30,7 @@ ANALYSIS_USER_PROMPT_TEMPLATE = """
 1. 是否有明顯高流量來源。
 2. 是否有單筆流量明顯高於本次 CSV 其他資料。
 3. 是否有同一來源對外累積大量傳輸。
-4. 目的地位址是否為危險網域，例如俄羅斯相關網域。
+4. 目的地國家是否為危險或需人工確認的地區，例如俄羅斯。
 5. 是否有 review rules 指定的正常或異常模式。
 
 監控判斷規則：
@@ -45,7 +45,7 @@ ANALYSIS_USER_PROMPT_TEMPLATE = """
 1. 只能引用 context 裡實際存在的單筆資料列。
 2. 異常項目必須逐筆列出，不可只輸出一組彙總欄位。
 3. 每筆都要用同一行格式：第N筆的來源：... 目的地：... 應用程式：... 位元組：...
-4. 來源、目的地、應用程式、位元組都要直接使用該筆 CSV 的原始值。
+4. 來源、目的地、應用程式、位元組都要直接使用該筆 CSV 的原始值；目的地國家用於判斷原因，不改變輸出格式。
 5. 若無明顯異常，不要輸出任何「第N筆」項目。
 
 以下是 runtime 根據本次 CSV 產生的監控輔助統計，請用來避免把整份報表全列為異常；它不是固定 bytes threshold：
@@ -97,7 +97,7 @@ def _iqr_upper_fence(values: list[int]) -> float | None:
 def build_monitoring_guidance(context: str) -> str:
     reader = csv.DictReader(io.StringIO(context))
     rows = list(reader)
-    required_columns = {"來源位址", "目的地位址", "應用程式", "位元組"}
+    required_columns = {"來源位址", "目的地位址", "目的地國家", "應用程式", "位元組"}
     fieldnames = set(reader.fieldnames or [])
     missing_columns = sorted(required_columns - fieldnames)
     if missing_columns:
@@ -123,9 +123,13 @@ def build_monitoring_guidance(context: str) -> str:
     ]
 
     source_totals: dict[str, int] = {}
+    country_totals: dict[str, tuple[int, int]] = {}
     for _, row, bytes_value in parsed_rows:
         source = row.get("來源位址", "")
         source_totals[source] = source_totals.get(source, 0) + bytes_value
+        country = (row.get("目的地國家") or "(空白)").strip() or "(空白)"
+        row_count, total_bytes = country_totals.get(country, (0, 0))
+        country_totals[country] = (row_count + 1, total_bytes + bytes_value)
 
     source_upper_fence = _iqr_upper_fence(list(source_totals.values()))
     source_outliers = []
@@ -147,8 +151,16 @@ def build_monitoring_guidance(context: str) -> str:
             lines.append(
                 f"- 第{row_number}筆：來源 {row.get('來源位址', '')} "
                 f"目的地 {row.get('目的地位址', '')} "
+                f"目的地國家 {row.get('目的地國家', '')} "
                 f"應用程式 {row.get('應用程式', '')} 位元組 {bytes_value}"
             )
+    else:
+        lines.append("- 無")
+
+    lines.append("目的地國家分布：")
+    if country_totals:
+        for country, (row_count, total_bytes) in sorted(country_totals.items(), key=lambda item: item[1][1], reverse=True):
+            lines.append(f"- {country}：{row_count} 筆，總位元組 {total_bytes}")
     else:
         lines.append("- 無")
 
