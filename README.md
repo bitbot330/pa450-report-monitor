@@ -64,11 +64,9 @@ PA450 custom report
 
 - **PA450 custom report 下載**：透過 PAN-OS XML API 取得指定 custom report。
 - **每日 CSV 輸出**：輸出 `output\YYYYMMDD_report.csv`，欄位固定且可直接給 AI 分析。
-- **目的地國家判斷**：CSV 支援 `目的地國家`，AI 分析會優先根據目的地國家判斷危險或需人工確認的地區。
 - **AI Gateway 分析**：將 CSV context 送給指定 AI model，輸出 `output\report_YYYYMMDD.json`。
 - **Review UI**：本機 UI 可檢視每日 CSV、AI 分析結果，並針對單筆資料寫入 feedback。
 - **Review memory**：分析前自動讀取尚未處理的 `report_YYYYMMDD.md`，萃取成 `.agent\review.md` 長期規則。
-- **不使用固定 bytes threshold**：高流量只作為候選訊號，最終判斷仍需結合 review rules 與 CSV 內容。
 
 ---
 
@@ -108,8 +106,6 @@ pa450-report-monitor/
 
 - Windows 10/11
 - Python 3.10+
-- 可連線到 PA450 management API
-- AI Gateway endpoint 與 API key
 
 ---
 
@@ -122,12 +118,12 @@ pa450-report-monitor/
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate
-python -m pip install --upgrade pip
 ```
 
 ### 2. 安裝套件
 
 ```powershell
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
@@ -150,17 +146,11 @@ python src\ui.py --help
 
 ## 設定 `.env`
 
-開啟 `.env`：
-
-```powershell
-notepad .env
-```
-
 `.env` 欄位：
 
 | 欄位 | 用途 |
 |---|---|
-| `PA450_HOST` | PA450 management IP 或 hostname，例如 `YOUR_PA450_MANAGEMENT_IP` |
+| `PA450_HOST` | PA450 management IP 或 hostname |
 | `PA450_USERNAME` | PA450 使用者名稱 |
 | `PA450_PASSWORD` | PA450 密碼 |
 | `PA450_API_KEY` | PA450 API key |
@@ -178,12 +168,6 @@ notepad .env
 
 ## 設定 `config.yaml`
 
-開啟 `config.yaml`：
-
-```powershell
-notepad config.yaml
-```
-
 主要設定項目：
 
 | 欄位 | 用途 |
@@ -200,7 +184,7 @@ PA450 custom report 建議至少包含下列欄位，程式會轉成固定中文
 
 | CSV 欄位 | 來源欄位用途 |
 |---|---|
-| `產生時間` | 產生時間 / generated time |
+| `產生時間` | generated time |
 | `來源位址` | Source address |
 | `來源主機名稱` | Source hostname |
 | `來源使用者` | Source user |
@@ -209,8 +193,6 @@ PA450 custom report 建議至少包含下列欄位，程式會轉成固定中文
 | `目的地主機名稱` | Destination hostname |
 | `應用程式` | Application |
 | `位元組` | Bytes |
-
-> `目的地國家` 會用於 AI 分析危險或需人工確認的地區，例如俄羅斯相關目的地。若 PA450 API 回傳的實際欄位名稱不同，需要在 `src\config.py` 補上對應候選欄位。
 
 ---
 
@@ -225,13 +207,13 @@ python src\report.py --config config.yaml --output-dir output
 
 | 參數 | 用途 |
 |---|---|
-| `--config config.yaml` | 指定設定檔 |
-| `--output-dir output` | 指定 CSV 輸出資料夾 |
+| `--config` | 指定設定檔 |
+| `--output-dir` | 指定 CSV 輸出資料夾 |
 
-CSV 輸出位置：
+CSV 輸出檔名：
 
 ```text
-output\YYYYMMDD_report.csv
+YYYYMMDD_report.csv
 ```
 
 ---
@@ -271,7 +253,7 @@ JSON 輸出格式：
 
 ---
 
-## 打包 Review UI exe
+## Review UI exe
 
 在專案根目錄開啟 PowerShell，執行：
 
@@ -289,12 +271,12 @@ dist\PA450-Daily-Review-UI.exe
 Review UI 會讀取：
 
 ```text
-output\YYYYMMDD_report.csv
-output\report_YYYYMMDD.json
-output\report_YYYYMMDD.md
+YYYYMMDD_report.csv
+report_YYYYMMDD.json
+report_YYYYMMDD.md
 ```
 
-UI 可用來檢視每日 CSV、AI 分析結果，並針對單筆資料寫入回報。儲存回報時會顯示：`儲存中...`、`已儲存回報。`、`已暫存目前回報。` 或 `儲存失敗，請再試一次。`
+UI 可用來檢視每日 CSV、AI 分析結果，並針對單筆資料寫入回報。
 
 ---
 
@@ -303,10 +285,10 @@ UI 可用來檢視每日 CSV、AI 分析結果，並針對單筆資料寫入回�
 人工 feedback 檔名格式固定為：
 
 ```text
-output\report_YYYYMMDD.md
+report_YYYYMMDD.md
 ```
 
-`YYYYMMDD` 是 report 下載日期，由外部流程產生。`src\analyze.py` 不負責產生 feedback markdown，只在下一次分析開始前讀取尚未處理過的檔案。
+`YYYYMMDD` 是 report 下載日期。`src\analyze.py` 不負責產生 feedback markdown，只在下一次分析開始前讀取尚未處理過的檔案。
 
 長期 review 規則儲存在：
 
@@ -327,23 +309,4 @@ feedback 處理 checkpoint 儲存在：
 ```text
 .agent\review_state.json
 ```
-
 ---
-
-## 驗證指令
-
-```powershell
-python -m py_compile src\report.py src\config.py src\ui.py src\analyze.py src\runtime\review_tools.py src\runtime\prompt_builder.py
-python src\report.py --help
-python src\analyze.py --help
-python src\ui.py --help
-```
-
----
-
-## 維護重點
-
-- 不要重新加入固定 bytes threshold / alert 行為。
-- AI 分析應避免把 top-sources / 高流量報表的所有列都列成異常。
-- `目的地國家` 若存在，應優先作為危險地區判斷依據。
-- `.agent\review.md` 的 review rules 是分析規則，不只是參考資訊。
