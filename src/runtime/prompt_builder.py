@@ -49,8 +49,7 @@ def build_system_prompt(
 
     if review_rules.strip():
         prompt_parts.append(
-            "以下是 runtime 在本次任務開始前讀取的 review rules，是本次分析必須遵守的判斷規則。\n"
-            "若 review rules 與一般高流量直覺衝突，必須優先遵守 review rules。\n"
+            "以下是 runtime 在本次任務開始前讀取的 review rules，僅可作為輔助判斷依據。\n"
             "最終結論仍必須只根據本次 CSV context 中真實存在的資料列。\n\n"
             "<review_rules>\n"
             f"{review_rules.strip()}\n"

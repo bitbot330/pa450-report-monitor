@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import argparse
-import csv
-import io
 import json
 from pathlib import Path
-import statistics
 import sys
 from typing import Any
 
@@ -24,33 +21,18 @@ ANALYSIS_SYSTEM_PROMPT = (
 
 ANALYSIS_USER_PROMPT_TEMPLATE = """
 問題：
-請像監控幫手一樣分析以下 PA450 report 是否有異常流量，並說明原因。
+請分析以下 PA450 report 是否有異常流量，並說明原因。
 
 判斷重點：
 1. 是否有明顯高流量來源。
-2. 是否有單筆流量明顯高於本次 CSV 其他資料。
-3. 是否有同一來源對外累積大量傳輸。
-4. 是否有 review rules 指定的正常或異常模式。
-
-監控判斷規則：
-1. 這份 context 可能本來就是 top-sources / 高流量報表，不要把所有 context rows 當成異常清單輸出。
-2. 只列出符合異常判斷的資料列；沒有異常就說沒有。
-3. 不限制異常筆數：有幾筆真正異常就列幾筆，但不得為了湊數列出正常資料。
-4. 高位元組只能作為候選訊號，不可單獨覆蓋 review rules；若 review rules 說某應用或模式屬於正常，不能只因 bytes 高就列為異常。
-5. 若資料不足以判斷是否異常，必須回答「資料不足，需人工確認」。
-6. 若來源層級累積量異常，必須列出 context 中支撐該結論的實際資料列。
+3. 是否有可疑應用程式。
+4. 是否有單一來源對外大量傳輸。
 
 輸出規則：
 1. 只能引用 context 裡實際存在的單筆資料列。
-2. 異常項目必須逐筆列出，不可只輸出一組彙總欄位。
+2. 如果有多筆可疑資料，必須逐筆列出，不可只輸出一組彙總欄位。
 3. 每筆都要用同一行格式：第N筆的來源：... 目的地：... 應用程式：... 位元組：...
 4. 來源、目的地、應用程式、位元組都要直接使用該筆 CSV 的原始值。
-5. 若無明顯異常，不要輸出任何「第N筆」項目。
-
-以下是 runtime 根據本次 CSV 產生的監控輔助統計，請用來避免把整份報表全列為異常；它不是固定 bytes threshold：
-<monitoring_guidance>
-{monitoring_guidance}
-</monitoring_guidance>
 
 請輸出以下格式：
 
@@ -71,96 +53,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 def build_context(input_path: str | Path) -> str:
     return Path(input_path).read_text(encoding="utf-8-sig")
-
-
-def _parse_bytes(value: str | None) -> int | None:
-    if value is None:
-        return None
-    cleaned = value.strip().replace(",", "")
-    if not cleaned:
-        return None
-    try:
-        return int(cleaned)
-    except ValueError:
-        return None
-
-
-def _iqr_upper_fence(values: list[int]) -> float | None:
-    if len(values) < 4:
-        return None
-    quartiles = statistics.quantiles(sorted(values), n=4, method="inclusive")
-    q1, q3 = quartiles[0], quartiles[2]
-    return q3 + 1.5 * (q3 - q1)
-
-
-def build_monitoring_guidance(context: str) -> str:
-    reader = csv.DictReader(io.StringIO(context))
-    rows = list(reader)
-    required_columns = {"來源位址", "目的地位址", "應用程式", "位元組"}
-    fieldnames = set(reader.fieldnames or [])
-    missing_columns = sorted(required_columns - fieldnames)
-    if missing_columns:
-        return "資料不足，需人工確認：缺少必要欄位 " + ", ".join(missing_columns)
-
-    parsed_rows: list[tuple[int, dict[str, str], int]] = []
-    for row_number, row in enumerate(rows, start=1):
-        bytes_value = _parse_bytes(row.get("位元組"))
-        if bytes_value is not None:
-            parsed_rows.append((row_number, row, bytes_value))
-
-    if len(parsed_rows) < 4:
-        return "資料不足，需人工確認：可解析的位元組資料少於 4 筆，無法產生穩定分布判斷。"
-
-    byte_values = [bytes_value for _, _, bytes_value in parsed_rows]
-    row_upper_fence = _iqr_upper_fence(byte_values)
-    if row_upper_fence is None:
-        return "資料不足，需人工確認：無法計算本次 CSV 的流量分布。"
-
-    row_outliers = [
-        (row_number, row, bytes_value)
-        for row_number, row, bytes_value in parsed_rows
-        if bytes_value > row_upper_fence
-    ]
-
-    source_totals: dict[str, int] = {}
-    for _, row, bytes_value in parsed_rows:
-        source = row.get("來源位址", "")
-        source_totals[source] = source_totals.get(source, 0) + bytes_value
-
-    source_upper_fence = _iqr_upper_fence(list(source_totals.values()))
-    source_outliers = []
-    if source_upper_fence is not None:
-        source_outliers = [
-            (source, total)
-            for source, total in sorted(source_totals.items(), key=lambda item: item[1], reverse=True)
-            if total > source_upper_fence
-        ]
-
-    lines = [
-        f"資料列總數：{len(rows)}",
-        f"可解析位元組資料列數：{len(parsed_rows)}",
-        f"row-level IQR upper fence：{row_upper_fence}",
-        "row-level 候選異常資料列：",
-    ]
-    if row_outliers:
-        for row_number, row, bytes_value in row_outliers:
-            lines.append(
-                f"- 第{row_number}筆：來源 {row.get('來源位址', '')} "
-                f"目的地 {row.get('目的地位址', '')} "
-                f"應用程式 {row.get('應用程式', '')} 位元組 {bytes_value}"
-            )
-    else:
-        lines.append("- 無")
-
-    lines.append("source-level 候選異常來源：")
-    if source_outliers:
-        for source, total in source_outliers:
-            lines.append(f"- 來源 {source} 總位元組 {total}")
-    else:
-        lines.append("- 無")
-
-    lines.append("判斷提醒：上述候選只代表本次 CSV 內部分布明顯突出；仍必須套用 review rules，且不得把所有 rows 都列為異常。")
-    return "\n".join(lines)
 
 
 def _build_ai_model():
@@ -209,10 +101,7 @@ def analyze_with_ai(query: str, context: str) -> str:
             )
         ),
         HumanMessage(
-            content=ANALYSIS_USER_PROMPT_TEMPLATE.format(
-                context=context,
-                monitoring_guidance=build_monitoring_guidance(context),
-            )
+            content=ANALYSIS_USER_PROMPT_TEMPLATE.format(context=context)
         ),
     ]
     resp = model.invoke(messages)
