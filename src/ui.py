@@ -32,6 +32,7 @@ from ui_app.data import (
 )
 from ui_app.assets import render_index_html
 from runtime.review_tools import write_ui_feedback_dir
+from ui_config import DEFAULT_LOAD_DIR
 
 
 DASHBOARD_TITLE = "PA450 Daily Review UI"
@@ -187,7 +188,7 @@ def create_server(handler, requested_port: int) -> tuple[ThreadingHTTPServer, in
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Serve a localhost-only PA450 daily review UI")
-    parser.add_argument("--data-dir", default=Path("output"), type=Path, help="Folder containing daily CSV/JSON results")
+    parser.add_argument("--data-dir", default=DEFAULT_LOAD_DIR, type=Path, help="Folder containing daily CSV/JSON results")
     parser.add_argument("--port", default=8765, type=int, help="Localhost port to bind the UI server")
     parser.add_argument("--no-browser", action="store_true", help="Do not auto-open the browser")
     return parser.parse_args(argv)

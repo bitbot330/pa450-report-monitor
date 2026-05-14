@@ -4,8 +4,10 @@ import json
 import re
 from pathlib import Path
 
+from ui_config import FILE_ROOT
 
-DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+DEFAULT_PROJECT_ROOT = FILE_ROOT
 FEEDBACK_FILENAME_PATTERN = re.compile(r"^report_(\d{8})\.md$")
 
 

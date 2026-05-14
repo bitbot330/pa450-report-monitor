@@ -14,4 +14,5 @@ $ErrorActionPreference = "Stop"
     src/ui.py
 
 Write-Host "Built exe: dist\PA450-Daily-Review-UI.exe"
-Write-Host "Run it with a local output folder beside the exe, or pass --data-dir when launching from a shortcut/command line."
+Write-Host "Default file root: project folder (parent of dist when running the bundled exe)."
+Write-Host "Default CSV/AI JSON/feedback folder: <file root>\output; Review UI can still choose another feedback folder."
