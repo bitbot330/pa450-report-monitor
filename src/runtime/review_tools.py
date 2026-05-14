@@ -73,6 +73,11 @@ def _feedback_dir(project_root: str | Path | None = None) -> Path:
     return _project_root(project_root) / "output"
 
 
+def feedback_dir_path(project_root: str | Path | None = None) -> Path:
+    """Return the folder scanned for report_YYYYMMDD.md feedback."""
+    return _feedback_dir(project_root)
+
+
 def _normalize_rule_line(line: str) -> str:
     stripped = line.strip()
     if not stripped:
