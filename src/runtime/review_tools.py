@@ -3,9 +3,19 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+import sys
 
 
-DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+def _default_project_root() -> Path:
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve().parent
+        if exe_dir.name.lower() == "dist":
+            return exe_dir.parent
+        return exe_dir
+    return Path(__file__).resolve().parents[2]
+
+
+DEFAULT_PROJECT_ROOT = _default_project_root()
 FEEDBACK_FILENAME_PATTERN = re.compile(r"^report_(\d{8})\.md$")
 
 
