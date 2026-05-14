@@ -259,26 +259,28 @@ def extract_review_rules_from_feedback(feedback: str, existing_rules: str = "") 
 
 def process_pending_feedback() -> str:
     from runtime.review_tools import (
+        feedback_dir_path,
         mark_feedback_processed,
         read_review_memory,
         read_unprocessed_feedback,
         write_review_memory,
     )
 
+    feedback_location = feedback_dir_path(PROJECT_ROOT)
     feedback_text, latest_date = read_unprocessed_feedback(PROJECT_ROOT)
     if latest_date is None:
-        return "No pending feedback."
+        return f"Feedback folder: {feedback_location}\nNo pending feedback."
 
     if not feedback_text.strip():
         mark_feedback_processed(latest_date, PROJECT_ROOT)
-        return f"Processed empty feedback through {latest_date}."
+        return f"Feedback folder: {feedback_location}\nProcessed empty feedback through {latest_date}."
 
     existing_rules = read_review_memory(PROJECT_ROOT)
     new_rules = extract_review_rules_from_feedback(feedback_text, existing_rules)
     if new_rules:
         write_review_memory(new_rules, PROJECT_ROOT)
     mark_feedback_processed(latest_date, PROJECT_ROOT)
-    return f"Processed feedback through {latest_date}."
+    return f"Feedback folder: {feedback_location}\nProcessed feedback through {latest_date}."
 
 
 def write_analysis_result(output_path: str | Path, analysis: str) -> None:
