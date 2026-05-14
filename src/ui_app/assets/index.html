@@ -178,7 +178,7 @@
           </article>
           <aside class="right-rail">
             <article class="card ai-card">
-              <div class="panel-title"><h2>AI 報告</h2><span class="pill">摘要</span></div>
+              <div class="panel-title"><h2>AI 報告</h2><button id="rerunAnalysisButton" class="folder-load-button" type="button" style="width:auto; padding:6px 10px;">重新分析</button></div>
               <div class="detail-list" id="analysisCard"></div>
             </article>
             <article class="card row-detail-card">
@@ -241,6 +241,7 @@
     const reviewNote = document.getElementById('reviewNote');
     const reviewSaveButton = document.getElementById('reviewSaveButton');
     const reviewSaveMessage = document.getElementById('reviewSaveMessage');
+    const rerunAnalysisButton = document.getElementById('rerunAnalysisButton');
 
     function clearNode(node) {
       while (node.firstChild) node.removeChild(node.firstChild);
@@ -913,6 +914,27 @@
       renderCurrentReport();
     }
 
+    async function rerunAnalysis() {
+      if (!appState.current || !/^\d{8}$/.test(appState.current.date || '')) return;
+      try {
+        clearError();
+        rerunAnalysisButton.disabled = true;
+        rerunAnalysisButton.textContent = '分析中...';
+        const response = await fetch(apiUrl('/api/reports/' + encodeURIComponent(appState.current.date) + '/analyze'), {
+          method: 'POST',
+        });
+        if (!response.ok) throw new Error(`重新分析失敗：${response.status}`);
+        appState.current = await response.json();
+        if (!appState.current.draftReviews) appState.current.draftReviews = {};
+        renderCurrentReport();
+      } catch (error) {
+        showError(error.message || '重新分析失敗');
+      } finally {
+        rerunAnalysisButton.disabled = false;
+        rerunAnalysisButton.textContent = '重新分析';
+      }
+    }
+
     async function bootstrap() {
       try {
         clearError();
@@ -950,6 +972,7 @@
     reviewStatus.addEventListener('change', updateReviewDraft);
     reviewNote.addEventListener('input', updateReviewDraft);
     reviewSaveButton.addEventListener('click', saveReviewState);
+    rerunAnalysisButton.addEventListener('click', rerunAnalysis);
     bootstrap();
   </script>
 </body>
