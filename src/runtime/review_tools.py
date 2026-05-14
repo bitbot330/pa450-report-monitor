@@ -21,39 +21,24 @@ def _review_state_path(project_root: str | Path | None = None) -> Path:
     return _project_root(project_root) / ".agent" / "review_state.json"
 
 
-def _ui_settings_path(project_root: str | Path | None = None) -> Path:
-    return _project_root(project_root) / ".agent" / "ui_settings.json"
+def _ui_review_dir_path(project_root: str | Path | None = None) -> Path:
+    return _project_root(project_root) / ".agent" / "review_dir"
 
 
 def read_ui_feedback_dir(project_root: str | Path | None = None) -> Path | None:
-    path = _ui_settings_path(project_root)
+    path = _ui_review_dir_path(project_root)
     if not path.exists():
         return None
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return None
-    if not isinstance(data, dict):
-        return None
-    review_dir = data.get("review_dir")
-    if not isinstance(review_dir, str) or not review_dir.strip():
+    review_dir = path.read_text(encoding="utf-8").strip()
+    if not review_dir:
         return None
     return Path(review_dir).expanduser()
 
 
 def write_ui_feedback_dir(review_dir: str | Path, project_root: str | Path | None = None) -> None:
-    path = _ui_settings_path(project_root)
+    path = _ui_review_dir_path(project_root)
     path.parent.mkdir(parents=True, exist_ok=True)
-    data: dict[str, str] = {}
-    if path.exists():
-        try:
-            loaded = json.loads(path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            loaded = {}
-        if isinstance(loaded, dict):
-            data = {str(key): str(value) for key, value in loaded.items() if isinstance(value, str)}
-    data["review_dir"] = str(Path(review_dir).expanduser())
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(str(Path(review_dir).expanduser()) + "\n", encoding="utf-8")
 
 
 def _feedback_dir(project_root: str | Path | None = None) -> Path:

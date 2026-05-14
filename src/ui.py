@@ -38,6 +38,40 @@ DASHBOARD_TITLE = "PA450 Daily Review UI"
 LOCALHOST = "127.0.0.1"
 
 
+PROJECT_ROOT_MARKERS = ("AGENTS.md", "config.example.yaml", "pyproject.toml")
+
+
+def _candidate_roots(path: Path) -> list[Path]:
+    resolved = path.expanduser().resolve() if path.exists() else path.expanduser().absolute()
+    start = resolved if resolved.is_dir() else resolved.parent
+    return [start, *start.parents]
+
+
+def _looks_like_project_root(path: Path) -> bool:
+    return all((path / marker).exists() for marker in PROJECT_ROOT_MARKERS)
+
+
+def _find_project_root_from_paths(paths: list[Path]) -> Path | None:
+    for path in paths:
+        for candidate in _candidate_roots(path):
+            if _looks_like_project_root(candidate):
+                return candidate
+    return None
+
+
+def _settings_project_root(folders: dict[str, Path], default_data_dir: Path) -> Path:
+    """Find the project root where analysis runtime will read .agent settings."""
+    candidates = [
+        folders.get("analysis_dir"),
+        folders.get("csv_dir"),
+        folders.get("review_dir"),
+        default_data_dir,
+        Path.cwd(),
+    ]
+    project_root = _find_project_root_from_paths([path for path in candidates if path is not None])
+    return project_root or Path.cwd()
+
+
 class ReportUIHandler(BaseHTTPRequestHandler):
     def __init__(self, *args: Any, data_dir: str, **kwargs: Any) -> None:
         self.default_data_dir = _normalized_base(data_dir)
@@ -85,7 +119,7 @@ class ReportUIHandler(BaseHTTPRequestHandler):
             self._send_json({"selected": bool(selected), "path": selected or ""})
             return
         if parsed.path == "/api/reports":
-            write_ui_feedback_dir(folders["review_dir"])
+            write_ui_feedback_dir(folders["review_dir"], _settings_project_root(folders, self.default_data_dir))
             self._send_json({
                 "csv_dir": str(folders["csv_dir"]),
                 "analysis_dir": str(folders["analysis_dir"]),
@@ -94,7 +128,7 @@ class ReportUIHandler(BaseHTTPRequestHandler):
             })
             return
         if parsed.path.startswith("/api/reports/"):
-            write_ui_feedback_dir(folders["review_dir"])
+            write_ui_feedback_dir(folders["review_dir"], _settings_project_root(folders, self.default_data_dir))
             date_key = unquote(parsed.path.removeprefix("/api/reports/"))
             try:
                 payload = load_report_bundle(folders["csv_dir"], folders["analysis_dir"], folders["review_dir"], date_key)
@@ -112,7 +146,7 @@ class ReportUIHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         folders = self._request_folders(parsed)
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/review"):
-            write_ui_feedback_dir(folders["review_dir"])
+            write_ui_feedback_dir(folders["review_dir"], _settings_project_root(folders, self.default_data_dir))
             date_key = unquote(parsed.path.removeprefix("/api/reports/").removesuffix("/review").strip("/"))
             try:
                 date_key = _validated_date_key(date_key)
