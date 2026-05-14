@@ -257,7 +257,7 @@ def extract_review_rules_from_feedback(feedback: str, existing_rules: str = "") 
     return str(resp.content).strip()
 
 
-def process_pending_feedback() -> str:
+def process_pending_feedback(feedback_dir: str | Path | None = None) -> str:
     from runtime.review_tools import (
         mark_feedback_processed,
         read_review_memory,
@@ -265,7 +265,7 @@ def process_pending_feedback() -> str:
         write_review_memory,
     )
 
-    feedback_text, latest_date = read_unprocessed_feedback(PROJECT_ROOT)
+    feedback_text, latest_date = read_unprocessed_feedback(PROJECT_ROOT, feedback_dir)
     if latest_date is None:
         return "No pending feedback."
 
@@ -291,13 +291,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Analyze PA450 report CSV with AI")
     parser.add_argument("--input", required=True, type=Path, help="Path to PA450 report CSV")
     parser.add_argument("--output", required=True, type=Path, help="Path to analysis JSON output")
+    parser.add_argument(
+        "--feedback-dir",
+        default=None,
+        type=Path,
+        help="Folder containing user feedback markdown files (report_YYYYMMDD.md); defaults to project output/",
+    )
     parser.add_argument("--query", default=DEFAULT_QUERY, help="Question for the AI model")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    print(process_pending_feedback())
+    print(process_pending_feedback(args.feedback_dir))
     context = build_context(args.input)
     analysis = analyze_with_ai(args.query, context)
     write_analysis_result(args.output, analysis)

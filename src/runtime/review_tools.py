@@ -21,7 +21,9 @@ def _review_state_path(project_root: str | Path | None = None) -> Path:
     return _project_root(project_root) / ".agent" / "review_state.json"
 
 
-def _output_dir(project_root: str | Path | None = None) -> Path:
+def _feedback_dir(project_root: str | Path | None = None, feedback_dir: str | Path | None = None) -> Path:
+    if feedback_dir is not None:
+        return Path(feedback_dir).expanduser()
     return _project_root(project_root) / "output"
 
 
@@ -90,15 +92,18 @@ def write_review_state(state: dict[str, str], project_root: str | Path | None = 
     path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def list_unprocessed_feedback_files(project_root: str | Path | None = None) -> list[tuple[str, Path]]:
-    """Return output/report_YYYYMMDD.md files newer than the saved checkpoint."""
-    output_dir = _output_dir(project_root)
-    if not output_dir.exists():
+def list_unprocessed_feedback_files(
+    project_root: str | Path | None = None,
+    feedback_dir: str | Path | None = None,
+) -> list[tuple[str, Path]]:
+    """Return report_YYYYMMDD.md feedback files newer than the saved checkpoint."""
+    feedback_base = _feedback_dir(project_root, feedback_dir)
+    if not feedback_base.exists():
         return []
 
     last_processed = read_review_state(project_root).get("last_processed_feedback_date", "")
     feedback_files: list[tuple[str, Path]] = []
-    for path in output_dir.iterdir():
+    for path in feedback_base.iterdir():
         match = FEEDBACK_FILENAME_PATTERN.match(path.name)
         if not match or not path.is_file():
             continue
@@ -109,9 +114,12 @@ def list_unprocessed_feedback_files(project_root: str | Path | None = None) -> l
     return sorted(feedback_files, key=lambda item: item[0])
 
 
-def read_unprocessed_feedback(project_root: str | Path | None = None) -> tuple[str, str | None]:
-    """Read all pending output/report_YYYYMMDD.md feedback as one text block."""
-    pending_files = list_unprocessed_feedback_files(project_root)
+def read_unprocessed_feedback(
+    project_root: str | Path | None = None,
+    feedback_dir: str | Path | None = None,
+) -> tuple[str, str | None]:
+    """Read all pending report_YYYYMMDD.md feedback as one text block."""
+    pending_files = list_unprocessed_feedback_files(project_root, feedback_dir)
     if not pending_files:
         return "", None
 
