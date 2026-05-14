@@ -21,9 +21,45 @@ def _review_state_path(project_root: str | Path | None = None) -> Path:
     return _project_root(project_root) / ".agent" / "review_state.json"
 
 
-def _feedback_dir(project_root: str | Path | None = None, feedback_dir: str | Path | None = None) -> Path:
-    if feedback_dir is not None:
-        return Path(feedback_dir).expanduser()
+def _ui_settings_path(project_root: str | Path | None = None) -> Path:
+    return _project_root(project_root) / ".agent" / "ui_settings.json"
+
+
+def read_ui_feedback_dir(project_root: str | Path | None = None) -> Path | None:
+    path = _ui_settings_path(project_root)
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    review_dir = data.get("review_dir")
+    if not isinstance(review_dir, str) or not review_dir.strip():
+        return None
+    return Path(review_dir).expanduser()
+
+
+def write_ui_feedback_dir(review_dir: str | Path, project_root: str | Path | None = None) -> None:
+    path = _ui_settings_path(project_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data: dict[str, str] = {}
+    if path.exists():
+        try:
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            loaded = {}
+        if isinstance(loaded, dict):
+            data = {str(key): str(value) for key, value in loaded.items() if isinstance(value, str)}
+    data["review_dir"] = str(Path(review_dir).expanduser())
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _feedback_dir(project_root: str | Path | None = None) -> Path:
+    configured = read_ui_feedback_dir(project_root)
+    if configured is not None:
+        return configured
     return _project_root(project_root) / "output"
 
 
@@ -94,10 +130,9 @@ def write_review_state(state: dict[str, str], project_root: str | Path | None = 
 
 def list_unprocessed_feedback_files(
     project_root: str | Path | None = None,
-    feedback_dir: str | Path | None = None,
 ) -> list[tuple[str, Path]]:
     """Return report_YYYYMMDD.md feedback files newer than the saved checkpoint."""
-    feedback_base = _feedback_dir(project_root, feedback_dir)
+    feedback_base = _feedback_dir(project_root)
     if not feedback_base.exists():
         return []
 
@@ -116,10 +151,9 @@ def list_unprocessed_feedback_files(
 
 def read_unprocessed_feedback(
     project_root: str | Path | None = None,
-    feedback_dir: str | Path | None = None,
 ) -> tuple[str, str | None]:
     """Read all pending report_YYYYMMDD.md feedback as one text block."""
-    pending_files = list_unprocessed_feedback_files(project_root, feedback_dir)
+    pending_files = list_unprocessed_feedback_files(project_root)
     if not pending_files:
         return "", None
 

@@ -31,6 +31,7 @@ from ui_app.data import (
     _validated_date_key,
 )
 from ui_app.assets import render_index_html
+from runtime.review_tools import write_ui_feedback_dir
 
 
 DASHBOARD_TITLE = "PA450 Daily Review UI"
@@ -84,6 +85,7 @@ class ReportUIHandler(BaseHTTPRequestHandler):
             self._send_json({"selected": bool(selected), "path": selected or ""})
             return
         if parsed.path == "/api/reports":
+            write_ui_feedback_dir(folders["review_dir"])
             self._send_json({
                 "csv_dir": str(folders["csv_dir"]),
                 "analysis_dir": str(folders["analysis_dir"]),
@@ -92,6 +94,7 @@ class ReportUIHandler(BaseHTTPRequestHandler):
             })
             return
         if parsed.path.startswith("/api/reports/"):
+            write_ui_feedback_dir(folders["review_dir"])
             date_key = unquote(parsed.path.removeprefix("/api/reports/"))
             try:
                 payload = load_report_bundle(folders["csv_dir"], folders["analysis_dir"], folders["review_dir"], date_key)
@@ -109,6 +112,7 @@ class ReportUIHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         folders = self._request_folders(parsed)
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/review"):
+            write_ui_feedback_dir(folders["review_dir"])
             date_key = unquote(parsed.path.removeprefix("/api/reports/").removesuffix("/review").strip("/"))
             try:
                 date_key = _validated_date_key(date_key)

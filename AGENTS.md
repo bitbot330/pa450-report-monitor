@@ -11,12 +11,12 @@
 ## Review memory workflow
 
 1. 每次分析開始前，runtime 必須先讀取 `.agent/review.md`。
-2. 每次分析開始前，runtime 必須掃描設定的 feedback/review 資料夾內 `report_YYYYMMDD.md`，預設是 `output/`，也可由 `src/analyze.py --feedback-dir <folder>` 指定；只處理日期晚於 `.agent/review_state.json` checkpoint 的 feedback 檔。
+2. 每次分析開始前，runtime 必須掃描 Review UI 目前設定的回報資料夾內 `report_YYYYMMDD.md`；若 UI 尚未寫入設定，才預設使用 `output/`。只處理日期晚於 `.agent/review_state.json` checkpoint 的 feedback 檔。
 3. runtime 可以一次讀取多日 feedback，要求 AI 從 feedback 中萃取簡短、可重用規則，再由 runtime 寫回 `.agent/review.md`。
 4. feedback 成功處理後，runtime 必須更新 `.agent/review_state.json` 的 `last_processed_feedback_date`，記錄已處理到哪一天。
 5. runtime 必須把 `.agent/review.md` 的內容放入本次分析 prompt，作為 review rules。
 6. AI 分析時可以參考 review rules，但最終結論仍只能根據本次 CSV context 中真實存在的資料列。
-7. AI 不得假裝自己讀取或寫入 `.agent/review.md`、`.agent/review_state.json` 或 `output/report_YYYYMMDD.md`。
+7. AI 不得假裝自己讀取或寫入 `.agent/review.md`、`.agent/review_state.json` 或回報資料夾內的 `report_YYYYMMDD.md`。
 8. 只有可重用規則可以寫回 `.agent/review.md`。
 9. 實際寫入 `.agent/review.md` 與 `.agent/review_state.json` 的動作只能由 runtime 執行。
 10. 不得把本次 CSV 原始資料、一次性結論、冗長分析或敏感資訊寫入 `.agent/review.md`。
