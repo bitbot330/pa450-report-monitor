@@ -145,6 +145,14 @@ def _report_date_label(date_key: str) -> str:
     return f"{date_key[:4]}-{date_key[4:6]}-{date_key[6:8]}"
 
 
+def _report_month_group(date_key: str) -> str:
+    return f"{date_key[:4]}-{date_key[4:6]}"
+
+
+def _report_month_label(date_key: str) -> str:
+    return f"{date_key[:4]} 年 {date_key[4:6]} 月"
+
+
 def _review_markdown_path(review_dir: str | Path, date_key: str | None = None) -> Path:
     if date_key is None:
         raise ValueError("date_key is required for review markdown path")
@@ -394,6 +402,8 @@ def discover_reports(csv_dir: str | Path, analysis_dir: str | Path) -> list[dict
         reports.append({
             "date": date_key,
             "label": _report_date_label(date_key),
+            "month_group": _report_month_group(date_key),
+            "month_label": _report_month_label(date_key),
             "summary": f"CSV: {_relative_label(csv_base, paths['csv'])} · AI: {_relative_label(analysis_base, paths['analysis'])}",
             "csv_path": str(paths["csv"]),
             "analysis_path": str(paths["analysis"]),
