@@ -42,12 +42,15 @@
     .folder-path { min-height: 18px; word-break: break-all; color: var(--muted); font-size: 12px; line-height: 1.35; }
     .app.sidebar-collapsed .sidebar { padding: 16px 12px; }
     .app.sidebar-collapsed .sidebar-top { justify-content: center; }
-    .app.sidebar-collapsed .brand, .app.sidebar-collapsed .folder-picker, .app.sidebar-collapsed .report-item .report-summary { display: none; }
+    .app.sidebar-collapsed .brand, .app.sidebar-collapsed .folder-picker, .app.sidebar-collapsed .report-item .report-summary, .app.sidebar-collapsed .report-month-heading { display: none; }
     .app.sidebar-collapsed .report-list { margin-top: 10px; }
     .app.sidebar-collapsed .report-item { min-height: 48px; padding: 8px 6px; text-align: center; border-radius: 14px; }
     .app.sidebar-collapsed .report-date { font-size: 12px; line-height: 1.15; word-break: break-all; }
     .main { min-width: 0; padding: 18px 20px 24px; }
     .report-list { display: grid; gap: 10px; margin-top: 14px; }
+    .report-month-group { display: grid; gap: 8px; }
+    .report-month-heading { color: var(--accent); font-size: 13px; font-weight: 800; letter-spacing: 0.04em; padding: 4px 2px 0; cursor: pointer; }
+    .report-month-items { display: grid; gap: 10px; padding-top: 8px; }
     .report-item { width: 100%; text-align: left; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
     .report-item:hover, .report-item.active { border-color: var(--accent); background: var(--accent-bg); }
     .report-date { font-size: 16px; color: var(--text); }
@@ -739,16 +742,36 @@
       });
     }
 
+    function renderReportButton(report) {
+      const btn = document.createElement('button');
+      btn.className = 'report-item';
+      if (appState.current && report.date === appState.current.date) btn.classList.add('active');
+      btn.appendChild(createTextNode('div', report.label, 'report-date'));
+      btn.appendChild(createTextNode('div', report.summary, 'subtle report-summary'));
+      btn.addEventListener('click', () => loadReport(report.date));
+      return btn;
+    }
+
     function renderSidebar() {
       clearNode(reportList);
-      appState.reports.forEach((report) => {
-        const btn = document.createElement('button');
-        btn.className = 'report-item';
-        if (appState.current && report.date === appState.current.date) btn.classList.add('active');
-        btn.appendChild(createTextNode('div', report.label, 'report-date'));
-        btn.appendChild(createTextNode('div', report.summary, 'subtle report-summary'));
-        btn.addEventListener('click', () => loadReport(report.date));
-        reportList.appendChild(btn);
+      let currentMonthGroup = '';
+      let currentMonthItems = null;
+      appState.reports.forEach((report, index) => {
+        const monthGroup = report.month_group || String(report.date || '').slice(0, 6).replace(/^(\d{4})(\d{2})$/, '$1-$2');
+        if (monthGroup !== currentMonthGroup) {
+          currentMonthGroup = monthGroup;
+          const group = document.createElement('details');
+          group.className = 'report-month-group';
+          const monthReports = appState.reports.filter((candidate) => (candidate.month_group || String(candidate.date || '').slice(0, 6).replace(/^(\d{4})(\d{2})$/, '$1-$2')) === monthGroup);
+          const hasCurrentReport = appState.current && monthReports.some((candidate) => candidate.date === appState.current.date);
+          group.open = hasCurrentReport || (!appState.current && index === 0);
+          group.appendChild(createTextNode('summary', report.month_label || monthGroup, 'report-month-heading'));
+          currentMonthItems = document.createElement('div');
+          currentMonthItems.className = 'report-month-items';
+          group.appendChild(currentMonthItems);
+          reportList.appendChild(group);
+        }
+        currentMonthItems.appendChild(renderReportButton(report));
       });
       if (!appState.reports.length) {
         setEmptyMessage(reportList, '目前找不到任何每日報告。');
