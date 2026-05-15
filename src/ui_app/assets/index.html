@@ -34,7 +34,8 @@
     .brand h1 { font-size: 20px; line-height: 1.2; margin-bottom: 8px; }
     .subtle { color: var(--muted); font-size: 13px; }
     .folder-picker { display: grid; gap: 10px; margin-top: 14px; }
-    .folder-picker-actions { display: grid; gap: 10px; }
+    .folder-picker-heading { color: var(--accent); font-size: 13px; font-weight: 800; letter-spacing: 0.04em; cursor: pointer; }
+    .folder-picker-actions { display: grid; gap: 10px; padding-top: 8px; }
     .folder-row { display: grid; gap: 6px; }
     .folder-button, .folder-load-button { width: 100%; border-radius: 8px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 6px 10px; cursor: pointer; text-align: left; font-size: 12px; }
     .folder-load-button { text-align: center; font-weight: 700; }
@@ -125,8 +126,8 @@
             <h1>__TITLE__</h1>
             <p class="subtle">同一個 UI 直接切換每日報告，不用每次重生 dashboard。</p>
             <p class="subtle">僅限本機 localhost 使用。</p>
-            <div class="folder-picker">
-              <div class="detail-key">載入資料夾</div>
+            <details class="folder-picker" id="folderPicker">
+              <summary class="folder-picker-heading">載入資料夾</summary>
               <div class="folder-picker-actions">
                 <div class="folder-row">
                   <button id="selectCsvFolder" class="folder-button" type="button">選 CSV load folder</button>
@@ -141,9 +142,9 @@
                   <div id="reviewFolderPath" class="folder-path">output/</div>
                 </div>
                 <button id="reloadFolders" class="folder-load-button" type="button">讀取資料夾</button>
+                <p class="subtle">預設皆為 output/。按按鈕用資料夾選擇器挑選，不用手打路徑。</p>
               </div>
-              <p class="subtle">預設皆為 output/。按按鈕用資料夾選擇器挑選，不用手打路徑。</p>
-            </div>
+            </details>
           </div>
           <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="收合側邊欄" title="收合側邊欄">‹</button>
         </div>
