@@ -1,19 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
   <title id="title">PA450 automation workflow</title>
-  <desc id="desc">Workflow diagram for report download, CSV output, AI analysis, Review UI, and feedback memory.</desc>
+  <desc id="desc">Workflow diagram for report download, CSV output, AI analysis, Review UI, feedback, and review memory.</desc>
   <defs>
-    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
-      <path d="M2,2 L10,6 L2,10 Z" fill="#60a5fa"/>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#60a5fa"/>
     </marker>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#000" flood-opacity="0.28"/>
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#000" flood-opacity="0.28"/>
     </filter>
   </defs>
-  <rect width="1100" height="620" rx="28" fill="#0b1220"/>
-  <text x="550" y="60" text-anchor="middle" fill="#e5f2ff" font-family="Segoe UI, Noto Sans TC, Arial" font-size="34" font-weight="800">PA450 Daily Report Automation</text>
-  <text x="550" y="92" text-anchor="middle" fill="#93a4bd" font-family="Segoe UI, Noto Sans TC, Arial" font-size="16">下載 → CSV → AI 分析 → UI 回報 → 規則記憶</text>
 
-  <g font-family="Segoe UI, Noto Sans TC, Arial" filter="url(#shadow)">
+  <rect width="1100" height="620" rx="28" fill="#0b1220"/>
+  <text x="550" y="58" text-anchor="middle" fill="#e5f2ff" font-family="WenQuanYi Zen Hei, Microsoft JhengHei, Noto Sans CJK TC, Arial, sans-serif" font-size="34" font-weight="800">PA450 Daily Report Automation</text>
+  <text x="550" y="90" text-anchor="middle" fill="#93a4bd" font-family="WenQuanYi Zen Hei, Microsoft JhengHei, Noto Sans CJK TC, Arial, sans-serif" font-size="16">下載 → CSV → AI 分析 → UI 回報 → 規則記憶</text>
+
+  <g stroke="#60a5fa" stroke-width="4" fill="none" marker-end="url(#arrow)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M280 203 H320"/>
+    <path d="M540 203 H580"/>
+    <path d="M810 203 H850"/>
+    <path d="M955 255 V300 Q955 320 935 320 H720 Q700 320 700 340 V345"/>
+    <path d="M590 407 H550"/>
+    <path d="M330 407 H290"/>
+    <path d="M175 355 V315 Q175 295 195 295 H680 Q700 295 700 275 V265"/>
+  </g>
+
+  <g font-family="WenQuanYi Zen Hei, Microsoft JhengHei, Noto Sans CJK TC, Arial, sans-serif" filter="url(#shadow)">
     <rect x="70" y="150" width="210" height="105" rx="18" fill="#111827" stroke="#38bdf8"/>
     <text x="175" y="190" text-anchor="middle" fill="#e5e7eb" font-size="20" font-weight="700">1. PA450 API</text>
     <text x="175" y="220" text-anchor="middle" fill="#94a3b8" font-size="14">Custom Report XML</text>
@@ -43,16 +54,6 @@
     <text x="175" y="425" text-anchor="middle" fill="#94a3b8" font-size="14">.agent/review.md</text>
   </g>
 
-  <g stroke="#60a5fa" stroke-width="4" fill="none" marker-end="url(#arrow)">
-    <path d="M280 203 H320"/>
-    <path d="M540 203 H580"/>
-    <path d="M810 203 H850"/>
-    <path d="M955 255 C955 325 850 407 820 407"/>
-    <path d="M590 407 H550"/>
-    <path d="M330 407 H290"/>
-    <path d="M175 355 C175 310 260 285 590 255"/>
-  </g>
-
   <rect x="110" y="515" width="880" height="52" rx="16" fill="#020617" stroke="#334155"/>
-  <text x="550" y="548" text-anchor="middle" fill="#cbd5e1" font-family="Segoe UI, Noto Sans TC, Arial" font-size="16">CSV 欄位含：產生時間、來源位址、來源使用者、目的地位址、目的地國家、應用程式、位元組</text>
+  <text x="550" y="548" text-anchor="middle" fill="#cbd5e1" font-family="WenQuanYi Zen Hei, Microsoft JhengHei, Noto Sans CJK TC, Arial, sans-serif" font-size="16">CSV 欄位含：產生時間、來源位址、來源使用者、目的地位址、目的地國家、應用程式、位元組</text>
 </svg>
