@@ -34,10 +34,10 @@ ANALYSIS_USER_PROMPT_TEMPLATE = """
 5. 是否有 review rules 指定的正常或異常模式。
 
 監控判斷規則：
-1. 這份 context 可能本來就是 top-sources / 高流量報表，不要把所有 context rows 當成異常清單輸出。
+1. 這份 report 是前 50 流量報表；資料列出現在 context 中只代表它屬於本次流量前 50，不代表每一列都是異常。
 2. 只列出符合異常判斷的資料列；沒有異常就說沒有。
 3. 不限制異常筆數：有幾筆真正異常就列幾筆，但不得為了湊數列出正常資料。
-4. 高位元組只能作為候選訊號，不可單獨覆蓋 review rules；若 review rules 說某應用或模式屬於正常，不能只因 bytes 高就列為異常。
+4. 高位元組或前 50 排名只能作為候選訊號，不可單獨覆蓋 review rules；若 review rules 說某應用或模式屬於正常，不能只因 bytes 高就列為異常。
 5. 若資料不足以判斷是否異常，必須回答「資料不足，需人工確認」。
 6. 若來源層級累積量異常，必須列出 context 中支撐該結論的實際資料列。
 
@@ -171,7 +171,7 @@ def build_monitoring_guidance(context: str) -> str:
     else:
         lines.append("- 無")
 
-    lines.append("判斷提醒：上述候選只代表本次 CSV 內部分布明顯突出；仍必須套用 review rules，且不得把所有 rows 都列為異常。")
+    lines.append("判斷提醒：上述候選只代表本次前 50 流量報表內部分布明顯突出；仍必須套用 review rules，且不得把所有 rows 都列為異常。")
     return "\n".join(lines)
 
 
