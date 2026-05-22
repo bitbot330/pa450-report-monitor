@@ -76,18 +76,22 @@
     .report-item.active { border-color: var(--accent); background: linear-gradient(180deg, rgba(101, 183, 255, 0.22), rgba(101, 183, 255, 0.12)); box-shadow: inset 0 0 0 1px rgba(101,183,255,0.16); }
     .report-item.active::before { background: var(--accent); }
     .report-date { font-size: 16px; color: var(--text); font-weight: 800; letter-spacing: -0.01em; }
-    .layout { display: grid; gap: 16px; }
-    .summary-grid { display: grid; gap: 12px; grid-template-columns: repeat(6, minmax(110px, 1fr)); overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+    .layout { display: grid; gap: 12px; }
+    .summary-grid { display: flex; align-items: stretch; gap: 8px; overflow-x: auto; padding: 8px 10px; border: 1px solid var(--line-soft); border-radius: var(--radius-lg); background: rgba(255,255,255,0.026); scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+    .summary-item { display: grid; align-content: center; gap: 2px; min-width: 120px; padding: 6px 10px; border-right: 1px solid var(--line-soft); }
+    .summary-item:last-child { border-right: none; }
+    .summary-value { font-size: 15px; line-height: 1.18; font-weight: 850; word-break: break-word; letter-spacing: -0.01em; }
+    .summary-meta { color: var(--muted); font-size: 11px; line-height: 1.25; word-break: break-all; }
     .content-grid { display: grid; grid-template-columns: minmax(0, 1fr) var(--right-rail-w); gap: 18px; align-items: stretch; }
+    .content-grid.right-rail-collapsed { grid-template-columns: minmax(0, 1fr); }
+    .content-grid.right-rail-collapsed .right-rail { display: none; }
     .right-rail { display: grid; gap: 14px; align-content: start; }
     .card { background: linear-gradient(180deg, rgba(17, 27, 46, 0.96), rgba(22, 34, 58, 0.96)); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow); }
-    .csv-card { display: flex; flex-direction: column; min-height: calc(100vh - 154px); }
-    .summary-grid .card { min-width: 0; min-height: 86px; padding: 12px 13px; }
-    .summary-grid .card:hover { border-color: rgba(101,183,255,0.55); background: linear-gradient(180deg, rgba(101,183,255,0.10), rgba(22,34,58,0.96)); }
+    .csv-card { display: flex; flex-direction: column; min-height: calc(100vh - 112px); }
     .metric { font-size: 21px; line-height: 1.12; font-weight: 800; margin-top: 7px; word-break: break-word; letter-spacing: -0.02em; }
-    .summary-grid .subtle { font-size: 11px; margin-top: 5px; word-break: break-all; }
     .pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; border: 1px solid var(--line); color: var(--muted); background: rgba(255,255,255,0.035); white-space: nowrap; }
     .panel-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); }
+    .panel-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .panel-title h2 { font-size: 22px; line-height: 1.2; letter-spacing: -0.02em; }
     .right-rail .panel-title h2 { font-size: 18px; }
     .detail-list { display: grid; gap: 10px; }
@@ -104,13 +108,15 @@
     .analysis-carousel-button:disabled { opacity: 0.45; cursor: not-allowed; }
     .analysis-carousel-date { min-width: 0; text-align: center; color: var(--accent-strong); font-weight: 800; }
     .report-text { white-space: pre-wrap; line-height: 1.7; font-size: 14px; }
-    .toolbar { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr) minmax(0, 0.75fr); gap: 12px; margin-bottom: 14px; min-width: 0; padding: 12px; border: 1px solid var(--line-soft); border-radius: var(--radius-md); background: rgba(255,255,255,0.025); }
+    .toolbar { display: grid; grid-template-columns: minmax(220px, 1.25fr) minmax(150px, 0.65fr) minmax(150px, 0.65fr) minmax(300px, auto); gap: 10px; align-items: end; margin-bottom: 12px; min-width: 0; padding: 10px; border: 1px solid var(--line-soft); border-radius: var(--radius-md); background: rgba(255,255,255,0.025); }
     .control { min-width: 0; }
-    .pagination-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; color: var(--muted); font-size: 13px; }
-    .pagination-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .pagination-button { border-radius: 999px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 7px 12px; cursor: pointer; font-weight: 800; }
-    .pagination-button:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-bg); transform: translateY(-1px); }
+    .pagination-control { display: grid; gap: 5px; min-width: 0; }
+    .pagination-bar { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+    .pagination-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .pagination-button, .rail-toggle-button { border-radius: 999px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 7px 12px; cursor: pointer; font-weight: 800; }
+    .pagination-button:hover:not(:disabled), .rail-toggle-button:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-bg); transform: translateY(-1px); }
     .pagination-button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .rail-toggle-button { flex: 0 0 auto; }
     .page-size-select { width: auto; min-width: 92px; padding: 7px 10px; border-radius: 999px; }
     input, select, textarea { width: 100%; min-width: 0; background: #0d1525; color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; }
     input:hover, select:hover, textarea:hover { border-color: rgba(101,183,255,0.65); }
@@ -136,15 +142,17 @@
     .success { color: var(--success); }
     .review-save-message { min-height: 18px; margin-top: 8px; font-size: 13px; }
     @media (max-width: 1320px) {
-      .summary-grid { grid-template-columns: repeat(6, minmax(100px, 1fr)); }
+      .summary-item { min-width: 108px; }
       .content-grid { grid-template-columns: minmax(0, 1fr) 300px; }
     }
     @media (max-width: 1080px) {
       .app, .app.sidebar-collapsed { grid-template-columns: 1fr; }
       .sidebar { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
       .app.sidebar-collapsed .brand { display: block; }
-      .summary-grid { grid-template-columns: repeat(6, minmax(96px, 1fr)); }
-      .content-grid { grid-template-columns: 1fr; }
+      .summary-grid { flex-wrap: wrap; }
+      .summary-item { flex: 1 1 130px; }
+      .content-grid, .content-grid.right-rail-collapsed { grid-template-columns: 1fr; }
+      .content-grid.right-rail-collapsed .right-rail { display: none; }
       .right-rail { grid-row: 2; }
       .toolbar { grid-template-columns: 1fr; }
       .csv-card { min-height: auto; }
@@ -206,9 +214,15 @@
       <div id="errorBox" class="empty error" hidden></div>
       <div id="reportApp" class="layout" hidden>
         <section class="summary-grid" id="summaryGrid"></section>
-        <section class="content-grid">
+        <section class="content-grid right-rail-collapsed" id="contentGrid">
           <article class="card csv-card">
-            <div class="panel-title"><h2>CSV 完整檢視</h2><span class="pill">Evidence</span></div>
+            <div class="panel-title">
+              <h2>CSV 完整檢視</h2>
+              <div class="panel-actions">
+                <span class="pill">Evidence</span>
+                <button id="rightRailToggleButton" class="rail-toggle-button" type="button">顯示 AI / 明細</button>
+              </div>
+            </div>
             <div class="toolbar">
               <div class="control">
                 <div class="detail-key">搜尋 CSV</div>
@@ -222,19 +236,21 @@
                 <div class="detail-key">應用程式</div>
                 <select id="appFilter"></select>
               </div>
-            </div>
-            <div class="pagination-bar" id="paginationBar">
-              <div id="pageStatus">第 0-0 筆，共 0 筆</div>
-              <div class="pagination-actions">
-                <label class="subtle" for="pageSizeSelect">每頁</label>
-                <select id="pageSizeSelect" class="page-size-select">
-                  <option value="25">25</option>
-                  <option value="50" selected>50</option>
-                  <option value="100">100</option>
-                  <option value="200">200</option>
-                </select>
-                <button id="pagePrevButton" class="pagination-button" type="button">上一頁</button>
-                <button id="pageNextButton" class="pagination-button" type="button">下一頁</button>
+              <div class="pagination-control">
+                <div class="detail-key" id="pageStatus">第 0-0 筆，共 0 筆</div>
+                <div class="pagination-bar" id="paginationBar">
+                  <div class="pagination-actions">
+                    <label class="subtle" for="pageSizeSelect">每頁</label>
+                    <select id="pageSizeSelect" class="page-size-select">
+                      <option value="25">25</option>
+                      <option value="50" selected>50</option>
+                      <option value="100">100</option>
+                      <option value="200">200</option>
+                    </select>
+                    <button id="pagePrevButton" class="pagination-button" type="button">上一頁</button>
+                    <button id="pageNextButton" class="pagination-button" type="button">下一頁</button>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="table-wrap">
@@ -274,7 +290,7 @@
     const DEFAULT_ANALYSIS_DIR = __ANALYSIS_DIR_JSON__;
     const DEFAULT_REVIEW_DIR = __REVIEW_DIR_JSON__;
     const DEFAULT_PAGE_SIZE = 50;
-    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, currentPage: 1, pageSize: DEFAULT_PAGE_SIZE };
+    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, currentPage: 1, pageSize: DEFAULT_PAGE_SIZE, rightRailOpen: false };
     const appShell = document.getElementById('appShell');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const selectCsvFolder = document.getElementById('selectCsvFolder');
@@ -302,6 +318,8 @@
     const errorBox = document.getElementById('errorBox');
     const reportApp = document.getElementById('reportApp');
     const summaryGrid = document.getElementById('summaryGrid');
+    const contentGrid = document.getElementById('contentGrid');
+    const rightRailToggleButton = document.getElementById('rightRailToggleButton');
     const analysisCard = document.getElementById('analysisCard');
     const searchInput = document.getElementById('searchInput');
     const sourceFilter = document.getElementById('sourceFilter');
@@ -360,6 +378,13 @@
       sidebarToggle.title = collapsed ? '展開側邊欄' : '收合側邊欄';
       sidebarToggle.setAttribute('aria-label', sidebarToggle.title);
       localStorage.setItem('pa450-sidebar-collapsed', collapsed ? '1' : '0');
+    }
+
+    function setRightRailOpen(open) {
+      appState.rightRailOpen = Boolean(open);
+      contentGrid.classList.toggle('right-rail-collapsed', !appState.rightRailOpen);
+      rightRailToggleButton.textContent = appState.rightRailOpen ? '隱藏 AI / 明細' : '顯示 AI / 明細';
+      rightRailToggleButton.setAttribute('aria-expanded', appState.rightRailOpen ? 'true' : 'false');
     }
 
     function setFolderPath(kind, path) {
@@ -882,28 +907,28 @@
     function renderSummary() {
       clearNode(summaryGrid);
       const summary = appState.current.summary;
-      const cards = appState.current.mode === 'range' ? [
+      const items = appState.current.mode === 'range' ? [
         ['日期區間', appState.current.label, appState.current.date],
-        ['涵蓋天數', String(summary.covered_days || 0), ''],
-        ['總資料筆數', String(summary.total_rows), ''],
-        ['來源 IP 數', String(summary.unique_sources), ''],
+        ['天數', String(summary.covered_days || 0), ''],
+        ['筆數', String(summary.total_rows), ''],
+        ['來源 IP', String(summary.unique_sources), ''],
         ['最大傳輸量', summary.max_bytes_human, summary.max_bytes_raw],
         ['總傳輸量', summary.total_bytes_human, summary.total_bytes_raw],
       ] : [
         ['報告日期', appState.current.label, appState.current.date],
-        ['總資料筆數', String(summary.total_rows), ''],
-        ['來源 IP 數', String(summary.unique_sources), ''],
-        ['目的地數', String(summary.unique_destinations), ''],
+        ['筆數', String(summary.total_rows), ''],
+        ['來源 IP', String(summary.unique_sources), ''],
+        ['目的地', String(summary.unique_destinations), ''],
         ['最大傳輸量', summary.max_bytes_human, summary.max_bytes_raw],
         ['總傳輸量', summary.total_bytes_human, summary.total_bytes_raw],
       ];
-      cards.forEach(([label, value, secondary]) => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.appendChild(createTextNode('div', label, 'detail-key'));
-        card.appendChild(createTextNode('div', value, 'metric'));
-        if (secondary) card.appendChild(createTextNode('div', secondary, 'subtle'));
-        summaryGrid.appendChild(card);
+      items.forEach(([label, value, secondary]) => {
+        const item = document.createElement('div');
+        item.className = 'summary-item';
+        item.appendChild(createTextNode('div', label, 'detail-key'));
+        item.appendChild(createTextNode('div', value, 'summary-value'));
+        if (secondary) item.appendChild(createTextNode('div', secondary, 'summary-meta'));
+        summaryGrid.appendChild(item);
       });
     }
 
@@ -1084,6 +1109,7 @@
         if (appState.selectedRowIndex === originalIndex) tr.classList.add('is-selected');
         tr.addEventListener('click', () => {
           appState.selectedRowIndex = originalIndex;
+          setRightRailOpen(true);
           renderRows();
           renderDetails(row);
         });
@@ -1113,6 +1139,7 @@
       loading.hidden = true;
       reportApp.hidden = false;
       appState.selectedRowIndex = null;
+      setRightRailOpen(false);
       resetPagination();
       setEmptyMessage(rowDetail, '尚未選取資料列。');
       renderSidebar();
@@ -1242,6 +1269,7 @@
     selectReviewFolder.addEventListener('click', () => chooseFolder('review'));
     reloadFolders.addEventListener('click', bootstrap);
     loadRangeButton.addEventListener('click', loadDateRange);
+    rightRailToggleButton.addEventListener('click', () => setRightRailOpen(!appState.rightRailOpen));
     sidebarToggle.addEventListener('click', () => setSidebarCollapsed(!appShell.classList.contains('sidebar-collapsed')));
     setSidebarCollapsed(localStorage.getItem('pa450-sidebar-collapsed') === '1');
     searchInput.addEventListener('input', handleFilterChanged);

@@ -55,10 +55,23 @@ def test_index_html_has_csv_pagination_controls_and_logic() -> None:
     assert 'id="pagePrevButton"' in html
     assert 'id="pageNextButton"' in html
     assert 'id="pageStatus"' in html
+    assert 'class="pagination-control"' in html
     assert "const DEFAULT_PAGE_SIZE = 50" in html
     assert "function filteredRowsWithIndexes()" in html
     assert "function renderPaginationControls" in html
     assert "pageSizeSelect.addEventListener('change'" in html
+
+
+def test_index_html_has_compact_summary_and_collapsible_right_rail() -> None:
+    html = rendered_index_html()
+
+    assert "summary-item" in html
+    assert "summary-value" in html
+    assert 'id="contentGrid"' in html
+    assert 'id="rightRailToggleButton"' in html
+    assert "function setRightRailOpen(open)" in html
+    assert "right-rail-collapsed" in html
+    assert "setRightRailOpen(true);" in html
 
 
 def test_index_html_matches_range_rows_against_same_day_ai_analysis() -> None:
