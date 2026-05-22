@@ -55,9 +55,9 @@
     .folder-button, .folder-load-button, .range-load-button, .primary-button { width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 8px 11px; cursor: pointer; text-align: left; font-size: 12px; }
     .folder-load-button, .range-load-button, .primary-button { text-align: center; font-weight: 800; }
     .folder-button:hover, .folder-load-button:hover, .range-load-button:hover, .primary-button:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-bg); transform: translateY(-1px); }
-    .range-picker { display: grid; gap: 9px; margin-top: 14px; padding: 12px; border: 1px solid var(--line-soft); border-radius: var(--radius-md); background: linear-gradient(180deg, rgba(101, 183, 255, 0.08), rgba(255,255,255,0.025)); }
-    .range-picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .range-picker input { padding: 8px 9px; border-radius: var(--radius-sm); font-size: 12px; }
+    .range-picker { display: grid; gap: 9px; margin-top: 14px; padding: 12px; border: 1px solid var(--line-soft); border-radius: var(--radius-md); background: linear-gradient(180deg, rgba(101, 183, 255, 0.08), rgba(255,255,255,0.025)); overflow: hidden; }
+    .range-picker-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .range-picker input { max-width: 100%; padding: 8px 9px; border-radius: var(--radius-sm); font-size: 12px; }
     .folder-path { min-height: 18px; word-break: break-all; color: var(--muted); font-size: 12px; line-height: 1.35; padding-left: 2px; }
     .app.sidebar-collapsed .sidebar { padding: 16px 12px; }
     .app.sidebar-collapsed .sidebar-top { justify-content: center; }
@@ -108,11 +108,12 @@
     .analysis-carousel-button:disabled { opacity: 0.45; cursor: not-allowed; }
     .analysis-carousel-date { min-width: 0; text-align: center; color: var(--accent-strong); font-weight: 800; }
     .report-text { white-space: pre-wrap; line-height: 1.7; font-size: 14px; }
-    .toolbar { display: grid; grid-template-columns: minmax(220px, 1.25fr) minmax(150px, 0.65fr) minmax(150px, 0.65fr) minmax(300px, auto); gap: 10px; align-items: end; margin-bottom: 12px; min-width: 0; padding: 10px; border: 1px solid var(--line-soft); border-radius: var(--radius-md); background: rgba(255,255,255,0.025); }
-    .control { min-width: 0; }
-    .pagination-control { display: grid; gap: 5px; min-width: 0; }
-    .pagination-bar { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
-    .pagination-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; min-width: 0; max-width: 100%; padding: 10px; border: 1px solid var(--line-soft); border-radius: var(--radius-md); background: rgba(255,255,255,0.025); overflow: hidden; }
+    .control { min-width: 0; flex: 1 1 160px; }
+    .control:first-child { flex-basis: 240px; }
+    .pagination-control { display: grid; gap: 5px; flex: 1 1 100%; min-width: 0; max-width: 100%; }
+    .pagination-bar { display: flex; align-items: center; justify-content: flex-start; gap: 8px; flex-wrap: wrap; max-width: 100%; color: var(--muted); font-size: 12px; }
+    .pagination-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; max-width: 100%; }
     .pagination-button, .rail-toggle-button { border-radius: 999px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 7px 12px; cursor: pointer; font-weight: 800; }
     .pagination-button:hover:not(:disabled), .rail-toggle-button:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-bg); transform: translateY(-1px); }
     .pagination-button:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -154,7 +155,7 @@
       .content-grid, .content-grid.right-rail-collapsed { grid-template-columns: 1fr; }
       .content-grid.right-rail-collapsed .right-rail { display: none; }
       .right-rail { grid-row: 2; }
-      .toolbar { grid-template-columns: 1fr; }
+      .toolbar { display: grid; grid-template-columns: 1fr; }
       .csv-card { min-height: auto; }
       .table-wrap { max-height: none; }
     }
