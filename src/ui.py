@@ -21,6 +21,7 @@ from ui_app.data import (
     load_analysis_payload,
     load_csv_rows,
     load_report_bundle,
+    load_report_range_bundle,
     load_review_markdown,
     locate_report_paths,
     parse_analysis_sections,
@@ -92,6 +93,27 @@ class ReportUIHandler(BaseHTTPRequestHandler):
                 "review_dir": str(folders["review_dir"]),
                 "reports": discover_reports(folders["csv_dir"], folders["analysis_dir"]),
             })
+            return
+        if parsed.path == "/api/reports/range":
+            write_ui_feedback_dir(folders["review_dir"])
+            params = parse_qs(parsed.query)
+            start_date = (params.get("start_date") or [""])[0].strip()
+            end_date = (params.get("end_date") or [""])[0].strip()
+            try:
+                payload = load_report_range_bundle(
+                    folders["csv_dir"],
+                    folders["analysis_dir"],
+                    folders["review_dir"],
+                    start_date,
+                    end_date,
+                )
+            except ValueError:
+                self._send_json({"error": "Invalid report date range"}, status=HTTPStatus.BAD_REQUEST)
+                return
+            except FileNotFoundError:
+                self._send_json({"error": "Reports not found"}, status=HTTPStatus.NOT_FOUND)
+                return
+            self._send_json(payload)
             return
         if parsed.path.startswith("/api/reports/"):
             write_ui_feedback_dir(folders["review_dir"])

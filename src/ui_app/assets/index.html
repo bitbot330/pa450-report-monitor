@@ -40,6 +40,11 @@
     .folder-button, .folder-load-button { width: 100%; border-radius: 8px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 6px 10px; cursor: pointer; text-align: left; font-size: 12px; }
     .folder-load-button { text-align: center; font-weight: 700; }
     .folder-button:hover, .folder-load-button:hover { border-color: var(--accent); background: var(--accent-bg); }
+    .range-picker { display: grid; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.10); }
+    .range-picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .range-picker input { padding: 7px 8px; border-radius: 8px; font-size: 12px; }
+    .range-load-button { width: 100%; border-radius: 8px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 7px 10px; cursor: pointer; text-align: center; font-size: 12px; font-weight: 800; }
+    .range-load-button:hover { border-color: var(--accent); background: var(--accent-bg); }
     .folder-path { min-height: 18px; word-break: break-all; color: var(--muted); font-size: 12px; line-height: 1.35; }
     .app.sidebar-collapsed .sidebar { padding: 16px 12px; }
     .app.sidebar-collapsed .sidebar-top { justify-content: center; }
@@ -76,9 +81,20 @@
     .ai-card .detail-list { gap: 8px; }
     .ai-card .detail-row { padding-bottom: 8px; }
     .ai-card .detail-row > div:not(.detail-key):not(.subtle) { line-height: 1.55; }
+    .analysis-carousel-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .analysis-carousel-button { flex: 0 0 auto; border-radius: 999px; border: 1px solid var(--line); background: #0d1525; color: var(--text); width: 34px; height: 34px; cursor: pointer; font-weight: 900; }
+    .analysis-carousel-button:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-bg); }
+    .analysis-carousel-button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .analysis-carousel-date { min-width: 0; text-align: center; color: var(--accent); font-weight: 800; }
     .report-text { white-space: pre-wrap; line-height: 1.7; font-size: 14px; }
     .toolbar { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr) minmax(0, 0.75fr); gap: 12px; margin-bottom: 14px; min-width: 0; }
     .control { min-width: 0; }
+    .pagination-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; color: var(--muted); font-size: 13px; }
+    .pagination-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .pagination-button { border-radius: 999px; border: 1px solid var(--line); background: #0d1525; color: var(--text); padding: 7px 12px; cursor: pointer; font-weight: 800; }
+    .pagination-button:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-bg); }
+    .pagination-button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .page-size-select { width: auto; min-width: 92px; padding: 7px 10px; border-radius: 999px; }
     input, select, textarea { width: 100%; min-width: 0; background: #0d1525; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
     textarea { min-height: 92px; resize: vertical; }
     select:disabled, textarea:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -145,6 +161,21 @@
                 <p class="subtle">預設皆為 output/。按按鈕用資料夾選擇器挑選，不用手打路徑。</p>
               </div>
             </details>
+            <section class="range-picker" aria-label="日期區間檢視">
+              <div class="folder-picker-heading">日期區間</div>
+              <div class="range-picker-grid">
+                <div>
+                  <div class="detail-key">開始</div>
+                  <input id="rangeStartDate" type="date">
+                </div>
+                <div>
+                  <div class="detail-key">結束</div>
+                  <input id="rangeEndDate" type="date">
+                </div>
+              </div>
+              <button id="loadRangeButton" class="range-load-button" type="button">載入日期區間</button>
+              <p class="subtle">區間模式會把期間資料列合併，AI 摘要仍逐日顯示，可左右滑切換。</p>
+            </section>
           </div>
           <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="收合側邊欄" title="收合側邊欄">‹</button>
         </div>
@@ -171,6 +202,20 @@
               <div class="control">
                 <div class="detail-key">應用程式</div>
                 <select id="appFilter"></select>
+              </div>
+            </div>
+            <div class="pagination-bar" id="paginationBar">
+              <div id="pageStatus">第 0-0 筆，共 0 筆</div>
+              <div class="pagination-actions">
+                <label class="subtle" for="pageSizeSelect">每頁</label>
+                <select id="pageSizeSelect" class="page-size-select">
+                  <option value="25">25</option>
+                  <option value="50" selected>50</option>
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                </select>
+                <button id="pagePrevButton" class="pagination-button" type="button">上一頁</button>
+                <button id="pageNextButton" class="pagination-button" type="button">下一頁</button>
               </div>
             </div>
             <div class="table-wrap">
@@ -209,7 +254,8 @@
     const DEFAULT_CSV_DIR = __CSV_DIR_JSON__;
     const DEFAULT_ANALYSIS_DIR = __ANALYSIS_DIR_JSON__;
     const DEFAULT_REVIEW_DIR = __REVIEW_DIR_JSON__;
-    const appState = { reports: [], current: null, selectedRowIndex: null };
+    const DEFAULT_PAGE_SIZE = 50;
+    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, currentPage: 1, pageSize: DEFAULT_PAGE_SIZE };
     const appShell = document.getElementById('appShell');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const selectCsvFolder = document.getElementById('selectCsvFolder');
@@ -219,6 +265,9 @@
     const analysisFolderPath = document.getElementById('analysisFolderPath');
     const reviewFolderPath = document.getElementById('reviewFolderPath');
     const reloadFolders = document.getElementById('reloadFolders');
+    const rangeStartDate = document.getElementById('rangeStartDate');
+    const rangeEndDate = document.getElementById('rangeEndDate');
+    const loadRangeButton = document.getElementById('loadRangeButton');
     const folderState = {
       csv: localStorage.getItem('pa450-csv-dir') || DEFAULT_CSV_DIR,
       analysis: localStorage.getItem('pa450-analysis-dir') || DEFAULT_ANALYSIS_DIR,
@@ -238,6 +287,10 @@
     const searchInput = document.getElementById('searchInput');
     const sourceFilter = document.getElementById('sourceFilter');
     const appFilter = document.getElementById('appFilter');
+    const pageStatus = document.getElementById('pageStatus');
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+    const pagePrevButton = document.getElementById('pagePrevButton');
+    const pageNextButton = document.getElementById('pageNextButton');
     const tableHead = document.getElementById('tableHead');
     const tableBody = document.getElementById('tableBody');
     const rowDetail = document.getElementById('rowDetail');
@@ -598,8 +651,28 @@
     function canSaveReviewToMarkdown() {
       return appState.current
         && appState.selectedRowIndex !== null
-        && /^\d{8}$/.test(appState.current.date || '')
+        && /^\d{8}$/.test(currentReviewDate() || '')
         && appState.current.source !== 'manual-upload';
+    }
+
+    function currentReviewDate() {
+      if (!appState.current || appState.selectedRowIndex === null) return '';
+      if (appState.current.mode === 'range') {
+        const row = selectedRow();
+        return row ? String(row.__report_date || '') : '';
+      }
+      return String(appState.current.date || '');
+    }
+
+    function currentReviewRowIndex() {
+      if (!appState.current || appState.selectedRowIndex === null) return null;
+      if (appState.current.mode === 'range') {
+        const row = selectedRow();
+        if (!row) return null;
+        const rowIndex = Number.parseInt(String(row.__report_row_index), 10);
+        return Number.isNaN(rowIndex) ? null : rowIndex;
+      }
+      return appState.selectedRowIndex;
     }
 
     function rowSummary(row) {
@@ -651,12 +724,14 @@
       }
       const row = selectedRow();
       if (!row) return null;
+      const rowIndex = currentReviewRowIndex();
+      if (rowIndex === null) return null;
       return {
         reviewStatus: reviewStatus.value,
         reviewNote: reviewNote.value,
-        rowIndex: appState.selectedRowIndex,
-        rowNumber: appState.selectedRowIndex + 1,
-        csvLineNumber: appState.selectedRowIndex + 2,
+        rowIndex,
+        rowNumber: rowIndex + 1,
+        csvLineNumber: rowIndex + 2,
         rowSummary: rowSummary(row),
         rowFields: row,
       };
@@ -682,14 +757,20 @@
         return;
       }
       try {
-        const response = await fetch(apiUrl('/api/reports/' + encodeURIComponent(appState.current.date) + '/review'), {
+        const response = await fetch(apiUrl('/api/reports/' + encodeURIComponent(currentReviewDate()) + '/review'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(review),
         });
         if (!response.ok) throw new Error(`儲存 report_YYYYMMDD.md 失敗：${response.status}`);
         const payload = await response.json();
-        if (payload.reviews) appState.current.reviews = payload.reviews;
+        if (payload.reviews) {
+          if (appState.current.mode === 'range') {
+            appState.current.reviews[String(appState.selectedRowIndex)] = payload.reviews[String(review.rowIndex)] || review;
+          } else {
+            appState.current.reviews = payload.reviews;
+          }
+        }
         delete draftReviews()[String(appState.selectedRowIndex)];
         setReviewSaveMessage('已儲存回報。', 'success');
       } catch (error) {
@@ -782,7 +863,14 @@
     function renderSummary() {
       clearNode(summaryGrid);
       const summary = appState.current.summary;
-      const cards = [
+      const cards = appState.current.mode === 'range' ? [
+        ['日期區間', appState.current.label, appState.current.date],
+        ['涵蓋天數', String(summary.covered_days || 0), ''],
+        ['總資料筆數', String(summary.total_rows), ''],
+        ['來源 IP 數', String(summary.unique_sources), ''],
+        ['最大傳輸量', summary.max_bytes_human, summary.max_bytes_raw],
+        ['總傳輸量', summary.total_bytes_human, summary.total_bytes_raw],
+      ] : [
         ['報告日期', appState.current.label, appState.current.date],
         ['總資料筆數', String(summary.total_rows), ''],
         ['來源 IP 數', String(summary.unique_sources), ''],
@@ -800,12 +888,11 @@
       });
     }
 
-    function renderAnalysis() {
-      clearNode(analysisCard);
-      const a = appState.current.analysis_sections;
+    function renderAnalysisItem(analysisPayload) {
+      const a = analysisPayload.analysis_sections || {};
       [
         ['異常狀態', a.status || '資料不足，需人工確認', ''],
-        ['摘要', a.summary || appState.current.analysis_text || '資料不足，需人工確認', ''],
+        ['摘要', a.summary || analysisPayload.analysis_text || '資料不足，需人工確認', ''],
         ['原因', a.reason || '', ''],
       ].forEach(([key, value, secondary]) => analysisCard.appendChild(createDetailRow(key, value, secondary)));
       if (a.items && a.items.length) {
@@ -822,6 +909,55 @@
       } else {
         analysisCard.appendChild(createDetailRow('異常項目', '—', ''));
       }
+    }
+
+    function moveAnalysisSlide(delta) {
+      const items = (appState.current && appState.current.daily_analyses) || [];
+      if (!items.length) return;
+      appState.analysisSlideIndex = Math.min(Math.max(appState.analysisSlideIndex + delta, 0), items.length - 1);
+      renderAnalysis();
+    }
+
+    function renderAnalysisCarouselControls(items) {
+      const controls = document.createElement('div');
+      controls.className = 'analysis-carousel-controls';
+      const prev = document.createElement('button');
+      prev.type = 'button';
+      prev.className = 'analysis-carousel-button';
+      prev.textContent = '‹';
+      prev.disabled = appState.analysisSlideIndex <= 0;
+      prev.addEventListener('click', () => moveAnalysisSlide(-1));
+      const date = createTextNode(
+        'div',
+        `${items[appState.analysisSlideIndex].label}（${appState.analysisSlideIndex + 1}/${items.length}）`,
+        'analysis-carousel-date',
+      );
+      const next = document.createElement('button');
+      next.type = 'button';
+      next.className = 'analysis-carousel-button';
+      next.textContent = '›';
+      next.disabled = appState.analysisSlideIndex >= items.length - 1;
+      next.addEventListener('click', () => moveAnalysisSlide(1));
+      controls.appendChild(prev);
+      controls.appendChild(date);
+      controls.appendChild(next);
+      analysisCard.appendChild(controls);
+    }
+
+    function renderAnalysis() {
+      clearNode(analysisCard);
+      if (appState.current.mode === 'range') {
+        const items = appState.current.daily_analyses || [];
+        if (!items.length) {
+          analysisCard.appendChild(createDetailRow('AI 摘要', '區間內沒有每日 AI 摘要', ''));
+          return;
+        }
+        appState.analysisSlideIndex = Math.min(appState.analysisSlideIndex, items.length - 1);
+        renderAnalysisCarouselControls(items);
+        renderAnalysisItem(items[appState.analysisSlideIndex]);
+        return;
+      }
+      renderAnalysisItem(appState.current);
     }
 
     function renderHead() {
@@ -864,6 +1000,36 @@
       return true;
     }
 
+    function filteredRowsWithIndexes() {
+      if (!appState.current) return [];
+      return appState.current.rows
+        .map((row, originalIndex) => ({ row, originalIndex }))
+        .filter((item) => matchesFilters(item.row));
+    }
+
+    function maxPageFor(totalRows) {
+      return Math.max(1, Math.ceil(totalRows / appState.pageSize));
+    }
+
+    function clampCurrentPage(totalRows) {
+      appState.currentPage = Math.min(Math.max(appState.currentPage, 1), maxPageFor(totalRows));
+    }
+
+    function renderPaginationControls(totalRows) {
+      clampCurrentPage(totalRows);
+      const totalPages = maxPageFor(totalRows);
+      const start = totalRows ? ((appState.currentPage - 1) * appState.pageSize) + 1 : 0;
+      const end = totalRows ? Math.min(appState.currentPage * appState.pageSize, totalRows) : 0;
+      pageStatus.textContent = `第 ${start}-${end} 筆，共 ${totalRows} 筆（第 ${appState.currentPage}/${totalPages} 頁）`;
+      pageSizeSelect.value = String(appState.pageSize);
+      pagePrevButton.disabled = appState.currentPage <= 1;
+      pageNextButton.disabled = appState.currentPage >= totalPages;
+    }
+
+    function resetPagination() {
+      appState.currentPage = 1;
+    }
+
     function renderDetails(row) {
       clearNode(rowDetail);
       rowDetail.className = 'detail-list';
@@ -875,10 +1041,11 @@
 
     function renderRows() {
       clearNode(tableBody);
-      const filtered = appState.current.rows
-        .map((row, originalIndex) => ({ row, originalIndex }))
-        .filter((item) => matchesFilters(item.row));
-      filtered.forEach(({ row, originalIndex }) => {
+      const filtered = filteredRowsWithIndexes();
+      renderPaginationControls(filtered.length);
+      const pageStart = (appState.currentPage - 1) * appState.pageSize;
+      const pageItems = filtered.slice(pageStart, pageStart + appState.pageSize);
+      pageItems.forEach(({ row, originalIndex }) => {
         const tr = document.createElement('tr');
         const isAiMatch = rowMatchesAiReport(row);
         if (isAiMatch) {
@@ -901,7 +1068,7 @@
         });
         tableBody.appendChild(tr);
       });
-      if (!filtered.length) {
+      if (!pageItems.length) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
         td.colSpan = appState.current.headers.length;
@@ -917,6 +1084,7 @@
       loading.hidden = true;
       reportApp.hidden = false;
       appState.selectedRowIndex = null;
+      resetPagination();
       setEmptyMessage(rowDetail, '尚未選取資料列。');
       renderSidebar();
       renderSummary();
@@ -930,11 +1098,88 @@
 
     async function loadReport(date) {
       persistFolderDirs();
+      appState.analysisSlideIndex = 0;
       const response = await fetch(apiUrl('/api/reports/' + encodeURIComponent(date)));
       if (!response.ok) throw new Error(`載入報告失敗：${response.status}`);
       appState.current = await response.json();
       if (!appState.current.draftReviews) appState.current.draftReviews = {};
       renderCurrentReport();
+    }
+
+    function dateKeyToInputValue(dateKey) {
+      const text = String(dateKey || '');
+      if (!/^\d{8}$/.test(text)) return '';
+      return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
+    }
+
+    function inputValueToDateKey(value) {
+      return String(value || '').replace(/-/g, '');
+    }
+
+    let analysisTouchStartX = null;
+
+    function handleAnalysisTouchStart(event) {
+      analysisTouchStartX = event.changedTouches && event.changedTouches.length ? event.changedTouches[0].clientX : null;
+    }
+
+    function handleAnalysisTouchEnd(event) {
+      if (analysisTouchStartX === null || !event.changedTouches || !event.changedTouches.length) return;
+      const deltaX = event.changedTouches[0].clientX - analysisTouchStartX;
+      analysisTouchStartX = null;
+      if (Math.abs(deltaX) < 45) return;
+      moveAnalysisSlide(deltaX < 0 ? 1 : -1);
+    }
+
+    function handleFilterChanged() {
+      resetPagination();
+      renderRows();
+    }
+
+    function changePage(delta) {
+      appState.currentPage += delta;
+      renderRows();
+    }
+
+    function handlePageSizeChanged() {
+      const nextPageSize = Number.parseInt(pageSizeSelect.value, 10);
+      appState.pageSize = Number.isNaN(nextPageSize) ? DEFAULT_PAGE_SIZE : nextPageSize;
+      resetPagination();
+      renderRows();
+    }
+
+    function setRangeDefaults() {
+      if (!appState.reports.length) return;
+      const newest = appState.reports[0].date;
+      const oldest = appState.reports[appState.reports.length - 1].date;
+      if (!rangeStartDate.value) rangeStartDate.value = dateKeyToInputValue(oldest);
+      if (!rangeEndDate.value) rangeEndDate.value = dateKeyToInputValue(newest);
+    }
+
+    async function loadDateRange() {
+      const startDate = inputValueToDateKey(rangeStartDate.value);
+      const endDate = inputValueToDateKey(rangeEndDate.value);
+      if (!/^\d{8}$/.test(startDate) || !/^\d{8}$/.test(endDate)) {
+        showError('請先選擇開始日期與結束日期。');
+        return;
+      }
+      if (startDate > endDate) {
+        showError('開始日期不可晚於結束日期。');
+        return;
+      }
+      try {
+        clearError();
+        loading.hidden = false;
+        reportApp.hidden = true;
+        persistFolderDirs();
+        appState.analysisSlideIndex = 0;
+        const response = await fetch(apiUrl('/api/reports/range', { start_date: startDate, end_date: endDate }));
+        if (!response.ok) throw new Error(`載入日期區間失敗：${response.status}`);
+        appState.current = await response.json();
+        if (!appState.current.draftReviews) appState.current.draftReviews = {};
+        renderCurrentReport();
+      } catch (error) {
+        showError(error.message || '載入日期區間失敗');
+      }
     }
 
     async function bootstrap() {
@@ -949,6 +1194,7 @@
         if (!response.ok) throw new Error(`載入報告列表失敗：${response.status}`);
         const payload = await response.json();
         appState.reports = payload.reports || [];
+        setRangeDefaults();
         renderSidebar();
         if (!appState.reports.length) {
           loading.hidden = true;
@@ -966,11 +1212,17 @@
     selectAnalysisFolder.addEventListener('click', () => chooseFolder('analysis'));
     selectReviewFolder.addEventListener('click', () => chooseFolder('review'));
     reloadFolders.addEventListener('click', bootstrap);
+    loadRangeButton.addEventListener('click', loadDateRange);
     sidebarToggle.addEventListener('click', () => setSidebarCollapsed(!appShell.classList.contains('sidebar-collapsed')));
     setSidebarCollapsed(localStorage.getItem('pa450-sidebar-collapsed') === '1');
-    searchInput.addEventListener('input', renderRows);
-    sourceFilter.addEventListener('change', renderRows);
-    appFilter.addEventListener('change', renderRows);
+    searchInput.addEventListener('input', handleFilterChanged);
+    sourceFilter.addEventListener('change', handleFilterChanged);
+    appFilter.addEventListener('change', handleFilterChanged);
+    pageSizeSelect.addEventListener('change', handlePageSizeChanged);
+    pagePrevButton.addEventListener('click', () => changePage(-1));
+    pageNextButton.addEventListener('click', () => changePage(1));
+    analysisCard.addEventListener('touchstart', handleAnalysisTouchStart, { passive: true });
+    analysisCard.addEventListener('touchend', handleAnalysisTouchEnd, { passive: true });
     reviewStatus.addEventListener('change', updateReviewDraft);
     reviewNote.addEventListener('input', updateReviewDraft);
     reviewSaveButton.addEventListener('click', saveReviewState);

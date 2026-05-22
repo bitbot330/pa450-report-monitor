@@ -461,6 +461,7 @@ def load_report_bundle(csv_dir: str | Path, analysis_dir: str | Path, review_dir
     analysis_sections["bytes_raw"] = f"{analysis_bytes_value:,} bytes" if analysis_bytes_value is not None else analysis_sections.get("bytes", "")
 
     return {
+        "mode": "single",
         "date": date_key,
         "label": _report_date_label(date_key),
         "csv_dir": str(_normalized_base(csv_dir)),
@@ -473,5 +474,78 @@ def load_report_bundle(csv_dir: str | Path, analysis_dir: str | Path, review_dir
         "summary": summarize_rows(rows),
         "analysis_text": analysis_text,
         "analysis_sections": analysis_sections,
+        "daily_analyses": [],
         "reviews": load_review_markdown(review_dir, date_key, display_rows),
+    }
+
+
+def load_report_range_bundle(
+    csv_dir: str | Path,
+    analysis_dir: str | Path,
+    review_dir: str | Path,
+    start_date: str,
+    end_date: str,
+) -> dict[str, Any]:
+    start_date = _validated_date_key(start_date)
+    end_date = _validated_date_key(end_date)
+    if start_date > end_date:
+        raise ValueError("start_date must be before or equal to end_date")
+
+    selected_reports = [
+        report
+        for report in discover_reports(csv_dir, analysis_dir)
+        if start_date <= report["date"] <= end_date
+    ]
+    if not selected_reports:
+        raise FileNotFoundError(f"No report bundles found for date range: {start_date}-{end_date}")
+
+    range_headers: list[str] = []
+    range_rows: list[dict[str, Any]] = []
+    summary_rows: list[dict[str, str]] = []
+    daily_analyses: list[dict[str, Any]] = []
+    range_reviews: dict[str, dict[str, Any]] = {}
+
+    for report in selected_reports:
+        bundle = load_report_bundle(csv_dir, analysis_dir, review_dir, report["date"])
+        if not range_headers:
+            range_headers = ["報告日期", *bundle["headers"]]
+        daily_analyses.append({
+            "date": bundle["date"],
+            "label": bundle["label"],
+            "analysis_text": bundle["analysis_text"],
+            "analysis_sections": bundle["analysis_sections"],
+            "summary": bundle["summary"],
+        })
+        csv_path, _json_path = locate_report_paths(csv_dir, analysis_dir, report["date"])
+        _raw_headers, raw_rows = load_csv_rows(csv_path)
+        summary_rows.extend(raw_rows)
+        for row_index, row in enumerate(bundle["rows"]):
+            global_index = len(range_rows)
+            range_row = dict(row)
+            range_row["報告日期"] = bundle["label"]
+            range_row["__report_date"] = bundle["date"]
+            range_row["__report_row_index"] = row_index
+            range_rows.append(range_row)
+            saved_review = (bundle.get("reviews") or {}).get(str(row_index))
+            if saved_review:
+                range_reviews[str(global_index)] = saved_review
+
+    summary = summarize_rows(summary_rows)
+    summary["covered_days"] = len(selected_reports)
+    return {
+        "mode": "range",
+        "date": f"{start_date}-{end_date}",
+        "start_date": start_date,
+        "end_date": end_date,
+        "label": f"{_report_date_label(start_date)} ～ {_report_date_label(end_date)}",
+        "csv_dir": str(_normalized_base(csv_dir)),
+        "analysis_dir": str(_normalized_base(analysis_dir)),
+        "review_dir": str(_normalized_base(review_dir)),
+        "headers": range_headers,
+        "rows": range_rows,
+        "summary": summary,
+        "analysis_text": "",
+        "analysis_sections": {},
+        "daily_analyses": daily_analyses,
+        "reviews": range_reviews,
     }
