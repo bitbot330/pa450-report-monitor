@@ -39,13 +39,17 @@ def test_load_report_range_bundle_returns_daily_ai_summaries_and_rows(tmp_path: 
     assert payload["summary"]["total_bytes_raw"] == "3,048 bytes"
 
 
-def test_index_html_has_csv_pagination_controls_and_logic() -> None:
-    html = render_index_html(
+def rendered_index_html() -> str:
+    return render_index_html(
         title="PA450",
         csv_dir_json='"output"',
         analysis_dir_json='"output"',
         review_dir_json='"output"',
     )
+
+
+def test_index_html_has_csv_pagination_controls_and_logic() -> None:
+    html = rendered_index_html()
 
     assert 'id="pageSizeSelect"' in html
     assert 'id="pagePrevButton"' in html
@@ -55,3 +59,12 @@ def test_index_html_has_csv_pagination_controls_and_logic() -> None:
     assert "function filteredRowsWithIndexes()" in html
     assert "function renderPaginationControls" in html
     assert "pageSizeSelect.addEventListener('change'" in html
+
+
+def test_index_html_matches_range_rows_against_same_day_ai_analysis() -> None:
+    html = rendered_index_html()
+
+    assert "function dailyAnalysisForRow(row)" in html
+    assert "analysis.date === rowDate" in html
+    assert "dailyAnalysisForRow(row)" in html
+    assert "完整命中 AI 報告異常項目：日期 + 來源 IP + 目的地 IP + 應用程式" in html

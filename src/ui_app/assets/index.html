@@ -973,8 +973,16 @@
       return String(value || '').trim();
     }
 
+    function dailyAnalysisForRow(row) {
+      if (!appState.current) return null;
+      if (appState.current.mode !== 'range') return appState.current;
+      const rowDate = String(row.__report_date || '');
+      return (appState.current.daily_analyses || []).find((analysis) => analysis.date === rowDate) || null;
+    }
+
     function rowMatchesAiReport(row) {
-      const a = appState.current ? appState.current.analysis_sections || {} : {};
+      const dailyAnalysis = dailyAnalysisForRow(row);
+      const a = dailyAnalysis ? dailyAnalysis.analysis_sections || {} : {};
       const items = Array.isArray(a.items) ? a.items : [];
       if (!items.length) return false;
       const rowBytes = parseIntLike(row.__raw_bytes ?? row['傳輸量'] ?? row['位元組']);
@@ -1050,7 +1058,9 @@
         const isAiMatch = rowMatchesAiReport(row);
         if (isAiMatch) {
           tr.classList.add('is-ai-match');
-          tr.title = '完整命中 AI 報告異常項目：來源 IP + 目的地 IP + 應用程式';
+          tr.title = appState.current.mode === 'range'
+            ? '完整命中 AI 報告異常項目：日期 + 來源 IP + 目的地 IP + 應用程式'
+            : '完整命中 AI 報告異常項目：來源 IP + 目的地 IP + 應用程式';
         }
         if (appState.selectedRowIndex === originalIndex) tr.classList.add('is-selected');
         tr.addEventListener('click', () => {
