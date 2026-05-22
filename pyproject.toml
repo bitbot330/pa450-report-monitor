@@ -16,4 +16,4 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-"ui_app.assets" = ["*.html"]
+"ui_app.assets" = ["*.html", "*.css", "*.js"]

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ui_app.assets import render_index_html
+from ui_app.assets import load_asset_text, render_index_html
 from ui_app.data import load_report_range_bundle
 
 
@@ -46,6 +46,20 @@ def rendered_index_html() -> str:
         analysis_dir_json='"output"',
         review_dir_json='"output"',
     )
+
+
+def test_render_index_html_inlines_split_css_and_js_assets() -> None:
+    html = rendered_index_html()
+
+    assert "__STYLE_CSS__" not in html
+    assert "__APP_JS__" not in html
+    assert "__CSV_DIR_JSON__" not in html
+    assert "__ANALYSIS_DIR_JSON__" not in html
+    assert "__REVIEW_DIR_JSON__" not in html
+    assert load_asset_text("styles.css").strip() in html
+    assert "const DEFAULT_PAGE_SIZE = 50" in load_asset_text("app.js")
+    assert "<style>" in html
+    assert "<script>" in html
 
 
 def test_index_html_has_csv_pagination_controls_and_logic() -> None:
