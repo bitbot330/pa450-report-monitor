@@ -299,6 +299,7 @@
         else if (normalized.startsWith('摘要：')) { parsed.summary = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
         else if (itemMatch) { parsed.items.push(analysisItemFromMatch(itemMatch)); pendingItemNumber = ''; }
         else if (itemDetailMatch && (pendingItemNumber || (itemDetailMatch.groups && itemDetailMatch.groups.prefixItemNumber))) { parsed.items.push(analysisItemFromMatch(itemDetailMatch, pendingItemNumber)); pendingItemNumber = ''; }
+        else if (/^\d[\d,]*\s*bytes$/i.test(normalized) && parsed.items.length) parsed.items[parsed.items.length - 1].bytes = normalized;
         else if (itemHeadingMatch) pendingItemNumber = itemHeadingMatch.groups.itemNumber.trim();
         else if (normalized.startsWith('來源：')) { parsed.source = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
         else if (normalized.startsWith('目的地：')) { parsed.destination = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }

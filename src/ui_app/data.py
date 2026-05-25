@@ -24,6 +24,7 @@ ANALYSIS_ITEM_DETAIL_RE = re.compile(
     r"位元組：(?P<bytes>.*)$"
 )
 ANALYSIS_ITEM_HEADING_RE = re.compile(r"^第(?P<item_number>\d+)筆[：:]?$")
+ANALYSIS_ITEM_RAW_BYTES_RE = re.compile(r"^\d[\d,]*\s*bytes$", re.IGNORECASE)
 
 
 def format_bytes_human(value: int | None) -> str:
@@ -84,6 +85,8 @@ def parse_analysis_sections(analysis_text: str) -> dict[str, Any]:
         elif item_detail_match and (pending_item_number or item_detail_match.groupdict().get("prefix_item_number")):
             parsed["items"].append(_analysis_item_from_match(item_detail_match, pending_item_number))
             pending_item_number = ""
+        elif ANALYSIS_ITEM_RAW_BYTES_RE.match(normalized) and parsed["items"]:
+            parsed["items"][-1]["bytes"] = normalized
         elif item_heading_match:
             pending_item_number = item_heading_match.group("item_number").strip()
         elif normalized.startswith("來源："):
