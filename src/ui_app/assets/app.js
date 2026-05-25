@@ -292,7 +292,7 @@
         const line = rawLine.trim();
         if (!line) return;
         const normalized = line.replace(/^[\-\s]+/, '');
-        const itemMatch = normalized.match(/^第(?<itemNumber>\d+)筆的來源：(?<source>.*?)\s+目的地：(?<destination>.*?)\s+應用程式：(?<application>.*?)\s+位元組：(?<bytes>.*)$/);
+        const itemMatch = normalized.match(/^第(?<itemNumber>\d+)筆的來源：(?<source>.*?)\s+目的地：(?<destination>.*?)\s+(?:目的地國家：?.*?\s+)?應用程式：(?<application>.*?)\s+位元組：(?<bytes>.*)$/);
         const itemDetailMatch = normalized.match(/^(?:第(?<prefixItemNumber>\d+)筆(?:的)?\s*)?來源：(?<source>.*?)\s+目的地：(?<destination>.*?)\s+(?:目的地國家：?.*?\s+)?應用程式：(?<application>.*?)\s+位元組：(?<bytes>.*)$/);
         const itemHeadingMatch = normalized.match(/^第(?<itemNumber>\d+)筆[：:]?$/);
         if (normalized.startsWith('異常狀態：')) { parsed.status = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }

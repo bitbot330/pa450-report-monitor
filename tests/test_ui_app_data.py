@@ -19,6 +19,22 @@ def write_daily_bundle(base: Path, date_key: str, source: str, bytes_value: int,
     )
 
 
+def test_parse_analysis_sections_accepts_single_line_item_with_destination_country() -> None:
+    parsed = parse_analysis_sections(
+        "第1筆的來源：192.168.3.159 目的地：199.232.114.172 目的地國家：SG 應用程式：web-browsing 位元組：1,238,420,545 bytes"
+    )
+
+    assert parsed["items"] == [
+        {
+            "item_number": "1",
+            "source": "192.168.3.159",
+            "destination": "199.232.114.172",
+            "application": "web-browsing",
+            "bytes": "1,238,420,545 bytes",
+        }
+    ]
+
+
 def test_parse_analysis_sections_accepts_split_item_blocks_with_destination_country() -> None:
     analysis = "\n".join([
         "異常狀態：有異常",

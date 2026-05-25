@@ -13,7 +13,11 @@ from report import parse_int
 
 DATE_KEY_RE = re.compile(r"^\d{8}$")
 ANALYSIS_ITEM_RE = re.compile(
-    r"^第(?P<item_number>\d+)筆的來源：(?P<source>.*?)\s+目的地：(?P<destination>.*?)\s+應用程式：(?P<application>.*?)\s+位元組：(?P<bytes>.*)$"
+    r"^第(?P<item_number>\d+)筆的來源：(?P<source>.*?)\s+"
+    r"目的地：(?P<destination>.*?)\s+"
+    r"(?:目的地國家：?.*?\s+)?"
+    r"應用程式：(?P<application>.*?)\s+"
+    r"位元組：(?P<bytes>.*)$"
 )
 ANALYSIS_ITEM_DETAIL_RE = re.compile(
     r"^(?:第(?P<prefix_item_number>\d+)筆(?:的)?\s*)?"
