@@ -11,6 +11,8 @@ $ErrorActionPreference = "Stop"
     --onefile `
     --name PA450-Daily-Review-UI `
     --add-data "src/ui_app/assets/index.html;ui_app/assets" `
+    --add-data "src/ui_app/assets/styles.css;ui_app/assets" `
+    --add-data "src/ui_app/assets/app.js;ui_app/assets" `
     src/ui.py
 
 Write-Host "Built exe: dist\PA450-Daily-Review-UI.exe"
