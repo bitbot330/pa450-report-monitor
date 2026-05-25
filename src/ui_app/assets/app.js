@@ -275,21 +275,36 @@
       return unit === 'bytes' ? `${Number(value).toLocaleString('en-US')} bytes` : `${size.toFixed(1)} ${unit}`;
     }
 
+    function analysisItemFromMatch(match, fallbackItemNumber = '') {
+      return {
+        item_number: (match.groups && (match.groups.itemNumber || match.groups.prefixItemNumber) || fallbackItemNumber || '').trim(),
+        source: (match.groups && match.groups.source || '').trim(),
+        destination: (match.groups && match.groups.destination || '').trim(),
+        application: (match.groups && match.groups.application || '').trim(),
+        bytes: (match.groups && match.groups.bytes || '').trim(),
+      };
+    }
+
     function parseAnalysisSections(analysisText) {
       const parsed = { status: '', summary: '', source: '', destination: '', application: '', bytes: '', reason: '', items: [] };
+      let pendingItemNumber = '';
       analysisText.split(/\r?\n/).forEach((rawLine) => {
         const line = rawLine.trim();
         if (!line) return;
         const normalized = line.replace(/^[\-\s]+/, '');
-        const itemMatch = normalized.match(/^第(\d+)筆的來源：(.*?)\s+目的地：(.*?)\s+應用程式：(.*?)\s+位元組：(.*)$/);
-        if (normalized.startsWith('異常狀態：')) parsed.status = normalized.split('：', 2)[1].trim();
-        else if (normalized.startsWith('摘要：')) parsed.summary = normalized.split('：', 2)[1].trim();
-        else if (itemMatch) parsed.items.push({ item_number: itemMatch[1], source: itemMatch[2].trim(), destination: itemMatch[3].trim(), application: itemMatch[4].trim(), bytes: itemMatch[5].trim() });
-        else if (normalized.startsWith('來源：')) parsed.source = normalized.split('：', 2)[1].trim();
-        else if (normalized.startsWith('目的地：')) parsed.destination = normalized.split('：', 2)[1].trim();
-        else if (normalized.startsWith('應用程式：')) parsed.application = normalized.split('：', 2)[1].trim();
-        else if (normalized.startsWith('位元組：')) parsed.bytes = normalized.split('：', 2)[1].trim();
-        else if (normalized.startsWith('原因：')) parsed.reason = normalized.split('：', 2)[1].trim();
+        const itemMatch = normalized.match(/^第(?<itemNumber>\d+)筆的來源：(?<source>.*?)\s+目的地：(?<destination>.*?)\s+應用程式：(?<application>.*?)\s+位元組：(?<bytes>.*)$/);
+        const itemDetailMatch = normalized.match(/^(?:第(?<prefixItemNumber>\d+)筆(?:的)?\s*)?來源：(?<source>.*?)\s+目的地：(?<destination>.*?)\s+(?:目的地國家：?.*?\s+)?應用程式：(?<application>.*?)\s+位元組：(?<bytes>.*)$/);
+        const itemHeadingMatch = normalized.match(/^第(?<itemNumber>\d+)筆[：:]?$/);
+        if (normalized.startsWith('異常狀態：')) { parsed.status = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
+        else if (normalized.startsWith('摘要：')) { parsed.summary = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
+        else if (itemMatch) { parsed.items.push(analysisItemFromMatch(itemMatch)); pendingItemNumber = ''; }
+        else if (itemDetailMatch && (pendingItemNumber || (itemDetailMatch.groups && itemDetailMatch.groups.prefixItemNumber))) { parsed.items.push(analysisItemFromMatch(itemDetailMatch, pendingItemNumber)); pendingItemNumber = ''; }
+        else if (itemHeadingMatch) pendingItemNumber = itemHeadingMatch.groups.itemNumber.trim();
+        else if (normalized.startsWith('來源：')) { parsed.source = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
+        else if (normalized.startsWith('目的地：')) { parsed.destination = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
+        else if (normalized.startsWith('應用程式：')) { parsed.application = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
+        else if (normalized.startsWith('位元組：')) { parsed.bytes = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
+        else if (normalized.startsWith('原因：')) { parsed.reason = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
       });
       if (parsed.items.length) {
         const firstItem = parsed.items[0];

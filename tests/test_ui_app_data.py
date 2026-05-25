@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from ui_app.assets import load_asset_text, render_index_html
-from ui_app.data import load_report_range_bundle
+from ui_app.data import load_report_range_bundle, parse_analysis_sections
 
 
 def write_daily_bundle(base: Path, date_key: str, source: str, bytes_value: int, analysis: str) -> None:
@@ -17,6 +17,38 @@ def write_daily_bundle(base: Path, date_key: str, source: str, bytes_value: int,
         json.dumps({"analysis": analysis}, ensure_ascii=False),
         encoding="utf-8",
     )
+
+
+def test_parse_analysis_sections_accepts_split_item_blocks_with_destination_country() -> None:
+    analysis = "\n".join([
+        "異常狀態：有異常",
+        "摘要：來源 192.168.3.48 的累積傳輸量高達 1,567,432,442 位元組。",
+        "第1筆",
+        "來源：192.168.3.159 目的地：199.232.114.172 目的地國家：SG 應用程式：web-browsing 位元組：1,238,420,545 bytes",
+        "第2筆",
+        "來源：192.168.3.48 目的地：154.94.110.20 目的地國家：SC 應用程式：ssl 位元組：551,198,906 bytes",
+        "原因：row-level IQR 候選異常。",
+    ])
+
+    parsed = parse_analysis_sections(analysis)
+
+    assert parsed["status"] == "有異常"
+    assert parsed["items"] == [
+        {
+            "item_number": "1",
+            "source": "192.168.3.159",
+            "destination": "199.232.114.172",
+            "application": "web-browsing",
+            "bytes": "1,238,420,545 bytes",
+        },
+        {
+            "item_number": "2",
+            "source": "192.168.3.48",
+            "destination": "154.94.110.20",
+            "application": "ssl",
+            "bytes": "551,198,906 bytes",
+        },
+    ]
 
 
 def test_load_report_range_bundle_returns_daily_ai_summaries_and_rows(tmp_path: Path) -> None:

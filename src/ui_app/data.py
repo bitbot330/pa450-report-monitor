@@ -15,6 +15,15 @@ DATE_KEY_RE = re.compile(r"^\d{8}$")
 ANALYSIS_ITEM_RE = re.compile(
     r"^第(?P<item_number>\d+)筆的來源：(?P<source>.*?)\s+目的地：(?P<destination>.*?)\s+應用程式：(?P<application>.*?)\s+位元組：(?P<bytes>.*)$"
 )
+ANALYSIS_ITEM_DETAIL_RE = re.compile(
+    r"^(?:第(?P<prefix_item_number>\d+)筆(?:的)?\s*)?"
+    r"來源：(?P<source>.*?)\s+"
+    r"目的地：(?P<destination>.*?)\s+"
+    r"(?:目的地國家：?.*?\s+)?"
+    r"應用程式：(?P<application>.*?)\s+"
+    r"位元組：(?P<bytes>.*)$"
+)
+ANALYSIS_ITEM_HEADING_RE = re.compile(r"^第(?P<item_number>\d+)筆[：:]?$")
 
 
 def format_bytes_human(value: int | None) -> str:
@@ -33,6 +42,16 @@ def format_bytes_human(value: int | None) -> str:
     return f"{size:.1f} {unit}"
 
 
+def _analysis_item_from_match(item_match: re.Match[str], fallback_item_number: str = "") -> dict[str, str]:
+    return {
+        "item_number": (item_match.groupdict().get("item_number") or item_match.groupdict().get("prefix_item_number") or fallback_item_number).strip(),
+        "source": item_match.group("source").strip(),
+        "destination": item_match.group("destination").strip(),
+        "application": item_match.group("application").strip(),
+        "bytes": item_match.group("bytes").strip(),
+    }
+
+
 def parse_analysis_sections(analysis_text: str) -> dict[str, Any]:
     parsed = {
         "status": "",
@@ -44,34 +63,44 @@ def parse_analysis_sections(analysis_text: str) -> dict[str, Any]:
         "reason": "",
         "items": [],
     }
+    pending_item_number = ""
     for raw_line in analysis_text.splitlines():
         line = raw_line.strip()
         if not line:
             continue
         normalized = line.lstrip("- ")
         item_match = ANALYSIS_ITEM_RE.match(normalized)
+        item_detail_match = ANALYSIS_ITEM_DETAIL_RE.match(normalized)
+        item_heading_match = ANALYSIS_ITEM_HEADING_RE.match(normalized)
         if normalized.startswith("異常狀態："):
             parsed["status"] = normalized.split("：", 1)[1].strip()
+            pending_item_number = ""
         elif normalized.startswith("摘要："):
             parsed["summary"] = normalized.split("：", 1)[1].strip()
+            pending_item_number = ""
         elif item_match:
-            parsed["items"].append({
-                "item_number": item_match.group("item_number").strip(),
-                "source": item_match.group("source").strip(),
-                "destination": item_match.group("destination").strip(),
-                "application": item_match.group("application").strip(),
-                "bytes": item_match.group("bytes").strip(),
-            })
+            parsed["items"].append(_analysis_item_from_match(item_match))
+            pending_item_number = ""
+        elif item_detail_match and (pending_item_number or item_detail_match.groupdict().get("prefix_item_number")):
+            parsed["items"].append(_analysis_item_from_match(item_detail_match, pending_item_number))
+            pending_item_number = ""
+        elif item_heading_match:
+            pending_item_number = item_heading_match.group("item_number").strip()
         elif normalized.startswith("來源："):
             parsed["source"] = normalized.split("：", 1)[1].strip()
+            pending_item_number = ""
         elif normalized.startswith("目的地："):
             parsed["destination"] = normalized.split("：", 1)[1].strip()
+            pending_item_number = ""
         elif normalized.startswith("應用程式："):
             parsed["application"] = normalized.split("：", 1)[1].strip()
+            pending_item_number = ""
         elif normalized.startswith("位元組："):
             parsed["bytes"] = normalized.split("：", 1)[1].strip()
+            pending_item_number = ""
         elif normalized.startswith("原因："):
             parsed["reason"] = normalized.split("：", 1)[1].strip()
+            pending_item_number = ""
     if parsed["items"]:
         first_item = parsed["items"][0]
         parsed["source"] = parsed["source"] or first_item["source"]
