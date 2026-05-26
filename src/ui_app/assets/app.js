@@ -31,7 +31,7 @@
     const reportApp = document.getElementById('reportApp');
     const summaryGrid = document.getElementById('summaryGrid');
     const contentGrid = document.getElementById('contentGrid');
-    const rightRail = document.getElementById('rightRail');
+    const aiCard = document.getElementById('aiCard');
     const rightRailToggleButton = document.getElementById('rightRailToggleButton');
     const analysisCard = document.getElementById('analysisCard');
     const searchInput = document.getElementById('searchInput');
@@ -96,10 +96,10 @@
     function setRightRailOpen(open) {
       appState.rightRailOpen = Boolean(open);
       contentGrid.classList.toggle('right-rail-collapsed', !appState.rightRailOpen);
-      rightRailToggleButton.textContent = appState.rightRailOpen ? '隱藏 AI / 明細' : '顯示 AI / 明細';
+      rightRailToggleButton.textContent = appState.rightRailOpen ? '隱藏 AI' : '顯示 AI';
       rightRailToggleButton.setAttribute('aria-expanded', appState.rightRailOpen ? 'true' : 'false');
-      rightRail.setAttribute('aria-hidden', appState.rightRailOpen ? 'false' : 'true');
-      rightRail.inert = !appState.rightRailOpen;
+      aiCard.setAttribute('aria-hidden', appState.rightRailOpen ? 'false' : 'true');
+      aiCard.inert = !appState.rightRailOpen;
     }
 
     function setFolderPath(kind, path) {
