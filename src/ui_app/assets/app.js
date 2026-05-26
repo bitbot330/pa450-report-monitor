@@ -33,6 +33,9 @@
     const contentGrid = document.getElementById('contentGrid');
     const rightRail = document.getElementById('rightRail');
     const rightRailToggleButton = document.getElementById('rightRailToggleButton');
+    const analysisPanel = document.getElementById('analysisPanel');
+    const analysisBody = document.getElementById('analysisBody');
+    const analysisToggleButton = document.getElementById('analysisToggleButton');
     const analysisCard = document.getElementById('analysisCard');
     const searchInput = document.getElementById('searchInput');
     const sourceFilter = document.getElementById('sourceFilter');
@@ -100,6 +103,16 @@
       rightRailToggleButton.setAttribute('aria-expanded', appState.rightRailOpen ? 'true' : 'false');
       rightRail.setAttribute('aria-hidden', appState.rightRailOpen ? 'false' : 'true');
       rightRail.inert = !appState.rightRailOpen;
+    }
+
+    function setAnalysisOpen(open) {
+      const expanded = Boolean(open);
+      analysisPanel.classList.toggle('analysis-collapsed', !expanded);
+      analysisToggleButton.textContent = expanded ? '收合' : '展開';
+      analysisToggleButton.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      analysisBody.setAttribute('aria-hidden', expanded ? 'false' : 'true');
+      analysisBody.inert = !expanded;
+      localStorage.setItem('pa450-analysis-open', expanded ? '1' : '0');
     }
 
     function setFolderPath(kind, path) {
@@ -1001,8 +1014,10 @@
     reloadFolders.addEventListener('click', bootstrap);
     loadRangeButton.addEventListener('click', loadDateRange);
     rightRailToggleButton.addEventListener('click', () => setRightRailOpen(!appState.rightRailOpen));
+    analysisToggleButton.addEventListener('click', () => setAnalysisOpen(analysisPanel.classList.contains('analysis-collapsed')));
     sidebarToggle.addEventListener('click', () => setSidebarCollapsed(!appShell.classList.contains('sidebar-collapsed')));
     setSidebarCollapsed(localStorage.getItem('pa450-sidebar-collapsed') === '1');
+    setAnalysisOpen(localStorage.getItem('pa450-analysis-open') !== '0');
     searchInput.addEventListener('input', handleFilterChanged);
     sourceFilter.addEventListener('change', handleFilterChanged);
     appFilter.addEventListener('change', handleFilterChanged);
