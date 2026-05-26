@@ -107,30 +107,30 @@
             </div>
           </article>
           <aside class="right-rail" id="rightRail">
-            <article class="card ai-card" id="analysisPanel">
-              <div class="panel-title">
-                <h2>AI 報告</h2>
-                <div class="panel-actions">
-                  <span class="pill">摘要</span>
-                  <button id="analysisToggleButton" class="rail-toggle-button compact-toggle-button" type="button" aria-expanded="true">收合</button>
-                </div>
-              </div>
-              <div class="analysis-body" id="analysisBody">
+            <article class="card ai-card">
+              <div class="panel-title"><h2>AI 報告</h2><span class="pill">摘要</span></div>
+              <div class="analysis-body">
                 <div class="detail-list" id="analysisCard"></div>
               </div>
             </article>
-            <article class="card row-detail-card">
-              <div>
-                <div class="panel-title"><h2>列明細</h2><span class="pill">點表格列</span></div>
-                <div id="rowDetail" class="empty">尚未選取資料列。</div>
+            <article class="card row-detail-card" id="rowDetailPanel">
+              <div class="panel-title">
+                <h2>列明細</h2>
+                <div class="panel-actions">
+                  <span class="pill">點表格列</span>
+                  <button id="rowDetailToggleButton" class="rail-toggle-button compact-toggle-button" type="button" aria-expanded="true">收合</button>
+                </div>
               </div>
-              <div class="review-in-detail">
-                <div class="panel-title"><h3>報告回報</h3><span class="pill">report_YYYYMMDD.md</span></div>
-                <input id="reviewStatus" type="hidden" value="" />
-                <div class="detail-key" style="margin-top:12px;">備註</div>
-                <textarea id="reviewNote" placeholder="請先點選 CSV 表格中的單筆資料列，再填寫這筆的回報。"></textarea>
-                <button id="reviewSaveButton" class="primary-button" type="button" style="margin-top:12px;">儲存</button>
-                <div id="reviewSaveMessage" class="review-save-message subtle" role="status" aria-live="polite"></div>
+              <div class="row-detail-body" id="rowDetailBody">
+                <div id="rowDetail" class="empty">尚未選取資料列。</div>
+                <div class="review-in-detail">
+                  <div class="panel-title"><h3>報告回報</h3><span class="pill">report_YYYYMMDD.md</span></div>
+                  <input id="reviewStatus" type="hidden" value="" />
+                  <div class="detail-key" style="margin-top:12px;">備註</div>
+                  <textarea id="reviewNote" placeholder="請先點選 CSV 表格中的單筆資料列，再填寫這筆的回報。"></textarea>
+                  <button id="reviewSaveButton" class="primary-button" type="button" style="margin-top:12px;">儲存</button>
+                  <div id="reviewSaveMessage" class="review-save-message subtle" role="status" aria-live="polite"></div>
+                </div>
               </div>
             </article>
           </aside>

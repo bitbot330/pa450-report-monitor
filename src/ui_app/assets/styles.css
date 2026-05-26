@@ -92,12 +92,14 @@
     .detail-row:last-child { border-bottom: none; padding-bottom: 0; }
     .detail-key { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
     .ai-card { font-size: 13px; }
-    .ai-card .panel-title { margin-bottom: 0; }
+    .ai-card .panel-title, .row-detail-card > .panel-title { margin-bottom: 0; }
     .ai-card .detail-list { gap: 8px; }
     .ai-card .detail-row { padding-bottom: 8px; }
     .ai-card .detail-row > div:not(.detail-key):not(.subtle) { line-height: 1.55; }
-    .analysis-body { max-height: 360px; overflow-y: auto; margin-top: 12px; padding-right: 3px; opacity: 1; transition: max-height 180ms ease, margin-top 180ms ease, opacity 160ms ease; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
-    .ai-card.analysis-collapsed .analysis-body { max-height: 0; margin-top: 0; opacity: 0; overflow: hidden; }
+    .analysis-body, .row-detail-body { overflow-y: auto; margin-top: 12px; padding-right: 3px; opacity: 1; transition: max-height 180ms ease, margin-top 180ms ease, opacity 160ms ease; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+    .analysis-body { max-height: 360px; }
+    .row-detail-body { max-height: 520px; }
+    .row-detail-card.detail-collapsed .row-detail-body { max-height: 0; margin-top: 0; opacity: 0; overflow: hidden; }
     .compact-toggle-button { padding: 5px 10px; font-size: 12px; }
     .analysis-carousel-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; padding: 8px; border: 1px solid var(--line-soft); border-radius: var(--radius-md); background: var(--panel-soft); }
     .analysis-carousel-button { flex: 0 0 auto; border-radius: 999px; border: 1px solid var(--line); background: #0d1525; color: var(--text); width: 34px; height: 34px; cursor: pointer; font-weight: 900; }
