@@ -63,7 +63,7 @@
         <section class="content-grid right-rail-collapsed" id="contentGrid">
           <article class="card csv-card">
             <div class="panel-title">
-              <h2>CSV 完整檢視</h2>
+              <h2>Daily Report</h2>
               <div class="panel-actions">
                 <span class="pill">Evidence</span>
                 <button id="rightRailToggleButton" class="rail-toggle-button" type="button">顯示 AI / 明細</button>
@@ -107,9 +107,17 @@
             </div>
           </article>
           <aside class="right-rail" id="rightRail">
-            <article class="card ai-card">
-              <div class="panel-title"><h2>AI 報告</h2><span class="pill">摘要</span></div>
-              <div class="detail-list" id="analysisCard"></div>
+            <article class="card ai-card" id="analysisPanel">
+              <div class="panel-title">
+                <h2>AI 報告</h2>
+                <div class="panel-actions">
+                  <span class="pill">摘要</span>
+                  <button id="analysisToggleButton" class="rail-toggle-button compact-toggle-button" type="button" aria-expanded="true">收合</button>
+                </div>
+              </div>
+              <div class="analysis-body" id="analysisBody">
+                <div class="detail-list" id="analysisCard"></div>
+              </div>
             </article>
             <article class="card row-detail-card">
               <div>
