@@ -75,10 +75,10 @@
     .summary-item:last-child { border-right: none; }
     .summary-value { font-size: 15px; line-height: 1.18; font-weight: 850; word-break: break-word; letter-spacing: -0.01em; }
     .summary-meta { color: var(--muted); font-size: 11px; line-height: 1.25; word-break: break-all; }
-    .content-grid { display: grid; grid-template-columns: minmax(0, 1fr) var(--right-rail-w); gap: 18px; align-items: stretch; }
-    .content-grid.right-rail-collapsed { grid-template-columns: minmax(0, 1fr); }
-    .content-grid.right-rail-collapsed .right-rail { display: none; }
-    .right-rail { display: grid; gap: 14px; align-content: start; }
+    .content-grid { display: grid; grid-template-columns: minmax(0, 1fr) var(--right-rail-w); gap: 18px; align-items: stretch; transition: grid-template-columns 180ms ease, gap 180ms ease; }
+    .content-grid.right-rail-collapsed { grid-template-columns: minmax(0, 1fr) 0; gap: 0; }
+    .right-rail { display: grid; gap: 14px; align-content: start; min-width: 0; overflow: hidden; opacity: 1; transform: translateX(0); transition: opacity 180ms ease, transform 180ms ease; }
+    .content-grid.right-rail-collapsed .right-rail { opacity: 0; pointer-events: none; transform: translateX(18px); }
     .card { background: linear-gradient(180deg, rgba(17, 27, 46, 0.96), rgba(22, 34, 58, 0.96)); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow); }
     .csv-card { display: flex; flex-direction: column; min-height: calc(100vh - 112px); }
     .metric { font-size: 21px; line-height: 1.12; font-weight: 800; margin-top: 7px; word-break: break-word; letter-spacing: -0.02em; }
