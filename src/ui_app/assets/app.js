@@ -44,9 +44,6 @@
     const tableHead = document.getElementById('tableHead');
     const tableBody = document.getElementById('tableBody');
     const rowDetail = document.getElementById('rowDetail');
-    const rowDetailPanel = document.getElementById('rowDetailPanel');
-    const rowDetailBody = document.getElementById('rowDetailBody');
-    const rowDetailToggleButton = document.getElementById('rowDetailToggleButton');
     const reviewStatus = document.getElementById('reviewStatus');
     const reviewNote = document.getElementById('reviewNote');
     const reviewSaveButton = document.getElementById('reviewSaveButton');
@@ -103,16 +100,6 @@
       rightRailToggleButton.setAttribute('aria-expanded', appState.rightRailOpen ? 'true' : 'false');
       rightRail.setAttribute('aria-hidden', appState.rightRailOpen ? 'false' : 'true');
       rightRail.inert = !appState.rightRailOpen;
-    }
-
-    function setRowDetailOpen(open) {
-      const expanded = Boolean(open);
-      rowDetailPanel.classList.toggle('detail-collapsed', !expanded);
-      rowDetailToggleButton.textContent = expanded ? '收合' : '展開';
-      rowDetailToggleButton.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-      rowDetailBody.setAttribute('aria-hidden', expanded ? 'false' : 'true');
-      rowDetailBody.inert = !expanded;
-      localStorage.setItem('pa450-row-detail-open', expanded ? '1' : '0');
     }
 
     function setFolderPath(kind, path) {
@@ -1014,10 +1001,8 @@
     reloadFolders.addEventListener('click', bootstrap);
     loadRangeButton.addEventListener('click', loadDateRange);
     rightRailToggleButton.addEventListener('click', () => setRightRailOpen(!appState.rightRailOpen));
-    rowDetailToggleButton.addEventListener('click', () => setRowDetailOpen(rowDetailPanel.classList.contains('detail-collapsed')));
     sidebarToggle.addEventListener('click', () => setSidebarCollapsed(!appShell.classList.contains('sidebar-collapsed')));
     setSidebarCollapsed(localStorage.getItem('pa450-sidebar-collapsed') === '1');
-    setRowDetailOpen(localStorage.getItem('pa450-row-detail-open') !== '0');
     searchInput.addEventListener('input', handleFilterChanged);
     sourceFilter.addEventListener('change', handleFilterChanged);
     appFilter.addEventListener('change', handleFilterChanged);
