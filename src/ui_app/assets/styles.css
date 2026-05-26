@@ -120,6 +120,7 @@
     input, select, textarea { width: 100%; min-width: 0; background: #0d1525; color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; }
     input:hover, select:hover, textarea:hover { border-color: rgba(101,183,255,0.65); }
     textarea { min-height: 96px; resize: vertical; line-height: 1.55; }
+    #reviewNote { resize: none; }
     select:disabled, textarea:disabled { opacity: 0.55; cursor: not-allowed; }
     .table-wrap { flex: 1 1 auto; min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-md); max-height: none; background: rgba(4, 10, 20, 0.30); scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
     .row-detail-card { display: grid; gap: 14px; }
