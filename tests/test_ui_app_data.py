@@ -156,3 +156,14 @@ def test_index_html_has_ai_report_slide_animation_and_date_direction() -> None:
     assert "analysis-slide-backward" in html
     assert "左滑：往較新的日期；右滑：往較舊的日期。" in html
     assert "moveAnalysisSlide(deltaX < 0 ? 1 : -1)" in html
+
+
+def test_index_html_syncs_range_daily_report_to_ai_report_date() -> None:
+    html = rendered_index_html()
+
+    assert "function currentAnalysisDate()" in html
+    assert "function rowsForCurrentAnalysisDate()" in html
+    assert "function syncDailyReportToAnalysisSlide()" in html
+    assert "String(row.__report_date || '') !== activeDate" in html
+    assert "AI 報告日期" in html
+    assert "syncDailyReportToAnalysisSlide();" in html

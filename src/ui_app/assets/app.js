@@ -580,9 +580,30 @@
       }
     }
 
+    function currentDailyAnalysis() {
+      if (!appState.current || appState.current.mode !== 'range') return null;
+      const items = appState.current.daily_analyses || [];
+      if (!items.length) return null;
+      appState.analysisSlideIndex = Math.min(appState.analysisSlideIndex, items.length - 1);
+      return items[appState.analysisSlideIndex] || null;
+    }
+
+    function currentAnalysisDate() {
+      const dailyAnalysis = currentDailyAnalysis();
+      return dailyAnalysis ? String(dailyAnalysis.date || '') : '';
+    }
+
+    function rowsForCurrentAnalysisDate() {
+      if (!appState.current) return [];
+      if (appState.current.mode !== 'range') return appState.current.rows;
+      const activeDate = currentAnalysisDate();
+      if (!activeDate) return appState.current.rows;
+      return appState.current.rows.filter((row) => String(row.__report_date || '') === activeDate);
+    }
+
     function uniqueValues(field) {
       if (!appState.current) return [];
-      return [...new Set(appState.current.rows.map((row) => (row[field] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+      return [...new Set(rowsForCurrentAnalysisDate().map((row) => (row[field] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
     }
 
     function fillSelect(selectEl, field, label) {
@@ -637,12 +658,14 @@
 
     function renderSummary() {
       clearNode(summaryGrid);
-      const summary = appState.current.summary;
+      const dailyAnalysis = currentDailyAnalysis();
+      const summary = (dailyAnalysis && dailyAnalysis.summary) || appState.current.summary;
       const items = appState.current.mode === 'range' ? [
+        ['AI 報告日期', dailyAnalysis ? dailyAnalysis.label : appState.current.label, dailyAnalysis ? dailyAnalysis.date : appState.current.date],
         ['日期區間', appState.current.label, appState.current.date],
-        ['天數', String(summary.covered_days || 0), ''],
         ['筆數', String(summary.total_rows), ''],
         ['來源 IP', String(summary.unique_sources), ''],
+        ['目的地', String(summary.unique_destinations), ''],
         ['最大傳輸量', summary.max_bytes_human, summary.max_bytes_raw],
         ['總傳輸量', summary.total_bytes_human, summary.total_bytes_raw],
       ] : [
@@ -694,6 +717,19 @@
       appState.analysisSlideDirection = delta;
       appState.analysisSlideIndex = nextIndex;
       renderAnalysis();
+      syncDailyReportToAnalysisSlide();
+    }
+
+    function syncDailyReportToAnalysisSlide() {
+      if (!appState.current || appState.current.mode !== 'range') return;
+      appState.selectedRowIndex = null;
+      resetPagination();
+      setEmptyMessage(rowDetail, '尚未選取資料列。');
+      setReviewControlsEnabled(false);
+      fillSelect(sourceFilter, '來源位址', '來源 IP');
+      fillSelect(appFilter, '應用程式', '應用程式');
+      renderSummary();
+      renderRows();
     }
 
     function animateAnalysisSlide() {
@@ -785,6 +821,8 @@
     }
 
     function matchesFilters(row) {
+      const activeDate = currentAnalysisDate();
+      if (appState.current.mode === 'range' && activeDate && String(row.__report_date || '') !== activeDate) return false;
       const search = searchInput.value.trim().toLowerCase();
       const source = sourceFilter.value;
       const app = appFilter.value;
