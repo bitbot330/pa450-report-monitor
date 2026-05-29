@@ -1,59 +1,88 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
   <title id="title">PA450 automation workflow</title>
-  <desc id="desc">Workflow diagram for report download, CSV output, AI analysis, Review UI, feedback, and review memory.</desc>
+  <desc id="desc">Workflow diagram for PA450 report download, CSV output, AI analysis, Review UI feedback, and review memory rules.</desc>
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,0 L10,5 L0,10 Z" fill="#60a5fa"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07111f"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#17243d"/>
+      <stop offset="1" stop-color="#0d1729"/>
+    </linearGradient>
+    <linearGradient id="loop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#14b8a6"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+    <marker id="arrow-blue" markerWidth="11" markerHeight="11" refX="10" refY="5.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L11,5.5 L0,11 Z" fill="#60a5fa"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="11" markerHeight="11" refX="10" refY="5.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L11,5.5 L0,11 Z" fill="#14b8a6"/>
     </marker>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#000" flood-opacity="0.28"/>
+      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#020617" flood-opacity="0.36"/>
     </filter>
   </defs>
 
-  <rect width="1100" height="620" rx="28" fill="#0b1220"/>
-  <text x="550" y="58" text-anchor="middle" fill="#e5f2ff" font-family="WenQuanYi Zen Hei, Microsoft JhengHei, Noto Sans CJK TC, Arial, sans-serif" font-size="34" font-weight="800">PA450 Daily Report Automation</text>
-  <text x="550" y="90" text-anchor="middle" fill="#93a4bd" font-family="WenQuanYi Zen Hei, Microsoft JhengHei, Noto Sans CJK TC, Arial, sans-serif" font-size="16">下載 → CSV → AI 分析 → UI 回報 → 規則記憶</text>
+  <rect width="1100" height="620" rx="30" fill="url(#bg)"/>
+  <g font-family="WenQuanYi Zen Hei, Microsoft JhengHei, Noto Sans TC, Segoe UI, Arial, sans-serif">
+    <text x="550" y="58" text-anchor="middle" fill="#eaf6ff" font-size="34" font-weight="900">PA450 Daily Report Automation</text>
+    <text x="550" y="88" text-anchor="middle" fill="#9fb2cc" font-size="16">下載 → CSV → AI 分析 → Review UI 回報 → 規則記憶</text>
 
-  <g stroke="#60a5fa" stroke-width="4" fill="none" marker-end="url(#arrow)" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M280 203 H320"/>
-    <path d="M540 203 H580"/>
-    <path d="M810 203 H850"/>
-    <path d="M955 255 V300 Q955 320 935 320 H720 Q700 320 700 340 V345"/>
-    <path d="M590 407 H550"/>
-    <path d="M330 407 H290"/>
-    <path d="M175 355 V315 Q175 295 195 295 H680 Q700 295 700 275 V265"/>
+    <g stroke="#60a5fa" stroke-width="4" fill="none" marker-end="url(#arrow-blue)" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M284 202 H342"/>
+      <path d="M544 202 H602"/>
+      <path d="M804 202 H862"/>
+      <path d="M960 260 V322 Q960 342 940 342 H822"/>
+    </g>
+    <g stroke="url(#loop)" stroke-width="4" fill="none" marker-end="url(#arrow-green)" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M604 405 H546"/>
+      <path d="M344 405 H286"/>
+      <path d="M180 344 V310 Q180 292 198 292 H705 Q725 292 725 272"/>
+    </g>
+
+    <g filter="url(#shadow)">
+      <rect x="76" y="144" width="208" height="116" rx="19" fill="url(#panel)" stroke="#38bdf8" stroke-width="1.6"/>
+      <text x="180" y="187" text-anchor="middle" fill="#f8fafc" font-size="21" font-weight="800">1. PA450 API</text>
+      <text x="180" y="218" text-anchor="middle" fill="#9fb2cc" font-size="14">Custom Report XML</text>
+      <text x="180" y="239" text-anchor="middle" fill="#64748b" font-size="12">PAN-OS XML API</text>
+
+      <rect x="344" y="144" width="200" height="116" rx="19" fill="url(#panel)" stroke="#22c55e" stroke-width="1.6"/>
+      <text x="444" y="187" text-anchor="middle" fill="#f8fafc" font-size="21" font-weight="800">2. report.py</text>
+      <text x="444" y="218" text-anchor="middle" fill="#9fb2cc" font-size="14">下載並轉成 CSV</text>
+      <text x="444" y="239" text-anchor="middle" fill="#64748b" font-size="12">YYYYMMDD_report.csv</text>
+
+      <rect x="604" y="144" width="200" height="116" rx="19" fill="url(#panel)" stroke="#a78bfa" stroke-width="1.6"/>
+      <text x="704" y="187" text-anchor="middle" fill="#f8fafc" font-size="21" font-weight="800">3. analyze.py</text>
+      <text x="704" y="218" text-anchor="middle" fill="#9fb2cc" font-size="14">讀 review rules + AI</text>
+      <text x="704" y="239" text-anchor="middle" fill="#64748b" font-size="12">輸出分析 JSON</text>
+
+      <rect x="864" y="144" width="190" height="116" rx="19" fill="url(#panel)" stroke="#f59e0b" stroke-width="1.6"/>
+      <text x="959" y="187" text-anchor="middle" fill="#f8fafc" font-size="21" font-weight="800">4. JSON</text>
+      <text x="959" y="218" text-anchor="middle" fill="#9fb2cc" font-size="14">report_YYYYMMDD.json</text>
+      <text x="959" y="239" text-anchor="middle" fill="#64748b" font-size="12">AI 分析結果</text>
+
+      <rect x="604" y="344" width="220" height="122" rx="19" fill="url(#panel)" stroke="#f97316" stroke-width="1.6"/>
+      <text x="714" y="389" text-anchor="middle" fill="#f8fafc" font-size="21" font-weight="800">5. Review UI</text>
+      <text x="714" y="420" text-anchor="middle" fill="#9fb2cc" font-size="14">檢視 CSV / AI / 明細</text>
+      <text x="714" y="441" text-anchor="middle" fill="#64748b" font-size="12">寫入單筆回報</text>
+
+      <rect x="344" y="344" width="200" height="122" rx="19" fill="url(#panel)" stroke="#14b8a6" stroke-width="1.6"/>
+      <text x="444" y="389" text-anchor="middle" fill="#f8fafc" font-size="21" font-weight="800">6. Feedback</text>
+      <text x="444" y="420" text-anchor="middle" fill="#9fb2cc" font-size="14">report_YYYYMMDD.md</text>
+      <text x="444" y="441" text-anchor="middle" fill="#64748b" font-size="12">人工備註與判斷</text>
+
+      <rect x="76" y="344" width="208" height="122" rx="19" fill="url(#panel)" stroke="#64748b" stroke-width="1.6"/>
+      <text x="180" y="389" text-anchor="middle" fill="#f8fafc" font-size="21" font-weight="800">7. Review Memory</text>
+      <text x="180" y="420" text-anchor="middle" fill="#9fb2cc" font-size="14">.agent/review.md</text>
+      <text x="180" y="441" text-anchor="middle" fill="#64748b" font-size="12">下一次分析套用</text>
+    </g>
+
+    <g transform="translate(98 512)">
+      <rect width="904" height="60" rx="18" fill="#020617" opacity="0.68" stroke="#334155"/>
+      <text x="452" y="27" text-anchor="middle" fill="#e2e8f0" font-size="15" font-weight="700">CSV 固定欄位</text>
+      <text x="452" y="49" text-anchor="middle" fill="#aebfd6" font-size="14">產生時間、來源位址、來源使用者、目的地位址、目的地國家、應用程式、位元組</text>
+    </g>
   </g>
-
-  <g font-family="WenQuanYi Zen Hei, Microsoft JhengHei, Noto Sans CJK TC, Arial, sans-serif" filter="url(#shadow)">
-    <rect x="70" y="150" width="210" height="105" rx="18" fill="#111827" stroke="#38bdf8"/>
-    <text x="175" y="190" text-anchor="middle" fill="#e5e7eb" font-size="20" font-weight="700">1. PA450 API</text>
-    <text x="175" y="220" text-anchor="middle" fill="#94a3b8" font-size="14">Custom Report XML</text>
-
-    <rect x="330" y="150" width="210" height="105" rx="18" fill="#111827" stroke="#22c55e"/>
-    <text x="435" y="190" text-anchor="middle" fill="#e5e7eb" font-size="20" font-weight="700">2. report.py</text>
-    <text x="435" y="220" text-anchor="middle" fill="#94a3b8" font-size="14">輸出 CSV 固定欄位</text>
-
-    <rect x="590" y="150" width="220" height="105" rx="18" fill="#111827" stroke="#a78bfa"/>
-    <text x="700" y="190" text-anchor="middle" fill="#e5e7eb" font-size="20" font-weight="700">3. analyze.py</text>
-    <text x="700" y="220" text-anchor="middle" fill="#94a3b8" font-size="14">讀 review rules + AI</text>
-
-    <rect x="860" y="150" width="190" height="105" rx="18" fill="#111827" stroke="#f59e0b"/>
-    <text x="955" y="190" text-anchor="middle" fill="#e5e7eb" font-size="20" font-weight="700">4. JSON</text>
-    <text x="955" y="220" text-anchor="middle" fill="#94a3b8" font-size="14">report_YYYYMMDD.json</text>
-
-    <rect x="590" y="355" width="220" height="105" rx="18" fill="#111827" stroke="#f97316"/>
-    <text x="700" y="395" text-anchor="middle" fill="#e5e7eb" font-size="20" font-weight="700">5. Review UI</text>
-    <text x="700" y="425" text-anchor="middle" fill="#94a3b8" font-size="14">檢視 CSV / AI / 回報</text>
-
-    <rect x="330" y="355" width="210" height="105" rx="18" fill="#111827" stroke="#14b8a6"/>
-    <text x="435" y="395" text-anchor="middle" fill="#e5e7eb" font-size="20" font-weight="700">6. Feedback</text>
-    <text x="435" y="425" text-anchor="middle" fill="#94a3b8" font-size="14">report_YYYYMMDD.md</text>
-
-    <rect x="70" y="355" width="210" height="105" rx="18" fill="#111827" stroke="#64748b"/>
-    <text x="175" y="395" text-anchor="middle" fill="#e5e7eb" font-size="20" font-weight="700">7. Review Memory</text>
-    <text x="175" y="425" text-anchor="middle" fill="#94a3b8" font-size="14">.agent/review.md</text>
-  </g>
-
-  <rect x="110" y="515" width="880" height="52" rx="16" fill="#020617" stroke="#334155"/>
-  <text x="550" y="548" text-anchor="middle" fill="#cbd5e1" font-family="WenQuanYi Zen Hei, Microsoft JhengHei, Noto Sans CJK TC, Arial, sans-serif" font-size="16">CSV 欄位含：產生時間、來源位址、來源使用者、目的地位址、目的地國家、應用程式、位元組</text>
 </svg>
