@@ -79,8 +79,8 @@ def test_load_report_range_bundle_returns_daily_ai_summaries_and_rows(tmp_path: 
     assert payload["mode"] == "range"
     assert payload["date"] == "20260520-20260521"
     assert payload["label"] == "2026-05-20 ～ 2026-05-21"
-    assert [item["date"] for item in payload["daily_analyses"]] == ["20260521", "20260520"]
-    assert [item["analysis_sections"]["summary"] for item in payload["daily_analyses"]] == ["第二天", "第一天"]
+    assert [item["date"] for item in payload["daily_analyses"]] == ["20260520", "20260521"]
+    assert [item["analysis_sections"]["summary"] for item in payload["daily_analyses"]] == ["第一天", "第二天"]
     assert payload["headers"][0] == "報告日期"
     assert [row["報告日期"] for row in payload["rows"]] == ["2026-05-21", "2026-05-20"]
     assert payload["summary"]["covered_days"] == 2
@@ -107,23 +107,25 @@ def test_render_index_html_inlines_split_css_and_js_assets() -> None:
     assert "__ANALYSIS_DIR_JSON__" not in html
     assert "__REVIEW_DIR_JSON__" not in html
     assert load_asset_text("styles.css").strip() in html
-    assert "const DEFAULT_PAGE_SIZE = 50" in load_asset_text("app.js")
     assert "<style>" in html
     assert "<script>" in html
 
 
-def test_index_html_has_csv_pagination_controls_and_logic() -> None:
+def test_index_html_has_fixed_csv_table_without_page_controls() -> None:
     html = rendered_index_html()
 
-    assert 'id="pageSizeSelect"' in html
-    assert 'id="pagePrevButton"' in html
-    assert 'id="pageNextButton"' in html
     assert 'id="pageStatus"' in html
     assert 'class="pagination-control"' in html
-    assert "const DEFAULT_PAGE_SIZE = 50" in html
-    assert "function filteredRowsWithIndexes()" in html
-    assert "function renderPaginationControls" in html
-    assert "pageSizeSelect.addEventListener('change'" in html
+    assert 'id="pageSizeSelect"' not in html
+    assert 'id="pagePrevButton"' not in html
+    assert 'id="pageNextButton"' not in html
+    assert "每頁" not in html
+    assert "上一頁" not in html
+    assert "下一頁" not in html
+    assert "function renderRowCount" in html
+    assert "function renderPaginationControls" not in html
+    assert "table-layout: fixed" in html
+    assert "text-overflow: ellipsis" in html
 
 
 def test_index_html_has_compact_summary_and_collapsible_right_rail() -> None:
@@ -132,9 +134,12 @@ def test_index_html_has_compact_summary_and_collapsible_right_rail() -> None:
     assert "summary-item" in html
     assert "summary-value" in html
     assert 'id="contentGrid"' in html
+    assert 'id="rightRail"' in html
     assert 'id="rightRailToggleButton"' in html
     assert "function setRightRailOpen(open)" in html
     assert "right-rail-collapsed" in html
+    assert "rightRail.setAttribute('aria-hidden'" in html
+    assert "rightRail.inert = !appState.rightRailOpen" in html
     assert "setRightRailOpen(true);" in html
 
 
@@ -145,3 +150,25 @@ def test_index_html_matches_range_rows_against_same_day_ai_analysis() -> None:
     assert "analysis.date === rowDate" in html
     assert "dailyAnalysisForRow(row)" in html
     assert "完整命中 AI 報告異常項目：日期 + 來源 IP + 目的地 IP + 應用程式" in html
+
+
+def test_index_html_has_ai_report_slide_animation_and_date_direction() -> None:
+    html = rendered_index_html()
+
+    assert "analysisSlideDirection" in html
+    assert "function animateAnalysisSlide()" in html
+    assert "analysis-slide-forward" in html
+    assert "analysis-slide-backward" in html
+    assert "左滑：往較新的日期；右滑：往較舊的日期。" in html
+    assert "moveAnalysisSlide(deltaX < 0 ? 1 : -1)" in html
+
+
+def test_index_html_syncs_range_daily_report_to_ai_report_date() -> None:
+    html = rendered_index_html()
+
+    assert "function currentAnalysisDate()" in html
+    assert "function rowsForCurrentAnalysisDate()" in html
+    assert "function syncDailyReportToAnalysisSlide()" in html
+    assert "String(row.__report_date || '') !== activeDate" in html
+    assert "AI 報告日期" in html
+    assert "syncDailyReportToAnalysisSlide();" in html

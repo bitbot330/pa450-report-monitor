@@ -566,6 +566,8 @@ def load_report_range_bundle(
             if saved_review:
                 range_reviews[str(global_index)] = saved_review
 
+    daily_analyses.sort(key=lambda item: item["date"])
+
     summary = summarize_rows(summary_rows)
     summary["covered_days"] = len(selected_reports)
     return {

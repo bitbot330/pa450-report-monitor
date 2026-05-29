@@ -1,8 +1,7 @@
     const DEFAULT_CSV_DIR = __CSV_DIR_JSON__;
     const DEFAULT_ANALYSIS_DIR = __ANALYSIS_DIR_JSON__;
     const DEFAULT_REVIEW_DIR = __REVIEW_DIR_JSON__;
-    const DEFAULT_PAGE_SIZE = 50;
-    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, currentPage: 1, pageSize: DEFAULT_PAGE_SIZE, rightRailOpen: false };
+    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, analysisSlideDirection: 0, rightRailOpen: false };
     const appShell = document.getElementById('appShell');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const selectCsvFolder = document.getElementById('selectCsvFolder');
@@ -31,16 +30,13 @@
     const reportApp = document.getElementById('reportApp');
     const summaryGrid = document.getElementById('summaryGrid');
     const contentGrid = document.getElementById('contentGrid');
-    const aiCard = document.getElementById('aiCard');
+    const rightRail = document.getElementById('rightRail');
     const rightRailToggleButton = document.getElementById('rightRailToggleButton');
     const analysisCard = document.getElementById('analysisCard');
     const searchInput = document.getElementById('searchInput');
     const sourceFilter = document.getElementById('sourceFilter');
     const appFilter = document.getElementById('appFilter');
     const pageStatus = document.getElementById('pageStatus');
-    const pageSizeSelect = document.getElementById('pageSizeSelect');
-    const pagePrevButton = document.getElementById('pagePrevButton');
-    const pageNextButton = document.getElementById('pageNextButton');
     const tableHead = document.getElementById('tableHead');
     const tableBody = document.getElementById('tableBody');
     const rowDetail = document.getElementById('rowDetail');
@@ -98,8 +94,8 @@
       contentGrid.classList.toggle('right-rail-collapsed', !appState.rightRailOpen);
       rightRailToggleButton.textContent = appState.rightRailOpen ? '隱藏 AI' : '顯示 AI';
       rightRailToggleButton.setAttribute('aria-expanded', appState.rightRailOpen ? 'true' : 'false');
-      aiCard.setAttribute('aria-hidden', appState.rightRailOpen ? 'false' : 'true');
-      aiCard.inert = !appState.rightRailOpen;
+      rightRail.setAttribute('aria-hidden', appState.rightRailOpen ? 'false' : 'true');
+      rightRail.inert = !appState.rightRailOpen;
     }
 
     function setFolderPath(kind, path) {
@@ -580,9 +576,30 @@
       }
     }
 
+    function currentDailyAnalysis() {
+      if (!appState.current || appState.current.mode !== 'range') return null;
+      const items = appState.current.daily_analyses || [];
+      if (!items.length) return null;
+      appState.analysisSlideIndex = Math.min(appState.analysisSlideIndex, items.length - 1);
+      return items[appState.analysisSlideIndex] || null;
+    }
+
+    function currentAnalysisDate() {
+      const dailyAnalysis = currentDailyAnalysis();
+      return dailyAnalysis ? String(dailyAnalysis.date || '') : '';
+    }
+
+    function rowsForCurrentAnalysisDate() {
+      if (!appState.current) return [];
+      if (appState.current.mode !== 'range') return appState.current.rows;
+      const activeDate = currentAnalysisDate();
+      if (!activeDate) return appState.current.rows;
+      return appState.current.rows.filter((row) => String(row.__report_date || '') === activeDate);
+    }
+
     function uniqueValues(field) {
       if (!appState.current) return [];
-      return [...new Set(appState.current.rows.map((row) => (row[field] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+      return [...new Set(rowsForCurrentAnalysisDate().map((row) => (row[field] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
     }
 
     function fillSelect(selectEl, field, label) {
@@ -637,12 +654,14 @@
 
     function renderSummary() {
       clearNode(summaryGrid);
-      const summary = appState.current.summary;
+      const dailyAnalysis = currentDailyAnalysis();
+      const summary = (dailyAnalysis && dailyAnalysis.summary) || appState.current.summary;
       const items = appState.current.mode === 'range' ? [
+        ['AI 報告日期', dailyAnalysis ? dailyAnalysis.label : appState.current.label, dailyAnalysis ? dailyAnalysis.date : appState.current.date],
         ['日期區間', appState.current.label, appState.current.date],
-        ['天數', String(summary.covered_days || 0), ''],
         ['筆數', String(summary.total_rows), ''],
         ['來源 IP', String(summary.unique_sources), ''],
+        ['目的地', String(summary.unique_destinations), ''],
         ['最大傳輸量', summary.max_bytes_human, summary.max_bytes_raw],
         ['總傳輸量', summary.total_bytes_human, summary.total_bytes_raw],
       ] : [
@@ -689,8 +708,31 @@
     function moveAnalysisSlide(delta) {
       const items = (appState.current && appState.current.daily_analyses) || [];
       if (!items.length) return;
-      appState.analysisSlideIndex = Math.min(Math.max(appState.analysisSlideIndex + delta, 0), items.length - 1);
+      const nextIndex = Math.min(Math.max(appState.analysisSlideIndex + delta, 0), items.length - 1);
+      if (nextIndex === appState.analysisSlideIndex) return;
+      appState.analysisSlideDirection = delta;
+      appState.analysisSlideIndex = nextIndex;
       renderAnalysis();
+      syncDailyReportToAnalysisSlide();
+    }
+
+    function syncDailyReportToAnalysisSlide() {
+      if (!appState.current || appState.current.mode !== 'range') return;
+      appState.selectedRowIndex = null;
+      setEmptyMessage(rowDetail, '尚未選取資料列。');
+      setReviewControlsEnabled(false);
+      fillSelect(sourceFilter, '來源位址', '來源 IP');
+      fillSelect(appFilter, '應用程式', '應用程式');
+      renderSummary();
+      renderRows();
+    }
+
+    function animateAnalysisSlide() {
+      analysisCard.classList.remove('analysis-slide-forward', 'analysis-slide-backward');
+      if (!appState.analysisSlideDirection) return;
+      void analysisCard.offsetWidth;
+      analysisCard.classList.add(appState.analysisSlideDirection > 0 ? 'analysis-slide-forward' : 'analysis-slide-backward');
+      appState.analysisSlideDirection = 0;
     }
 
     function renderAnalysisCarouselControls(items) {
@@ -730,6 +772,7 @@
         appState.analysisSlideIndex = Math.min(appState.analysisSlideIndex, items.length - 1);
         renderAnalysisCarouselControls(items);
         renderAnalysisItem(items[appState.analysisSlideIndex]);
+        animateAnalysisSlide();
         return;
       }
       renderAnalysisItem(appState.current);
@@ -740,6 +783,7 @@
       appState.current.headers.forEach((header) => {
         const th = document.createElement('th');
         th.textContent = header;
+        th.title = header;
         tableHead.appendChild(th);
       });
     }
@@ -773,6 +817,8 @@
     }
 
     function matchesFilters(row) {
+      const activeDate = currentAnalysisDate();
+      if (appState.current.mode === 'range' && activeDate && String(row.__report_date || '') !== activeDate) return false;
       const search = searchInput.value.trim().toLowerCase();
       const source = sourceFilter.value;
       const app = appFilter.value;
@@ -790,27 +836,8 @@
         .filter((item) => matchesFilters(item.row));
     }
 
-    function maxPageFor(totalRows) {
-      return Math.max(1, Math.ceil(totalRows / appState.pageSize));
-    }
-
-    function clampCurrentPage(totalRows) {
-      appState.currentPage = Math.min(Math.max(appState.currentPage, 1), maxPageFor(totalRows));
-    }
-
-    function renderPaginationControls(totalRows) {
-      clampCurrentPage(totalRows);
-      const totalPages = maxPageFor(totalRows);
-      const start = totalRows ? ((appState.currentPage - 1) * appState.pageSize) + 1 : 0;
-      const end = totalRows ? Math.min(appState.currentPage * appState.pageSize, totalRows) : 0;
-      pageStatus.textContent = `第 ${start}-${end} 筆，共 ${totalRows} 筆（第 ${appState.currentPage}/${totalPages} 頁）`;
-      pageSizeSelect.value = String(appState.pageSize);
-      pagePrevButton.disabled = appState.currentPage <= 1;
-      pageNextButton.disabled = appState.currentPage >= totalPages;
-    }
-
-    function resetPagination() {
-      appState.currentPage = 1;
+    function renderRowCount(totalRows) {
+      pageStatus.textContent = `共 ${totalRows} 筆`;
     }
 
     function renderDetails(row) {
@@ -825,10 +852,8 @@
     function renderRows() {
       clearNode(tableBody);
       const filtered = filteredRowsWithIndexes();
-      renderPaginationControls(filtered.length);
-      const pageStart = (appState.currentPage - 1) * appState.pageSize;
-      const pageItems = filtered.slice(pageStart, pageStart + appState.pageSize);
-      pageItems.forEach(({ row, originalIndex }) => {
+      renderRowCount(filtered.length);
+      filtered.forEach(({ row, originalIndex }) => {
         const tr = document.createElement('tr');
         const isAiMatch = rowMatchesAiReport(row);
         if (isAiMatch) {
@@ -847,6 +872,7 @@
         appState.current.headers.forEach((header) => {
           const td = document.createElement('td');
           td.textContent = row[header] || '';
+          td.title = row[header] || '';
           if (isAiMatch && ['來源位址', '目的地位址', '應用程式'].includes(header)) {
             td.classList.add('ai-match-cell');
           }
@@ -854,7 +880,7 @@
         });
         tableBody.appendChild(tr);
       });
-      if (!pageItems.length) {
+      if (!filtered.length) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
         td.colSpan = appState.current.headers.length;
@@ -871,7 +897,6 @@
       reportApp.hidden = false;
       appState.selectedRowIndex = null;
       setRightRailOpen(false);
-      resetPagination();
       setEmptyMessage(rowDetail, '尚未選取資料列。');
       renderSidebar();
       renderSummary();
@@ -914,23 +939,11 @@
       const deltaX = event.changedTouches[0].clientX - analysisTouchStartX;
       analysisTouchStartX = null;
       if (Math.abs(deltaX) < 45) return;
+      // 左滑：往較新的日期；右滑：往較舊的日期。
       moveAnalysisSlide(deltaX < 0 ? 1 : -1);
     }
 
     function handleFilterChanged() {
-      resetPagination();
-      renderRows();
-    }
-
-    function changePage(delta) {
-      appState.currentPage += delta;
-      renderRows();
-    }
-
-    function handlePageSizeChanged() {
-      const nextPageSize = Number.parseInt(pageSizeSelect.value, 10);
-      appState.pageSize = Number.isNaN(nextPageSize) ? DEFAULT_PAGE_SIZE : nextPageSize;
-      resetPagination();
       renderRows();
     }
 
@@ -1006,9 +1019,6 @@
     searchInput.addEventListener('input', handleFilterChanged);
     sourceFilter.addEventListener('change', handleFilterChanged);
     appFilter.addEventListener('change', handleFilterChanged);
-    pageSizeSelect.addEventListener('change', handlePageSizeChanged);
-    pagePrevButton.addEventListener('click', () => changePage(-1));
-    pageNextButton.addEventListener('click', () => changePage(1));
     analysisCard.addEventListener('touchstart', handleAnalysisTouchStart, { passive: true });
     analysisCard.addEventListener('touchend', handleAnalysisTouchEnd, { passive: true });
     reviewStatus.addEventListener('change', updateReviewDraft);
