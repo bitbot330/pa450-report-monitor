@@ -98,6 +98,19 @@
     .analysis-body, .row-detail-body { overflow-y: auto; margin-top: 12px; padding-right: 3px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
     .analysis-body { max-height: 360px; }
     .row-detail-body { max-height: 360px; }
+    .analysis-slide-forward { animation: analysisSlideForward 180ms ease-out; }
+    .analysis-slide-backward { animation: analysisSlideBackward 180ms ease-out; }
+    @keyframes analysisSlideForward {
+      from { opacity: 0; transform: translateX(22px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes analysisSlideBackward {
+      from { opacity: 0; transform: translateX(-22px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .analysis-slide-forward, .analysis-slide-backward { animation: none; }
+    }
     .compact-toggle-button { padding: 5px 10px; font-size: 12px; }
     .analysis-carousel-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; padding: 8px; border: 1px solid var(--line-soft); border-radius: var(--radius-md); background: var(--panel-soft); }
     .analysis-carousel-button { flex: 0 0 auto; border-radius: 999px; border: 1px solid var(--line); background: #0d1525; color: var(--text); width: 34px; height: 34px; cursor: pointer; font-weight: 900; }

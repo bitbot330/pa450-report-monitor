@@ -2,7 +2,7 @@
     const DEFAULT_ANALYSIS_DIR = __ANALYSIS_DIR_JSON__;
     const DEFAULT_REVIEW_DIR = __REVIEW_DIR_JSON__;
     const DEFAULT_PAGE_SIZE = 50;
-    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, currentPage: 1, pageSize: DEFAULT_PAGE_SIZE, rightRailOpen: false };
+    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, analysisSlideDirection: 0, currentPage: 1, pageSize: DEFAULT_PAGE_SIZE, rightRailOpen: false };
     const appShell = document.getElementById('appShell');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const selectCsvFolder = document.getElementById('selectCsvFolder');
@@ -689,8 +689,19 @@
     function moveAnalysisSlide(delta) {
       const items = (appState.current && appState.current.daily_analyses) || [];
       if (!items.length) return;
-      appState.analysisSlideIndex = Math.min(Math.max(appState.analysisSlideIndex + delta, 0), items.length - 1);
+      const nextIndex = Math.min(Math.max(appState.analysisSlideIndex + delta, 0), items.length - 1);
+      if (nextIndex === appState.analysisSlideIndex) return;
+      appState.analysisSlideDirection = delta;
+      appState.analysisSlideIndex = nextIndex;
       renderAnalysis();
+    }
+
+    function animateAnalysisSlide() {
+      analysisCard.classList.remove('analysis-slide-forward', 'analysis-slide-backward');
+      if (!appState.analysisSlideDirection) return;
+      void analysisCard.offsetWidth;
+      analysisCard.classList.add(appState.analysisSlideDirection > 0 ? 'analysis-slide-forward' : 'analysis-slide-backward');
+      appState.analysisSlideDirection = 0;
     }
 
     function renderAnalysisCarouselControls(items) {
@@ -730,6 +741,7 @@
         appState.analysisSlideIndex = Math.min(appState.analysisSlideIndex, items.length - 1);
         renderAnalysisCarouselControls(items);
         renderAnalysisItem(items[appState.analysisSlideIndex]);
+        animateAnalysisSlide();
         return;
       }
       renderAnalysisItem(appState.current);
@@ -914,6 +926,7 @@
       const deltaX = event.changedTouches[0].clientX - analysisTouchStartX;
       analysisTouchStartX = null;
       if (Math.abs(deltaX) < 45) return;
+      // 左滑：往較新的日期；右滑：往較舊的日期。
       moveAnalysisSlide(deltaX < 0 ? 1 : -1);
     }
 
