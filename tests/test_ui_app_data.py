@@ -107,23 +107,25 @@ def test_render_index_html_inlines_split_css_and_js_assets() -> None:
     assert "__ANALYSIS_DIR_JSON__" not in html
     assert "__REVIEW_DIR_JSON__" not in html
     assert load_asset_text("styles.css").strip() in html
-    assert "const DEFAULT_PAGE_SIZE = 50" in load_asset_text("app.js")
     assert "<style>" in html
     assert "<script>" in html
 
 
-def test_index_html_has_csv_pagination_controls_and_logic() -> None:
+def test_index_html_has_fixed_csv_table_without_page_controls() -> None:
     html = rendered_index_html()
 
-    assert 'id="pageSizeSelect"' in html
-    assert 'id="pagePrevButton"' in html
-    assert 'id="pageNextButton"' in html
     assert 'id="pageStatus"' in html
     assert 'class="pagination-control"' in html
-    assert "const DEFAULT_PAGE_SIZE = 50" in html
-    assert "function filteredRowsWithIndexes()" in html
-    assert "function renderPaginationControls" in html
-    assert "pageSizeSelect.addEventListener('change'" in html
+    assert 'id="pageSizeSelect"' not in html
+    assert 'id="pagePrevButton"' not in html
+    assert 'id="pageNextButton"' not in html
+    assert "每頁" not in html
+    assert "上一頁" not in html
+    assert "下一頁" not in html
+    assert "function renderRowCount" in html
+    assert "function renderPaginationControls" not in html
+    assert "table-layout: fixed" in html
+    assert "text-overflow: ellipsis" in html
 
 
 def test_index_html_has_compact_summary_and_collapsible_right_rail() -> None:

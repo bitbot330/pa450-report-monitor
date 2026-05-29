@@ -1,8 +1,7 @@
     const DEFAULT_CSV_DIR = __CSV_DIR_JSON__;
     const DEFAULT_ANALYSIS_DIR = __ANALYSIS_DIR_JSON__;
     const DEFAULT_REVIEW_DIR = __REVIEW_DIR_JSON__;
-    const DEFAULT_PAGE_SIZE = 50;
-    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, analysisSlideDirection: 0, currentPage: 1, pageSize: DEFAULT_PAGE_SIZE, rightRailOpen: false };
+    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, analysisSlideDirection: 0, rightRailOpen: false };
     const appShell = document.getElementById('appShell');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const selectCsvFolder = document.getElementById('selectCsvFolder');
@@ -38,9 +37,6 @@
     const sourceFilter = document.getElementById('sourceFilter');
     const appFilter = document.getElementById('appFilter');
     const pageStatus = document.getElementById('pageStatus');
-    const pageSizeSelect = document.getElementById('pageSizeSelect');
-    const pagePrevButton = document.getElementById('pagePrevButton');
-    const pageNextButton = document.getElementById('pageNextButton');
     const tableHead = document.getElementById('tableHead');
     const tableBody = document.getElementById('tableBody');
     const rowDetail = document.getElementById('rowDetail');
@@ -723,7 +719,6 @@
     function syncDailyReportToAnalysisSlide() {
       if (!appState.current || appState.current.mode !== 'range') return;
       appState.selectedRowIndex = null;
-      resetPagination();
       setEmptyMessage(rowDetail, '尚未選取資料列。');
       setReviewControlsEnabled(false);
       fillSelect(sourceFilter, '來源位址', '來源 IP');
@@ -788,6 +783,7 @@
       appState.current.headers.forEach((header) => {
         const th = document.createElement('th');
         th.textContent = header;
+        th.title = header;
         tableHead.appendChild(th);
       });
     }
@@ -840,27 +836,8 @@
         .filter((item) => matchesFilters(item.row));
     }
 
-    function maxPageFor(totalRows) {
-      return Math.max(1, Math.ceil(totalRows / appState.pageSize));
-    }
-
-    function clampCurrentPage(totalRows) {
-      appState.currentPage = Math.min(Math.max(appState.currentPage, 1), maxPageFor(totalRows));
-    }
-
-    function renderPaginationControls(totalRows) {
-      clampCurrentPage(totalRows);
-      const totalPages = maxPageFor(totalRows);
-      const start = totalRows ? ((appState.currentPage - 1) * appState.pageSize) + 1 : 0;
-      const end = totalRows ? Math.min(appState.currentPage * appState.pageSize, totalRows) : 0;
-      pageStatus.textContent = `第 ${start}-${end} 筆，共 ${totalRows} 筆（第 ${appState.currentPage}/${totalPages} 頁）`;
-      pageSizeSelect.value = String(appState.pageSize);
-      pagePrevButton.disabled = appState.currentPage <= 1;
-      pageNextButton.disabled = appState.currentPage >= totalPages;
-    }
-
-    function resetPagination() {
-      appState.currentPage = 1;
+    function renderRowCount(totalRows) {
+      pageStatus.textContent = `共 ${totalRows} 筆`;
     }
 
     function renderDetails(row) {
@@ -875,10 +852,8 @@
     function renderRows() {
       clearNode(tableBody);
       const filtered = filteredRowsWithIndexes();
-      renderPaginationControls(filtered.length);
-      const pageStart = (appState.currentPage - 1) * appState.pageSize;
-      const pageItems = filtered.slice(pageStart, pageStart + appState.pageSize);
-      pageItems.forEach(({ row, originalIndex }) => {
+      renderRowCount(filtered.length);
+      filtered.forEach(({ row, originalIndex }) => {
         const tr = document.createElement('tr');
         const isAiMatch = rowMatchesAiReport(row);
         if (isAiMatch) {
@@ -897,6 +872,7 @@
         appState.current.headers.forEach((header) => {
           const td = document.createElement('td');
           td.textContent = row[header] || '';
+          td.title = row[header] || '';
           if (isAiMatch && ['來源位址', '目的地位址', '應用程式'].includes(header)) {
             td.classList.add('ai-match-cell');
           }
@@ -904,7 +880,7 @@
         });
         tableBody.appendChild(tr);
       });
-      if (!pageItems.length) {
+      if (!filtered.length) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
         td.colSpan = appState.current.headers.length;
@@ -921,7 +897,6 @@
       reportApp.hidden = false;
       appState.selectedRowIndex = null;
       setRightRailOpen(false);
-      resetPagination();
       setEmptyMessage(rowDetail, '尚未選取資料列。');
       renderSidebar();
       renderSummary();
@@ -969,19 +944,6 @@
     }
 
     function handleFilterChanged() {
-      resetPagination();
-      renderRows();
-    }
-
-    function changePage(delta) {
-      appState.currentPage += delta;
-      renderRows();
-    }
-
-    function handlePageSizeChanged() {
-      const nextPageSize = Number.parseInt(pageSizeSelect.value, 10);
-      appState.pageSize = Number.isNaN(nextPageSize) ? DEFAULT_PAGE_SIZE : nextPageSize;
-      resetPagination();
       renderRows();
     }
 
@@ -1057,9 +1019,6 @@
     searchInput.addEventListener('input', handleFilterChanged);
     sourceFilter.addEventListener('change', handleFilterChanged);
     appFilter.addEventListener('change', handleFilterChanged);
-    pageSizeSelect.addEventListener('change', handlePageSizeChanged);
-    pagePrevButton.addEventListener('click', () => changePage(-1));
-    pageNextButton.addEventListener('click', () => changePage(1));
     analysisCard.addEventListener('touchstart', handleAnalysisTouchStart, { passive: true });
     analysisCard.addEventListener('touchend', handleAnalysisTouchEnd, { passive: true });
     reviewStatus.addEventListener('change', updateReviewDraft);
