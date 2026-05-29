@@ -30,7 +30,7 @@
     const reportApp = document.getElementById('reportApp');
     const summaryGrid = document.getElementById('summaryGrid');
     const contentGrid = document.getElementById('contentGrid');
-    const aiCard = document.getElementById('aiCard');
+    const rightRail = document.getElementById('rightRail');
     const rightRailToggleButton = document.getElementById('rightRailToggleButton');
     const analysisCard = document.getElementById('analysisCard');
     const searchInput = document.getElementById('searchInput');
@@ -94,8 +94,8 @@
       contentGrid.classList.toggle('right-rail-collapsed', !appState.rightRailOpen);
       rightRailToggleButton.textContent = appState.rightRailOpen ? '隱藏 AI' : '顯示 AI';
       rightRailToggleButton.setAttribute('aria-expanded', appState.rightRailOpen ? 'true' : 'false');
-      aiCard.setAttribute('aria-hidden', appState.rightRailOpen ? 'false' : 'true');
-      aiCard.inert = !appState.rightRailOpen;
+      rightRail.setAttribute('aria-hidden', appState.rightRailOpen ? 'false' : 'true');
+      rightRail.inert = !appState.rightRailOpen;
     }
 
     function setFolderPath(kind, path) {

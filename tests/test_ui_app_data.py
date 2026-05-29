@@ -134,9 +134,12 @@ def test_index_html_has_compact_summary_and_collapsible_right_rail() -> None:
     assert "summary-item" in html
     assert "summary-value" in html
     assert 'id="contentGrid"' in html
+    assert 'id="rightRail"' in html
     assert 'id="rightRailToggleButton"' in html
     assert "function setRightRailOpen(open)" in html
     assert "right-rail-collapsed" in html
+    assert "rightRail.setAttribute('aria-hidden'" in html
+    assert "rightRail.inert = !appState.rightRailOpen" in html
     assert "setRightRailOpen(true);" in html
 
 
