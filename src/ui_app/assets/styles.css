@@ -92,7 +92,7 @@
     .detail-list { display: grid; gap: 10px; }
     .detail-row { border-bottom: 1px dashed rgba(255,255,255,0.12); padding-bottom: 10px; }
     .detail-row:last-child { border-bottom: none; padding-bottom: 0; }
-    .detail-key { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+    .detail-key { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.01em; margin-bottom: 4px; }
     .ai-card { font-size: 13px; max-height: 520px; overflow: hidden; transition: max-height 180ms ease, opacity 180ms ease, padding 180ms ease, border-width 180ms ease, transform 180ms ease; }
 
     .ai-card .panel-title { margin-bottom: 0; }
@@ -147,12 +147,13 @@
     tbody tr:hover { background: rgba(101, 183, 255, 0.10); }
     tbody tr.is-selected { background: rgba(101, 183, 255, 0.20); outline: 1px solid rgba(101,183,255,0.55); outline-offset: -1px; }
     tbody tr.is-selected td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
-    tbody tr.is-ai-match { background: rgba(255, 193, 7, 0.22); outline: 2px solid var(--warning); outline-offset: -2px; }
-    tbody tr.is-ai-match:hover { background: rgba(255, 193, 7, 0.32); }
-    tbody tr.is-ai-match td { border-bottom-color: rgba(255, 209, 102, 0.42); }
-    td.ai-match-cell { color: #ffffff; font-weight: 800; text-shadow: 0 0 10px rgba(255, 209, 102, 0.55); }
-    .empty { padding: 18px; border: 1px dashed var(--line); border-radius: var(--radius-md); color: var(--muted); background: rgba(255,255,255,0.02); }
-    .error { color: var(--danger); }
+    tbody tr.is-ai-match { background: linear-gradient(90deg, rgba(255, 209, 102, 0.24), rgba(255, 209, 102, 0.10)); outline: 1px solid rgba(255, 209, 102, 0.82); outline-offset: -1px; }
+    tbody tr.is-ai-match:hover { background: linear-gradient(90deg, rgba(255, 209, 102, 0.30), rgba(255, 209, 102, 0.14)); }
+    tbody tr.is-ai-match td { border-bottom-color: rgba(255, 209, 102, 0.34); }
+    tbody tr.is-ai-match td:first-child { box-shadow: inset 3px 0 0 var(--warning); }
+    td.ai-match-cell { color: #ffe8a3; font-weight: 850; text-shadow: none; }
+    .empty { padding: 18px; border: 1px dashed var(--line); border-radius: var(--radius-md); color: var(--muted); background: linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.012)); line-height: 1.5; }
+    .error { color: var(--danger); border-color: rgba(255, 154, 154, 0.44); background: rgba(255, 154, 154, 0.08); }
     .success { color: var(--success); }
     .review-save-message { min-height: 18px; margin-top: 8px; font-size: 13px; }
     @media (max-width: 1320px) {
