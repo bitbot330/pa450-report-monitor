@@ -1,7 +1,7 @@
     const DEFAULT_CSV_DIR = __CSV_DIR_JSON__;
     const DEFAULT_ANALYSIS_DIR = __ANALYSIS_DIR_JSON__;
     const DEFAULT_REVIEW_DIR = __REVIEW_DIR_JSON__;
-    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, analysisSlideDirection: 0, rightRailOpen: false };
+    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, analysisSlideDirection: 0, rightRailOpen: true };
     const appShell = document.getElementById('appShell');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const selectCsvFolder = document.getElementById('selectCsvFolder');
@@ -896,7 +896,7 @@
       loading.hidden = true;
       reportApp.hidden = false;
       appState.selectedRowIndex = null;
-      setRightRailOpen(false);
+      setRightRailOpen(true);
       setEmptyMessage(rowDetail, '尚未選取資料列。');
       renderSidebar();
       renderSummary();
@@ -1008,6 +1008,7 @@
     }
 
     renderFolderPaths();
+    setRightRailOpen(true);
     selectCsvFolder.addEventListener('click', () => chooseFolder('csv'));
     selectAnalysisFolder.addEventListener('click', () => chooseFolder('analysis'));
     selectReviewFolder.addEventListener('click', () => chooseFolder('review'));

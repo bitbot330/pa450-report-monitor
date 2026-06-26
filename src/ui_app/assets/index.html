@@ -60,13 +60,13 @@
       <div id="errorBox" class="empty error" hidden></div>
       <div id="reportApp" class="layout" hidden>
         <section class="summary-grid" id="summaryGrid"></section>
-        <section class="content-grid right-rail-collapsed" id="contentGrid">
+        <section class="content-grid" id="contentGrid">
           <article class="card csv-card">
             <div class="panel-title">
               <h2>Daily Report</h2>
               <div class="panel-actions">
                 <span class="pill">Evidence</span>
-                <button id="rightRailToggleButton" class="rail-toggle-button" type="button">顯示 AI</button>
+                <button id="rightRailToggleButton" class="rail-toggle-button" type="button" aria-expanded="true">隱藏 AI</button>
               </div>
             </div>
             <div class="toolbar">
@@ -93,7 +93,7 @@
               </table>
             </div>
           </article>
-          <aside class="right-rail" id="rightRail">
+          <aside class="right-rail" id="rightRail" aria-hidden="false">
             <article class="card ai-card" id="aiCard">
               <div class="panel-title"><h2>AI 報告</h2><span class="pill">摘要</span></div>
               <div class="analysis-body">
