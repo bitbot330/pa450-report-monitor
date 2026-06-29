@@ -1,83 +1,65 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
-  <title id="title">PA450 Report Monitor system map</title>
-  <desc id="desc">A premium subway-map style workflow diagram showing PA450 setup, report download, AI analysis, Review UI, and feedback returning to review memory.</desc>
+  <title id="title">PA450 report monitor workflow</title>
+  <desc id="desc">A left-to-right workflow diagram from setup to report download, AI analysis, review UI, and feedback memory return.</desc>
   <defs>
-    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f9f1e2"/><stop offset="1" stop-color="#ded3bf"/></linearGradient>
-    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#101a17"/><stop offset="1" stop-color="#20342c"/></linearGradient>
-    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0f766e"/><stop offset="0.54" stop-color="#84cc16"/><stop offset="1" stop-color="#d97706"/></linearGradient>
-    <pattern id="grid" width="34" height="34" patternUnits="userSpaceOnUse"><path d="M34 0H0V34" fill="none" stroke="#101a17" stroke-opacity="0.052"/></pattern>
-    <pattern id="grain" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.6" fill="#101a17" opacity="0.045"/><circle cx="6" cy="5" r="0.45" fill="#101a17" opacity="0.035"/></pattern>
-    <filter id="shadow" x="-18%" y="-22%" width="136%" height="150%"><feDropShadow dx="0" dy="18" stdDeviation="14" flood-color="#101a17" flood-opacity="0.18"/></filter>
-    <marker id="arrow" markerWidth="16" markerHeight="16" refX="14" refY="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L15,8 L1,15 Z" fill="#d97706"/></marker>
+    <linearGradient id="page" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbf4e7"/><stop offset="1" stop-color="#e8dcc6"/></linearGradient>
+    <linearGradient id="rail" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0f766e"/><stop offset="0.52" stop-color="#84cc16"/><stop offset="1" stop-color="#d97706"/></linearGradient>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#2f3b34" stroke-opacity="0.055"/></pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="18" stdDeviation="15" flood-color="#4b3f2b" flood-opacity="0.16"/></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#d97706"/></marker>
     <style>
-      .sans{font-family:Inter,Segoe UI,Arial,"WenQuanYi Zen Hei",sans-serif;fill:#101a17}.mono{font-family:"JetBrains Mono","Cascadia Mono",Consolas,monospace;fill:#101a17}.label{font-family:"JetBrains Mono","Cascadia Mono",Consolas,monospace;font-size:12px;font-weight:850;letter-spacing:1.6px;fill:#6d6048}.small{font-family:Inter,Segoe UI,Arial,"WenQuanYi Zen Hei",sans-serif;font-size:15px;fill:#4e594f}
+      .label{font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace;font-size:13px;font-weight:900;letter-spacing:3px;fill:#6b5a3d;text-transform:uppercase}
+      .title{font-family:Inter,Segoe UI,Arial,sans-serif;font-weight:900;letter-spacing:-2px;fill:#061715}
+      .body{font-family:Inter,Segoe UI,Arial,sans-serif;font-weight:800;fill:#526057}
+      .mono{font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace;font-weight:800}
     </style>
   </defs>
-
-  <rect width="1100" height="620" rx="34" fill="url(#paper)"/>
+  <rect width="1100" height="620" rx="34" fill="url(#page)"/>
   <rect width="1100" height="620" rx="34" fill="url(#grid)"/>
-  <rect width="1100" height="620" rx="34" fill="url(#grain)"/>
-  <path d="M58 62H1042M58 548H1042" stroke="#101a17" stroke-opacity="0.14"/>
-
   <g transform="translate(70 50)">
-    <text class="label" x="0" y="0">PA450 REPORT MONITOR / SYSTEM MAP</text>
-    <text class="sans" x="0" y="52" font-size="43" font-weight="920" letter-spacing="-1.4">One main run. One feedback return.</text>
-    <text class="small" x="2" y="86" font-size="17">The daily run moves left to right; review feedback loops back into the next AI analysis.</text>
+    <text class="label" x="0" y="0">PA450 REPORT MONITOR / README SYSTEM MAP</text>
+    <line x1="0" y1="16" x2="960" y2="16" stroke="#7c6a4d" stroke-opacity="0.18"/>
+    <text class="title" x="0" y="76" font-size="46">Download → Analyze → Review → Learn</text>
+    <text class="body" x="2" y="118" font-size="18">Daily data moves left to right. Human feedback returns as local rules before the next AI analysis.</text>
   </g>
-
-  <!-- map background panel -->
-  <g transform="translate(78 156)" filter="url(#shadow)">
-    <rect width="944" height="332" rx="32" fill="#fff8ea" stroke="#101a17" stroke-opacity="0.12"/>
-    <path d="M64 58H880M64 278H880" stroke="#101a17" stroke-opacity="0.07"/>
-    <text x="64" y="78" class="mono" font-size="11" font-weight="850" opacity="0.42">MAIN RUN ROUTE</text>
-    <text x="770" y="278" class="mono" font-size="11" font-weight="850" opacity="0.42">MEMORY RETURN</text>
-    <path d="M68 158H856" stroke="#101a17" stroke-opacity="0.10" stroke-width="24" stroke-linecap="round"/>
-    <path d="M68 158H856" stroke="url(#line)" stroke-width="14" stroke-linecap="round"/>
-    <path d="M68 158H856" stroke="#fff8ea" stroke-opacity="0.50" stroke-width="3" stroke-linecap="round"/>
-    <path d="M790 158C738 252 226 252 174 158" fill="none" stroke="#d97706" stroke-width="10" stroke-linecap="round" marker-end="url(#arrow)"/>
-    <path d="M790 158C738 252 226 252 174 158" fill="none" stroke="#fff8ea" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round"/>
-    <!-- station nodes -->
-    <g transform="translate(68 158)">
-      <circle r="28" fill="#fff8ea" stroke="#0f766e" stroke-width="10"/>
-      <text y="7" class="mono" text-anchor="middle" font-size="18" font-weight="950">1</text>
-      <text x="-40" y="-64" class="label">SETUP</text>
-      <text x="-40" y="-34" class="sans" font-size="24" font-weight="900">config.yaml</text>
-      <text x="-42" y="56" class="mono" font-size="11" font-weight="760" opacity="0.58">config + .env</text>
+  <g transform="translate(78 194)" filter="url(#shadow)">
+    <rect x="0" y="0" width="944" height="348" rx="34" fill="#fff8ea" stroke="#d8cbb5"/>
+    <rect x="56" y="116" width="832" height="14" rx="7" fill="#e7decc"/>
+    <rect x="56" y="116" width="832" height="14" rx="7" fill="url(#rail)" opacity="0.22"/>
+    <g class="step" transform="translate(68 42)">
+      <text class="label" x="0" y="0">01 SETUP</text>
+      <text class="title" x="0" y="48" font-size="31">config.yaml</text>
+      <circle cx="58" cy="150" r="46" fill="#fff8ea" stroke="#0f766e" stroke-width="13"/>
+      <text class="title" x="43" y="163" font-size="28">1</text>
     </g>
-    <g transform="translate(322 158)">
-      <circle r="28" fill="#fff8ea" stroke="#2f6f56" stroke-width="10"/>
-      <text y="7" class="mono" text-anchor="middle" font-size="18" font-weight="950">2</text>
-      <text x="-62" y="-64" class="label">DOWNLOAD</text>
-      <text x="-62" y="-34" class="sans" font-size="24" font-weight="900">report.py</text>
-      <text x="-64" y="56" class="mono" font-size="11" font-weight="760" opacity="0.58">XML API</text>
+    <g transform="translate(296 42)">
+      <text class="label" x="0" y="0">02 DOWNLOAD</text>
+      <text class="title" x="0" y="48" font-size="31">report.py</text>
+      <circle cx="60" cy="150" r="46" fill="#fff8ea" stroke="#256d4e" stroke-width="13"/>
+      <text class="title" x="45" y="163" font-size="28">2</text>
     </g>
-    <g transform="translate(576 158)">
-      <circle r="28" fill="#fff8ea" stroke="#84cc16" stroke-width="10"/>
-      <text y="7" class="mono" text-anchor="middle" font-size="18" font-weight="950">3</text>
-      <text x="-60" y="-64" class="label">ANALYZE</text>
-      <text x="-60" y="-34" class="sans" font-size="24" font-weight="900">analyze.py</text>
-      <text x="-60" y="56" class="mono" font-size="11" font-weight="760" opacity="0.58">AI JSON</text>
+    <g transform="translate(524 42)">
+      <text class="label" x="0" y="0">03 ANALYZE</text>
+      <text class="title" x="0" y="48" font-size="31">analyze.py</text>
+      <circle cx="62" cy="150" r="46" fill="#fff8ea" stroke="#84cc16" stroke-width="13"/>
+      <text class="title" x="47" y="163" font-size="28">3</text>
     </g>
-    <g transform="translate(856 158)">
-      <circle r="28" fill="#fff8ea" stroke="#d97706" stroke-width="10"/>
-      <text y="7" class="mono" text-anchor="middle" font-size="18" font-weight="950">4</text>
-      <text x="-44" y="-64" class="label">REVIEW</text>
-      <text x="-44" y="-34" class="sans" font-size="24" font-weight="900">ui.py</text>
-      <text x="-52" y="56" class="mono" font-size="11" font-weight="760" opacity="0.58">Review UI</text>
+    <g transform="translate(762 42)">
+      <text class="label" x="0" y="0">04 REVIEW</text>
+      <text class="title" x="0" y="48" font-size="31">ui.py</text>
+      <circle cx="42" cy="150" r="46" fill="#fff8ea" stroke="#d97706" stroke-width="13"/>
+      <text class="title" x="27" y="163" font-size="28">4</text>
     </g>
-
-    <g transform="translate(274 260)">
-      <rect width="402" height="52" rx="17" fill="#101a17"/>
-      <text x="201" y="21" class="mono" text-anchor="middle" font-size="12" font-weight="900" style="fill:#f9f1e2">RETURN LINE</text>
-      <text x="201" y="39" class="mono" text-anchor="middle" font-size="12" font-weight="760" style="fill:#dcebd5">feedback → .agent/review.md → next run</text>
-    </g>
+    <path d="M164 304 H780" stroke="#111c19" stroke-width="2" stroke-opacity="0.16" stroke-dasharray="8 10"/>
+    <path d="M780 292 C682 338 382 338 238 292" fill="none" stroke="#d97706" stroke-width="7" stroke-linecap="round" marker-end="url(#arrow)"/>
+    <rect x="272" y="266" width="400" height="64" rx="24" fill="#071413"/>
+    <text class="mono" x="386" y="291" font-size="15" fill="#fed7aa">MEMORY RETURN</text>
+    <text class="mono" x="306" y="315" font-size="14" fill="#e7fff4">feedback.md → .agent/review.md → next run</text>
   </g>
-
-  <!-- output legend -->
-  <g transform="translate(96 524)">
+  <g transform="translate(90 580)">
     <text class="label" x="0" y="0">FILES</text>
-    <text class="mono" x="72" y="0" font-size="12" font-weight="760" opacity="0.62">output\YYYYMMDD_report.csv</text>
-    <text class="mono" x="342" y="0" font-size="12" font-weight="760" opacity="0.62">output\report_YYYYMMDD.json</text>
-    <text class="mono" x="628" y="0" font-size="12" font-weight="760" opacity="0.62">output\report_YYYYMMDD.md</text>
+    <text class="mono" x="100" y="0" font-size="14" fill="#526057">output\YYYYMMDD_report.csv</text>
+    <text class="mono" x="392" y="0" font-size="14" fill="#526057">output\report_YYYYMMDD.json</text>
+    <text class="mono" x="712" y="0" font-size="14" fill="#526057">output\report_YYYYMMDD.md</text>
   </g>
 </svg>
