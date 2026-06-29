@@ -1,126 +1,82 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
-  <title id="title">PA450 Report Monitor execution workflow</title>
-  <desc id="desc">A clear left-to-right workflow showing run order: prepare config, run report.py, run analyze.py, open ui.py, export feedback, update review memory, then next analyze.py reads those rules.</desc>
+  <title id="title">PA450 Report Monitor clear workflow overview</title>
+  <desc id="desc">A polished workflow diagram showing prepare, collect, analyze, review, and the feedback loop into next analysis.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f8fafc"/>
-      <stop offset="0.58" stop-color="#eef6ff"/>
-      <stop offset="1" stop-color="#ecfdf5"/>
-    </linearGradient>
-    <linearGradient id="blueLine" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#0ea5e9"/>
-      <stop offset="1" stop-color="#2563eb"/>
-    </linearGradient>
-    <linearGradient id="greenLine" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#16a34a"/>
-      <stop offset="1" stop-color="#22c55e"/>
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
-      <feDropShadow dx="0" dy="11" stdDeviation="10" flood-color="#0f172a" flood-opacity="0.13"/>
-    </filter>
-    <marker id="arrowBlue" markerWidth="14" markerHeight="14" refX="13" refY="7" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,0 L14,7 L0,14 Z" fill="#2563eb"/>
-    </marker>
-    <marker id="arrowGreen" markerWidth="14" markerHeight="14" refX="13" refY="7" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,0 L14,7 L0,14 Z" fill="#16a34a"/>
-    </marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6f7f2"/><stop offset="1" stop-color="#e8f1ec"/></linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#14532d"/><stop offset="1" stop-color="#0f766e"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-25%" width="140%" height="155%"><feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#0f172a" flood-opacity="0.12"/></filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="13" refY="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L14,7 L0,14 Z" fill="#14532d"/></marker>
+    <marker id="arrowAmber" markerWidth="14" markerHeight="14" refX="13" refY="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L14,7 L0,14 Z" fill="#b45309"/></marker>
     <style>
-      .title{font-family:'WenQuanYi Zen Hei','Noto Sans CJK TC','Microsoft JhengHei',Inter,sans-serif;font-weight:900;fill:#0f172a}
-      .sub{font-family:'WenQuanYi Zen Hei','Noto Sans CJK TC','Microsoft JhengHei',Inter,sans-serif;fill:#475569}
+      .title{font-family:'WenQuanYi Zen Hei','Noto Sans CJK TC','Microsoft JhengHei',Inter,sans-serif;font-weight:900;fill:#111827}
+      .text{font-family:'WenQuanYi Zen Hei','Noto Sans CJK TC','Microsoft JhengHei',Inter,sans-serif;fill:#475569}
       .mono{font-family:'JetBrains Mono',Consolas,monospace;fill:#334155}
-      .label{font-family:'JetBrains Mono',Consolas,monospace;font-weight:800;letter-spacing:.7px}
-      .cardTitle{font-family:'WenQuanYi Zen Hei','Noto Sans CJK TC','Microsoft JhengHei',Inter,sans-serif;font-weight:900;fill:#0f172a}
-      .small{font-family:'WenQuanYi Zen Hei','Noto Sans CJK TC','Microsoft JhengHei',Inter,sans-serif;fill:#64748b}
+      .num{font-family:'JetBrains Mono',Consolas,monospace;font-weight:900;fill:#fefce8}
+      .label{font-family:'JetBrains Mono',Consolas,monospace;font-weight:900;letter-spacing:1.2px}
     </style>
   </defs>
+  <rect width="1100" height="620" rx="28" fill="url(#bg)"/>
+  <circle cx="938" cy="116" r="190" fill="#f59e0b" opacity="0.09"/>
+  <circle cx="140" cy="515" r="205" fill="#22c55e" opacity="0.10"/>
+  <text x="58" y="62" class="title" font-size="33">PA450 Report Monitor：執行流程</text>
+  <text x="58" y="92" class="text" font-size="16">主線只看上排 1 → 2 → 3 → 4；下排是檔案輸出與審查回饋。</text>
 
-  <rect width="1100" height="620" rx="26" fill="url(#bg)"/>
-  <rect x="26" y="24" width="1048" height="572" rx="24" fill="none" stroke="#cbd5e1" stroke-opacity="0.9"/>
-
-  <text class="title" x="62" y="61" font-size="31">PA450 Report Monitor：實際執行順序</text>
-  <text class="sub" x="62" y="91" font-size="15">先產 CSV，再交給 AI 分析，最後人工審查；審查結果會寫回 review memory，供下一次分析讀取。</text>
-
-  <!-- Main execution rail -->
-  <rect x="74" y="133" width="952" height="10" rx="5" fill="#dbeafe"/>
-  <path d="M90 138 H1004" stroke="url(#blueLine)" stroke-width="5" marker-end="url(#arrowBlue)"/>
-  <text class="label" x="78" y="124" font-size="13" fill="#1d4ed8">RUN ORDER</text>
-
-  <!-- Step cards -->
+  <path d="M134 214H966" stroke="url(#ink)" stroke-width="7" marker-end="url(#arrow)"/>
   <g filter="url(#shadow)">
-    <g transform="translate(60 165)">
-      <rect width="194" height="142" rx="20" fill="#ffffff" stroke="#38bdf8" stroke-width="2"/>
-      <circle cx="30" cy="32" r="18" fill="#e0f2fe" stroke="#0ea5e9"/>
-      <text x="24" y="38" class="label" font-size="17" fill="#0284c7">1</text>
-      <text x="61" y="31" class="label" font-size="12" fill="#0284c7">PREPARE</text>
-      <text x="31" y="72" class="cardTitle" font-size="21">設定連線</text>
-      <text x="31" y="101" class="mono" font-size="13">config.yaml</text>
-      <text x="31" y="124" class="mono" font-size="13">.env</text>
+    <g transform="translate(54 145)">
+      <rect width="204" height="142" rx="23" fill="#ffffff" stroke="#d6d3d1"/>
+      <circle cx="42" cy="42" r="22" fill="#14532d"/><text x="31" y="50" class="num" font-size="22">1</text>
+      <text x="78" y="39" class="label" font-size="12" fill="#14532d">PREPARE</text>
+      <text x="31" y="82" class="title" font-size="22">設定連線</text>
+      <text x="31" y="112" class="mono" font-size="13">config.yaml</text>
+      <text x="31" y="133" class="mono" font-size="13">.env</text>
     </g>
-    <g transform="translate(303 165)">
-      <rect width="194" height="142" rx="20" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
-      <circle cx="30" cy="32" r="18" fill="#dbeafe" stroke="#2563eb"/>
-      <text x="24" y="38" class="label" font-size="17" fill="#2563eb">2</text>
-      <text x="61" y="31" class="label" font-size="12" fill="#2563eb">DOWNLOAD</text>
-      <text x="31" y="72" class="cardTitle" font-size="21">跑 report.py</text>
-      <text x="31" y="101" class="mono" font-size="13">src\report.py</text>
-      <text x="31" y="124" class="small" font-size="13">產生每日 CSV</text>
+    <g transform="translate(302 145)">
+      <rect width="204" height="142" rx="23" fill="#ffffff" stroke="#d6d3d1"/>
+      <circle cx="42" cy="42" r="22" fill="#14532d"/><text x="31" y="50" class="num" font-size="22">2</text>
+      <text x="78" y="39" class="label" font-size="12" fill="#14532d">COLLECT</text>
+      <text x="31" y="82" class="title" font-size="22">抓自訂報表</text>
+      <text x="31" y="112" class="mono" font-size="13">src/report.py</text>
+      <text x="31" y="133" class="text" font-size="13">輸出 CSV</text>
     </g>
-    <g transform="translate(546 165)">
-      <rect width="194" height="142" rx="20" fill="#ffffff" stroke="#7c3aed" stroke-width="2"/>
-      <circle cx="30" cy="32" r="18" fill="#ede9fe" stroke="#7c3aed"/>
-      <text x="24" y="38" class="label" font-size="17" fill="#7c3aed">3</text>
-      <text x="61" y="31" class="label" font-size="12" fill="#7c3aed">ANALYZE</text>
-      <text x="31" y="72" class="cardTitle" font-size="21">跑 analyze.py</text>
-      <text x="31" y="101" class="mono" font-size="13">src\analyze.py</text>
-      <text x="31" y="124" class="small" font-size="13">CSV + review rules</text>
+    <g transform="translate(550 145)">
+      <rect width="204" height="142" rx="23" fill="#ffffff" stroke="#d6d3d1"/>
+      <circle cx="42" cy="42" r="22" fill="#14532d"/><text x="31" y="50" class="num" font-size="22">3</text>
+      <text x="78" y="39" class="label" font-size="12" fill="#14532d">ANALYZE</text>
+      <text x="31" y="82" class="title" font-size="22">AI 分析</text>
+      <text x="31" y="112" class="mono" font-size="13">src/analyze.py</text>
+      <text x="31" y="133" class="text" font-size="13">輸出 JSON</text>
     </g>
-    <g transform="translate(789 165)">
-      <rect width="194" height="142" rx="20" fill="#ffffff" stroke="#ea580c" stroke-width="2"/>
-      <circle cx="30" cy="32" r="18" fill="#ffedd5" stroke="#ea580c"/>
-      <text x="24" y="38" class="label" font-size="17" fill="#ea580c">4</text>
-      <text x="61" y="31" class="label" font-size="12" fill="#ea580c">REVIEW</text>
-      <text x="31" y="72" class="cardTitle" font-size="21">開 Review UI</text>
-      <text x="31" y="101" class="mono" font-size="13">src\ui.py</text>
-      <text x="31" y="124" class="small" font-size="13">人工確認 AI 結果</text>
+    <g transform="translate(798 145)">
+      <rect width="204" height="142" rx="23" fill="#fffaf0" stroke="#f59e0b" stroke-width="2"/>
+      <circle cx="42" cy="42" r="22" fill="#b45309"/><text x="31" y="50" class="num" font-size="22">4</text>
+      <text x="78" y="39" class="label" font-size="12" fill="#b45309">REVIEW</text>
+      <text x="31" y="82" class="title" font-size="22">人工審查</text>
+      <text x="31" y="112" class="mono" font-size="13">src/ui.py</text>
+      <text x="31" y="133" class="text" font-size="13">確認 / 修正判斷</text>
     </g>
   </g>
 
-  <!-- Arrows between cards -->
-  <path d="M257 236 H296" stroke="#2563eb" stroke-width="5" marker-end="url(#arrowBlue)"/>
-  <path d="M500 236 H539" stroke="#2563eb" stroke-width="5" marker-end="url(#arrowBlue)"/>
-  <path d="M743 236 H782" stroke="#2563eb" stroke-width="5" marker-end="url(#arrowBlue)"/>
-
-  <!-- File pipeline strip -->
-  <g transform="translate(78 338)">
-    <rect width="944" height="92" rx="20" fill="#ffffff" stroke="#cbd5e1"/>
-    <text class="cardTitle" x="28" y="34" font-size="19">檔案怎麼流</text>
-    <text class="mono" x="28" y="64" font-size="13">config.yaml + .env  →  src\report.py  →  output\YYYYMMDD_report.csv</text>
-    <text class="mono" x="28" y="84" font-size="13">output\YYYYMMDD_report.csv  →  src\analyze.py  →  output\report_YYYYMMDD.json  →  Review UI</text>
+  <g transform="translate(74 342)">
+    <rect width="952" height="76" rx="22" fill="#111827" opacity="0.94"/>
+    <text x="28" y="31" class="label" font-size="13" fill="#facc15">FILE PIPELINE</text>
+    <text x="28" y="58" class="mono" font-size="14" style="fill:#e5e7eb">config.yaml + .env → output/YYYYMMDD_report.csv → output/report_YYYYMMDD.json → Review UI</text>
   </g>
 
-  <!-- Feedback loop -->
-  <text class="label" x="79" y="470" font-size="13" fill="#15803d">FEEDBACK LOOP</text>
-  <path d="M892 309 V456 C892 485 869 498 840 498 H646" fill="none" stroke="url(#greenLine)" stroke-width="5" marker-end="url(#arrowGreen)"/>
-  <path d="M498 498 H284" fill="none" stroke="url(#greenLine)" stroke-width="5" marker-end="url(#arrowGreen)"/>
-  <path d="M284 518 H645" fill="none" stroke="#16a34a" stroke-width="4" stroke-dasharray="9 8" marker-end="url(#arrowGreen)"/>
-  <path d="M645 518 C704 518 716 472 662 448 C622 430 608 402 608 330" fill="none" stroke="#16a34a" stroke-width="4" stroke-dasharray="9 8" marker-end="url(#arrowGreen)"/>
-
-  <g filter="url(#shadow)">
-    <g transform="translate(78 482)">
-      <rect width="206" height="72" rx="18" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
-      <text class="cardTitle" x="28" y="30" font-size="18" fill="#166534">Feedback Markdown</text>
-      <text class="mono" x="28" y="53" font-size="13">report_YYYYMMDD.md</text>
-    </g>
-    <g transform="translate(498 482)">
-      <rect width="206" height="72" rx="18" fill="#ecfdf5" stroke="#16a34a" stroke-width="2"/>
-      <text class="cardTitle" x="37" y="30" font-size="18" fill="#166534">Review Memory</text>
-      <text class="mono" x="42" y="53" font-size="13">.agent\review.md</text>
-    </g>
+  <g transform="translate(94 470)">
+    <text x="0" y="-20" class="label" font-size="13" fill="#b45309">FEEDBACK LOOP</text>
+    <rect x="0" y="0" width="250" height="72" rx="20" fill="#fff7ed" stroke="#fed7aa"/>
+    <text x="25" y="30" class="title" font-size="18">審查匯出 Markdown</text>
+    <text x="25" y="54" class="mono" font-size="13">report_YYYYMMDD.md</text>
+    <path d="M265 36H418" stroke="#b45309" stroke-width="5" marker-end="url(#arrowAmber)"/>
+    <rect x="438" y="0" width="250" height="72" rx="20" fill="#ecfdf5" stroke="#bbf7d0"/>
+    <text x="463" y="30" class="title" font-size="18">寫回 Review Memory</text>
+    <text x="463" y="54" class="mono" font-size="13">.agent/review.md</text>
+    <path d="M705 36H846" stroke="#b45309" stroke-width="5" marker-end="url(#arrowAmber)"/>
+    <rect x="866" y="0" width="118" height="72" rx="20" fill="#ffffff" stroke="#d6d3d1"/>
+    <text x="894" y="31" class="title" font-size="17">下次</text>
+    <text x="887" y="54" class="mono" font-size="12">analyze.py</text>
   </g>
-
-  <g transform="translate(752 480)">
-    <rect width="274" height="76" rx="18" fill="#ffffff" stroke="#bbf7d0"/>
-    <text class="cardTitle" x="24" y="31" font-size="16" fill="#166534">下一次分析會讀取這份規則</text>
-    <text class="mono" x="24" y="55" font-size="13">src\analyze.py  ←  .agent\review.md</text>
-  </g>
+  <path d="M981 470 C1038 425 1038 330 932 294" fill="none" stroke="#b45309" stroke-width="4" stroke-dasharray="9 9" marker-end="url(#arrowAmber)"/>
+  <rect x="22" y="22" width="1056" height="576" rx="24" fill="none" stroke="#111827" stroke-opacity="0.08"/>
 </svg>
