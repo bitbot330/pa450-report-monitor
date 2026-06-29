@@ -1,58 +1,121 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
-  <title id="title">PA450 Report Monitor refined product launch hero</title>
-  <desc id="desc">A refined product launch README hero with editorial typography, split keynote stage, product console, and report-to-review motion ribbons.</desc>
+  <title id="title">PA450 Report Monitor editorial command board hero</title>
+  <desc id="desc">An editorial README hero for PA450 Report Monitor with a large PA450 wordmark, evidence-board composition, report tickets, review memory rail, and restrained field-operations palette.</desc>
   <defs>
-    <linearGradient id="cream" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7ed"/><stop offset="1" stop-color="#f3ead7"/></linearGradient>
-    <linearGradient id="stage" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#061417"/><stop offset="0.62" stop-color="#0d2d24"/><stop offset="1" stop-color="#26330d"/></linearGradient>
-    <radialGradient id="spot" cx="76%" cy="24%" r="58%"><stop offset="0" stop-color="#bef264" stop-opacity="0.45"/><stop offset="0.5" stop-color="#facc15" stop-opacity="0.16"/><stop offset="1" stop-color="#facc15" stop-opacity="0"/></radialGradient>
-    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#16a34a"/><stop offset="0.45" stop-color="#a3e635"/><stop offset="0.75" stop-color="#f59e0b"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
-    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f172a"/><stop offset="0.62" stop-color="#111827"/><stop offset="1" stop-color="#14532d"/></linearGradient>
-    <filter id="shadow" x="-25%" y="-30%" width="150%" height="170%"><feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#020617" flood-opacity="0.28"/></filter>
-    <pattern id="grain" width="38" height="38" patternUnits="userSpaceOnUse"><circle cx="7" cy="9" r="0.7" fill="#111827" opacity="0.05"/><circle cx="29" cy="21" r="0.55" fill="#111827" opacity="0.035"/></pattern>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffaf0"/>
+      <stop offset="0.58" stop-color="#f3ead6"/>
+      <stop offset="1" stop-color="#e7dcc4"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17201d"/>
+      <stop offset="1" stop-color="#26352e"/>
+    </linearGradient>
+    <linearGradient id="ticket" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffdf7"/>
+      <stop offset="1" stop-color="#f2ead8"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#26352e" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
+    <pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#17201d" fill-opacity="0.08"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="22" stdDeviation="18" flood-color="#17201d" flood-opacity="0.18"/>
+    </filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M1,1 L13,7 L1,13 Z" fill="#d97706"/>
+    </marker>
     <style>
-      .display{font-family:'WenQuanYi Zen Hei','Arial Black',Impact,sans-serif;font-weight:900;fill:#111827;letter-spacing:-4px}
-      .sans{font-family:'WenQuanYi Zen Hei',Inter,Arial,sans-serif;fill:#1f2937}
-      .mono{font-family:'JetBrains Mono',Consolas,monospace;fill:#334155}
+      .display{font-family:Inter,Segoe UI,Arial,sans-serif;font-weight:900;letter-spacing:-6px;fill:#17201d}
+      .sans{font-family:Inter,Segoe UI,Arial,sans-serif;fill:#17201d}
+      .mono{font-family:"JetBrains Mono","Cascadia Mono","SFMono-Regular",Consolas,monospace;fill:#17201d}
+      .label{font-family:"JetBrains Mono","Cascadia Mono",Consolas,monospace;font-size:13px;font-weight:700;letter-spacing:1.7px;text-transform:uppercase;fill:#6b5f4a}
+      .tiny{font-family:"JetBrains Mono","Cascadia Mono",Consolas,monospace;font-size:12px;fill:#6b5f4a}
     </style>
   </defs>
-  <rect width="1200" height="520" rx="34" fill="url(#cream)"/>
-  <rect width="1200" height="520" rx="34" fill="url(#grain)"/>
-  <path d="M522 0H1200V520H458C548 382 566 166 522 0Z" fill="url(#stage)"/>
-  <path d="M522 0H1200V520H458C548 382 566 166 522 0Z" fill="url(#spot)"/>
-  <text x="-20" y="500" class="display" font-size="258" opacity="0.04">450</text>
 
-  <g fill="none" stroke-linecap="round" opacity="0.62">
-    <path d="M602 432 C690 372, 774 372, 852 308 C952 226, 1044 218, 1150 164" stroke="url(#flow)" stroke-width="17"/>
-    <path d="M604 475 C704 422, 788 432, 884 360 C974 302, 1044 296, 1152 254" stroke="#38bdf8" stroke-width="5" opacity="0.30"/>
-  </g>
+  <rect width="1200" height="520" rx="36" fill="url(#paper)"/>
+  <rect x="0" y="0" width="1200" height="520" rx="36" fill="url(#grid)"/>
+  <rect x="0" y="0" width="1200" height="520" rx="36" fill="url(#dots)"/>
 
-  <g transform="translate(66 54)">
-    <rect width="186" height="35" rx="17.5" fill="#111827"/>
-    <text x="18" y="23" class="mono" font-size="12" font-weight="900" letter-spacing="2.4" fill="#bef264">LAUNCH READY</text>
-    <text x="0" y="118" class="display" font-size="91">PA450</text>
-    <text x="0" y="203" class="display" font-size="82">REPORT</text>
-    <text x="3" y="267" class="display" font-size="59">MONITOR</text>
-    <path d="M5 293H410" stroke="url(#flow)" stroke-width="9" stroke-linecap="round"/>
-    <text x="4" y="337" class="sans" font-size="24" font-weight="800">Reports → AI review → reusable rules.</text>
-    <text x="5" y="371" class="mono" font-size="13" letter-spacing="1.35">PAN-OS XML API · CSV · AI JSON · REVIEW MEMORY</text>
-  </g>
+  <!-- editorial frame -->
+  <path d="M54 58H1146M54 462H1146" stroke="#17201d" stroke-opacity="0.22" stroke-width="1.4"/>
+  <path d="M82 86V434M1118 86V434" stroke="#17201d" stroke-opacity="0.12" stroke-width="1"/>
+  <text x="84" y="42" class="mono" font-size="12" font-weight="700" letter-spacing="1.8" fill-opacity="0.62">LOCAL COMMAND BOARD / PAN-OS XML API / CSV / AI JSON / REVIEW MEMORY</text>
+  <text x="1030" y="42" class="mono" font-size="12" font-weight="700" letter-spacing="1.8" fill-opacity="0.62">README HERO</text>
 
-  <g transform="translate(626 78) rotate(-3 242 174)" filter="url(#shadow)">
-    <rect x="0" y="0" width="474" height="330" rx="36" fill="#ffffff" opacity="0.95"/>
-    <rect x="23" y="23" width="428" height="284" rx="27" fill="url(#screen)"/>
-    <rect x="23" y="23" width="428" height="70" rx="27" fill="#ffffff" opacity="0.075"/>
-    <text x="52" y="66" class="mono" font-size="14" font-weight="900" letter-spacing="2" fill="#bef264">REVIEW CONSOLE</text>
-    <rect x="330" y="44" width="82" height="27" rx="13.5" fill="#ecfccb"/>
-    <text x="347" y="63" class="mono" font-size="10" font-weight="900" fill="#365314">READY</text>
-    <g transform="translate(52 122)">
-      <rect width="106" height="84" rx="20" fill="#f8fafc"/><text x="17" y="31" class="mono" font-size="11" font-weight="900" fill="#166534">CSV</text><path d="M17 55H86" stroke="#16a34a" stroke-width="9" stroke-linecap="round"/><path d="M17 72H66" stroke="#84cc16" stroke-width="6" stroke-linecap="round"/>
-      <rect x="135" width="106" height="84" rx="20" fill="#fff7ed"/><text x="152" y="31" class="mono" font-size="11" font-weight="900" fill="#92400e">AI JSON</text><path d="M152 55H221" stroke="#f59e0b" stroke-width="9" stroke-linecap="round"/><path d="M152 72H202" stroke="#fb923c" stroke-width="6" stroke-linecap="round"/>
-      <rect x="270" width="106" height="84" rx="20" fill="#eff6ff"/><text x="287" y="31" class="mono" font-size="11" font-weight="900" fill="#1d4ed8">REVIEW</text><path d="M287 55H356" stroke="#2563eb" stroke-width="9" stroke-linecap="round"/><path d="M287 72H337" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/>
+  <!-- big wordmark block -->
+  <g transform="translate(94 112)">
+    <text x="0" y="118" class="display" font-size="156">PA450</text>
+    <text x="4" y="176" class="sans" font-size="44" font-weight="850" letter-spacing="-1.2">Report CSV Monitor</text>
+    <rect x="7" y="202" width="368" height="4" rx="2" fill="#d97706"/>
+    <text x="7" y="238" class="sans" font-size="22" font-weight="650" fill="#38443d">Local firewall reports. Reviewed evidence.</text>
+    <text x="7" y="272" class="sans" font-size="18" font-weight="520" fill="#5e665f">CSV download, AI analysis, human review memory.</text>
+
+    <g transform="translate(8 326)">
+      <rect x="0" y="0" width="112" height="34" rx="17" fill="#17201d"/>
+      <text x="56" y="22" text-anchor="middle" class="mono" font-size="12" font-weight="800" fill="#fffaf0">REPORT.PY</text>
+      <rect x="126" y="0" width="114" height="34" rx="17" fill="#e7dcc4" stroke="#17201d" stroke-opacity="0.22"/>
+      <text x="183" y="22" text-anchor="middle" class="mono" font-size="12" font-weight="800">ANALYZE.PY</text>
+      <rect x="254" y="0" width="94" height="34" rx="17" fill="#e7dcc4" stroke="#17201d" stroke-opacity="0.22"/>
+      <text x="301" y="22" text-anchor="middle" class="mono" font-size="12" font-weight="800">UI.PY</text>
     </g>
-    <path d="M54 248H396" stroke="#64748b" stroke-opacity="0.38"/>
-    <text x="54" y="278" class="mono" font-size="13" fill="#d1d5db">report.py → analyze.py → ui.py → review.md</text>
   </g>
 
-  <text x="1030" y="456" class="display" font-size="118" fill="#ffffff" opacity="0.07">01</text>
-  <rect x="20" y="20" width="1160" height="480" rx="28" fill="none" stroke="#111827" stroke-opacity="0.10"/>
+  <!-- right evidence object -->
+  <g transform="translate(650 92) rotate(-3 230 175)" filter="url(#shadow)">
+    <rect x="0" y="0" width="430" height="336" rx="28" fill="url(#ink)"/>
+    <rect x="20" y="22" width="390" height="292" rx="18" fill="#f9f2e3"/>
+    <path d="M52 74H372M52 132H372M52 190H372M52 248H372" stroke="#17201d" stroke-opacity="0.14"/>
+    <path d="M116 47V289M244 47V289" stroke="#17201d" stroke-opacity="0.08"/>
+    <text x="52" y="54" class="label">DAILY EVIDENCE</text>
+    <text x="314" y="54" class="tiny" text-anchor="end">YYYYMMDD</text>
+
+    <g transform="translate(52 83)">
+      <rect x="0" y="0" width="112" height="34" rx="9" fill="#17201d"/>
+      <text x="56" y="22" class="mono" text-anchor="middle" font-size="12" font-weight="800" fill="#fffaf0">CSV</text>
+      <text x="132" y="22" class="sans" font-size="18" font-weight="800">traffic bytes</text>
+      <text x="335" y="22" text-anchor="end" class="mono" font-size="11" style="fill:#6b5f4a">cols locked</text>
+    </g>
+    <g transform="translate(52 141)">
+      <rect x="0" y="0" width="112" height="34" rx="9" fill="#d97706"/>
+      <text x="56" y="22" class="mono" text-anchor="middle" font-size="12" font-weight="900" fill="#fffaf0">AI JSON</text>
+      <text x="132" y="22" class="sans" font-size="18" font-weight="800">risk summary</text>
+      <text x="335" y="22" text-anchor="end" class="mono" font-size="11" style="fill:#6b5f4a">reviewable</text>
+    </g>
+    <g transform="translate(52 199)">
+      <rect x="0" y="0" width="112" height="34" rx="9" fill="#2f6f56"/>
+      <text x="56" y="22" class="mono" text-anchor="middle" font-size="12" font-weight="900" fill="#fffaf0">REVIEW</text>
+      <text x="132" y="22" class="sans" font-size="18" font-weight="800">human feedback</text>
+      <text x="335" y="22" text-anchor="end" class="mono" font-size="11" style="fill:#6b5f4a">local</text>
+    </g>
+    <g transform="translate(52 257)">
+      <rect x="0" y="0" width="112" height="34" rx="9" fill="#f3ead6" stroke="#17201d" stroke-opacity="0.3"/>
+      <text x="56" y="22" class="mono" text-anchor="middle" font-size="12" font-weight="900">RULES</text>
+      <text x="132" y="22" class="sans" font-size="17" font-weight="800">next-run memory</text>
+      <text x="335" y="22" text-anchor="end" class="mono" font-size="11" style="fill:#6b5f4a">rules</text>
+    </g>
+  </g>
+
+  <!-- command flow tape behind object -->
+  <g opacity="0.95">
+    <path d="M550 174 C615 126 659 128 724 153" fill="none" stroke="#d97706" stroke-width="5" stroke-linecap="round" marker-end="url(#arrow)"/>
+    <path d="M552 238 C629 220 663 230 728 274" fill="none" stroke="#2f6f56" stroke-width="5" stroke-linecap="round" marker-end="url(#arrow)"/>
+    <circle cx="550" cy="174" r="7" fill="#d97706"/>
+    <circle cx="552" cy="238" r="7" fill="#2f6f56"/>
+  </g>
+
+  <!-- bottom index strip -->
+  <g transform="translate(94 452)">
+    <rect x="0" y="0" width="1002" height="1.4" fill="#17201d" fill-opacity="0.2"/>
+    <text x="0" y="30" class="mono" font-size="12" font-weight="750" fill="#6b5f4a">01  PA450 CUSTOM REPORT</text>
+    <text x="252" y="30" class="mono" font-size="12" font-weight="750" fill="#6b5f4a">02  LOCAL CSV OUTPUT</text>
+    <text x="510" y="30" class="mono" font-size="12" font-weight="750" fill="#6b5f4a">03  AI ANALYSIS</text>
+    <text x="736" y="30" class="mono" font-size="12" font-weight="750" fill="#6b5f4a">04  REVIEW MEMORY</text>
+  </g>
 </svg>
