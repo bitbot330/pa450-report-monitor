@@ -1,7 +1,7 @@
 # 🛡️ PA450 Report CSV Monitor
 
 <p align="center">
-  <img src="assets/images/pa450-report-monitor-hero.svg" alt="PA450 Report CSV Monitor Hero" width="820" />
+  <img src="assets/images/pa450-report-monitor-hero.png" alt="PA450 Report CSV Monitor Hero" width="820" />
 </p>
 
 <p align="center">
