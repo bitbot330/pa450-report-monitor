@@ -1,88 +1,75 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
-  <title id="title">PA450 Report Monitor product launch hero</title>
-  <desc id="desc">A product-launch style README hero with a rich stage, product dashboard mockup, traffic ribbons, and strong PA450 Report Monitor launch typography.</desc>
+  <title id="title">PA450 Report Monitor premium product launch hero</title>
+  <desc id="desc">A premium product-launch README hero with warm editorial paper, bold product title, dimensional review console, and energetic report-to-review ribbons.</desc>
   <defs>
-    <linearGradient id="stage" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#07111f"/>
-      <stop offset="0.42" stop-color="#0f2435"/>
-      <stop offset="0.72" stop-color="#173326"/>
-      <stop offset="1" stop-color="#3a2309"/>
-    </linearGradient>
-    <radialGradient id="limeGlow" cx="70%" cy="45%" r="54%">
-      <stop offset="0" stop-color="#a3e635" stop-opacity="0.42"/>
-      <stop offset="0.38" stop-color="#22c55e" stop-opacity="0.16"/>
-      <stop offset="1" stop-color="#22c55e" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="goldGlow" cx="38%" cy="70%" r="58%">
-      <stop offset="0" stop-color="#f59e0b" stop-opacity="0.40"/>
-      <stop offset="0.35" stop-color="#f59e0b" stop-opacity="0.16"/>
-      <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#172033"/><stop offset="1" stop-color="#0b1020"/></linearGradient>
-    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.20"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.04"/></linearGradient>
-    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#22c55e"/><stop offset="0.45" stop-color="#a3e635"/><stop offset="0.78" stop-color="#facc15"/><stop offset="1" stop-color="#fb923c"/></linearGradient>
-    <filter id="shadow" x="-25%" y="-35%" width="155%" height="180%"><feDropShadow dx="0" dy="28" stdDeviation="26" flood-color="#000" flood-opacity="0.46"/></filter>
-    <filter id="soft"><feGaussianBlur stdDeviation="12"/></filter>
-    <pattern id="dots" width="34" height="34" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.1" fill="#ffffff" opacity="0.055"/></pattern>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbf4e8"/><stop offset="0.58" stop-color="#f3ead9"/><stop offset="1" stop-color="#e8f6df"/></linearGradient>
+    <radialGradient id="sun" cx="78%" cy="18%" r="44%"><stop offset="0" stop-color="#fde68a" stop-opacity="0.8"/><stop offset="0.45" stop-color="#fb923c" stop-opacity="0.22"/><stop offset="1" stop-color="#fb923c" stop-opacity="0"/></radialGradient>
+    <radialGradient id="lime" cx="61%" cy="75%" r="48%"><stop offset="0" stop-color="#a3e635" stop-opacity="0.48"/><stop offset="0.46" stop-color="#22c55e" stop-opacity="0.16"/><stop offset="1" stop-color="#22c55e" stop-opacity="0"/></radialGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#111827"/><stop offset="0.55" stop-color="#0b1220"/><stop offset="1" stop-color="#163126"/></linearGradient>
+    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#16a34a"/><stop offset="0.38" stop-color="#84cc16"/><stop offset="0.7" stop-color="#f59e0b"/><stop offset="1" stop-color="#ef4444"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-35%" width="160%" height="180%"><feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#1f2937" flood-opacity="0.22"/></filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="14"/></filter>
+    <pattern id="grain" width="42" height="42" patternUnits="userSpaceOnUse"><circle cx="5" cy="7" r="0.8" fill="#111827" opacity="0.045"/><circle cx="31" cy="26" r="0.6" fill="#111827" opacity="0.035"/><path d="M0 41.5H42" stroke="#111827" stroke-opacity="0.025"/></pattern>
     <style>
-      .display{font-family:'WenQuanYi Zen Hei','Arial Black',Impact,sans-serif;font-weight:900;letter-spacing:-4px;fill:#f8fafc}
-      .sans{font-family:'WenQuanYi Zen Hei',Inter,Arial,sans-serif;fill:#e5e7eb}
-      .mono{font-family:'JetBrains Mono',Consolas,monospace;fill:#cbd5e1}
+      .display{font-family:'WenQuanYi Zen Hei','Arial Black',Impact,sans-serif;font-weight:900;fill:#111827;letter-spacing:-4px}
+      .sans{font-family:'WenQuanYi Zen Hei',Inter,Arial,sans-serif;fill:#1f2937}
+      .mono{font-family:'JetBrains Mono',Consolas,monospace;fill:#334155}
     </style>
   </defs>
-  <rect width="1200" height="520" rx="34" fill="url(#stage)"/>
-  <rect width="1200" height="520" rx="34" fill="url(#limeGlow)"/>
-  <rect width="1200" height="520" rx="34" fill="url(#goldGlow)"/>
-  <rect width="1200" height="520" rx="34" fill="url(#dots)"/>
+  <rect width="1200" height="520" rx="34" fill="url(#paper)"/>
+  <rect width="1200" height="520" rx="34" fill="url(#sun)"/>
+  <rect width="1200" height="520" rx="34" fill="url(#lime)"/>
+  <rect width="1200" height="520" rx="34" fill="url(#grain)"/>
+  <circle cx="1068" cy="92" r="76" fill="#111827" opacity="0.055"/>
+  <circle cx="1133" cy="151" r="122" fill="none" stroke="#111827" stroke-opacity="0.08" stroke-width="2"/>
+  <text x="-18" y="500" class="display" font-size="260" opacity="0.045">PA</text>
 
-  <!-- launch spotlight and product device -->
-  <ellipse cx="785" cy="428" rx="360" ry="54" fill="#020617" opacity="0.45" filter="url(#soft)"/>
-  <g transform="translate(585 78) rotate(-2 250 180)" filter="url(#shadow)">
-    <rect x="0" y="0" width="500" height="330" rx="34" fill="#0a1020" stroke="#ffffff" stroke-opacity="0.18"/>
-    <rect x="22" y="24" width="456" height="282" rx="24" fill="url(#panel)" stroke="#334155"/>
-    <rect x="22" y="24" width="456" height="72" rx="24" fill="url(#glass)"/>
-    <text x="48" y="66" class="mono" font-size="15" font-weight="900" letter-spacing="2" fill="#a3e635">REVIEW CONSOLE</text>
-    <rect x="336" y="45" width="104" height="26" rx="13" fill="#14532d" stroke="#22c55e"/>
-    <text x="358" y="63" class="mono" font-size="10" font-weight="900" fill="#bbf7d0">READY</text>
-    <g transform="translate(50 122)">
-      <rect width="118" height="78" rx="18" fill="#111827" stroke="#334155"/>
-      <text x="18" y="28" class="mono" font-size="12" fill="#94a3b8">CSV</text>
-      <path d="M18 54H96" stroke="#22c55e" stroke-width="8" stroke-linecap="round"/>
-      <path d="M18 68H68" stroke="#a3e635" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
-      <rect x="148" width="118" height="78" rx="18" fill="#111827" stroke="#334155"/>
-      <text x="166" y="28" class="mono" font-size="12" fill="#94a3b8">AI JSON</text>
-      <path d="M166 54H244" stroke="#facc15" stroke-width="8" stroke-linecap="round"/>
-      <path d="M166 68H221" stroke="#fb923c" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
-      <rect x="296" width="118" height="78" rx="18" fill="#111827" stroke="#334155"/>
-      <text x="314" y="28" class="mono" font-size="12" fill="#94a3b8">REVIEW</text>
-      <path d="M314 54H392" stroke="#38bdf8" stroke-width="8" stroke-linecap="round"/>
-      <path d="M314 68H368" stroke="#22c55e" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
+  <!-- energetic but controlled ribbons, kept behind the headline/readability zone -->
+  <g fill="none" stroke-linecap="round" opacity="0.78">
+    <path d="M74 450 C230 390, 366 454, 532 370 C684 294, 835 296, 1115 214" stroke="url(#flow)" stroke-width="16" opacity="0.66"/>
+    <path d="M92 482 C254 427, 414 470, 574 405 C731 341, 879 338, 1125 286" stroke="#0f766e" stroke-width="5" opacity="0.28"/>
+  </g>
+  <circle cx="532" cy="370" r="8" fill="#111827" opacity="0.22"/>
+  <circle cx="835" cy="296" r="7" fill="#111827" opacity="0.22"/>
+
+  <g transform="translate(66 58)">
+    <rect x="0" y="0" width="188" height="36" rx="18" fill="#111827"/>
+    <text x="18" y="24" class="mono" font-size="12" font-weight="900" letter-spacing="2.4" fill="#bef264">PRODUCT RELEASE</text>
+    <text x="0" y="111" class="display" font-size="88">PA450</text>
+    <text x="0" y="191" class="display" font-size="77">REPORT</text>
+    <text x="2" y="255" class="display" font-size="58">MONITOR</text>
+    <path d="M5 278H388" stroke="url(#flow)" stroke-width="8" stroke-linecap="round"/>
+    <text x="4" y="322" class="sans" font-size="24" font-weight="800">Custom reports, reviewed decisions, reusable rules.</text>
+    <text x="6" y="355" class="mono" font-size="13" letter-spacing="1.5">PAN-OS XML API · CSV EVIDENCE · AI JSON · REVIEW MEMORY</text>
+  </g>
+
+  <!-- dimensional product console -->
+  <g transform="translate(560 72) rotate(-4 285 190)" filter="url(#shadow)">
+    <rect x="0" y="0" width="548" height="346" rx="42" fill="#ffffff" stroke="#111827" stroke-opacity="0.10"/>
+    <rect x="25" y="25" width="498" height="296" rx="30" fill="url(#screen)"/>
+    <rect x="25" y="25" width="498" height="84" rx="30" fill="#ffffff" opacity="0.08"/>
+    <text x="56" y="71" class="mono" font-size="15" font-weight="900" letter-spacing="2" fill="#bef264">REVIEW LAUNCH CONSOLE</text>
+    <rect x="388" y="48" width="94" height="28" rx="14" fill="#ecfccb"/>
+    <text x="407" y="67" class="mono" font-size="10" font-weight="900" fill="#365314">READY</text>
+    <g transform="translate(54 132)">
+      <rect width="132" height="92" rx="22" fill="#f8fafc" opacity="0.96"/>
+      <text x="19" y="33" class="mono" font-size="12" font-weight="900" fill="#14532d">CSV EVIDENCE</text>
+      <path d="M20 58H105" stroke="#16a34a" stroke-width="10" stroke-linecap="round"/>
+      <path d="M20 76H84" stroke="#84cc16" stroke-width="7" stroke-linecap="round"/>
+      <rect x="160" width="132" height="92" rx="22" fill="#fff7ed" opacity="0.98"/>
+      <text x="179" y="33" class="mono" font-size="12" font-weight="900" fill="#92400e">AI ANALYSIS</text>
+      <path d="M180 58H265" stroke="#f59e0b" stroke-width="10" stroke-linecap="round"/>
+      <path d="M180 76H244" stroke="#fb923c" stroke-width="7" stroke-linecap="round"/>
+      <rect x="320" width="132" height="92" rx="22" fill="#eff6ff" opacity="0.98"/>
+      <text x="339" y="33" class="mono" font-size="12" font-weight="900" fill="#1d4ed8">HUMAN REVIEW</text>
+      <path d="M340 58H425" stroke="#2563eb" stroke-width="10" stroke-linecap="round"/>
+      <path d="M340 76H404" stroke="#38bdf8" stroke-width="7" stroke-linecap="round"/>
     </g>
-    <g transform="translate(52 238)">
-      <path d="M0 0H390" stroke="#334155" stroke-width="1"/>
-      <text x="0" y="32" class="mono" font-size="13" fill="#cbd5e1">report.py → analyze.py → ui.py → review memory</text>
+    <g transform="translate(58 258)">
+      <path d="M0 0H425" stroke="#94a3b8" stroke-opacity="0.35"/>
+      <text x="0" y="31" class="mono" font-size="13" fill="#d1d5db">report.py → analyze.py → ui.py → .agent/review.md</text>
     </g>
   </g>
 
-  <!-- energetic launch ribbons -->
-  <g fill="none" stroke-linecap="round">
-    <path d="M48 430 C205 326, 302 388, 438 292 C584 191, 746 178, 1128 122" stroke="url(#flow)" stroke-width="18" opacity="0.76"/>
-    <path d="M95 462 C245 384, 385 430, 544 329 C707 226, 861 256, 1140 218" stroke="#38bdf8" stroke-width="5" opacity="0.42"/>
-    <path d="M55 308 C224 242, 370 289, 510 211 C628 144, 752 142, 1002 79" stroke="#a3e635" stroke-width="4" opacity="0.46"/>
-  </g>
-  <g fill="#f8fafc" opacity="0.9">
-    <circle cx="438" cy="282" r="7"/><circle cx="584" cy="181" r="5"/><circle cx="746" cy="178" r="6"/><circle cx="1002" cy="79" r="4"/>
-  </g>
-
-  <!-- launch copy -->
-  <g transform="translate(70 74)">
-    <rect x="0" y="0" width="178" height="34" rx="17" fill="#ffffff" fill-opacity="0.10" stroke="#ffffff" stroke-opacity="0.18"/>
-    <text x="18" y="23" class="mono" font-size="12" font-weight="900" letter-spacing="2" fill="#bef264">PRODUCT LAUNCH</text>
-    <text x="0" y="106" class="display" font-size="82">PA450</text>
-    <text x="0" y="188" class="display" font-size="75">REPORT</text>
-    <text x="4" y="244" class="display" font-size="50" letter-spacing="2">MONITOR</text>
-    <text x="6" y="290" class="sans" font-size="24" font-weight="800">From custom report to reviewed action.</text>
-    <text x="7" y="322" class="mono" font-size="13" letter-spacing="1.4" fill="#cbd5e1">PAN-OS XML API · LOCAL CSV · AI ANALYSIS · HUMAN REVIEW</text>
-  </g>
-  <rect x="20" y="20" width="1160" height="480" rx="28" fill="none" stroke="#ffffff" stroke-opacity="0.11"/>
+  <rect x="20" y="20" width="1160" height="480" rx="28" fill="none" stroke="#111827" stroke-opacity="0.09"/>
 </svg>
