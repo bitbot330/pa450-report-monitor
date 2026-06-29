@@ -1,75 +1,58 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
-  <title id="title">PA450 Report Monitor premium product launch hero</title>
-  <desc id="desc">A premium product-launch README hero with warm editorial paper, bold product title, dimensional review console, and energetic report-to-review ribbons.</desc>
+  <title id="title">PA450 Report Monitor refined product launch hero</title>
+  <desc id="desc">A refined product launch README hero with editorial typography, split keynote stage, product console, and report-to-review motion ribbons.</desc>
   <defs>
-    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbf4e8"/><stop offset="0.58" stop-color="#f3ead9"/><stop offset="1" stop-color="#e8f6df"/></linearGradient>
-    <radialGradient id="sun" cx="78%" cy="18%" r="44%"><stop offset="0" stop-color="#fde68a" stop-opacity="0.8"/><stop offset="0.45" stop-color="#fb923c" stop-opacity="0.22"/><stop offset="1" stop-color="#fb923c" stop-opacity="0"/></radialGradient>
-    <radialGradient id="lime" cx="61%" cy="75%" r="48%"><stop offset="0" stop-color="#a3e635" stop-opacity="0.48"/><stop offset="0.46" stop-color="#22c55e" stop-opacity="0.16"/><stop offset="1" stop-color="#22c55e" stop-opacity="0"/></radialGradient>
-    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#111827"/><stop offset="0.55" stop-color="#0b1220"/><stop offset="1" stop-color="#163126"/></linearGradient>
-    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#16a34a"/><stop offset="0.38" stop-color="#84cc16"/><stop offset="0.7" stop-color="#f59e0b"/><stop offset="1" stop-color="#ef4444"/></linearGradient>
-    <filter id="shadow" x="-30%" y="-35%" width="160%" height="180%"><feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#1f2937" flood-opacity="0.22"/></filter>
-    <filter id="soft"><feGaussianBlur stdDeviation="14"/></filter>
-    <pattern id="grain" width="42" height="42" patternUnits="userSpaceOnUse"><circle cx="5" cy="7" r="0.8" fill="#111827" opacity="0.045"/><circle cx="31" cy="26" r="0.6" fill="#111827" opacity="0.035"/><path d="M0 41.5H42" stroke="#111827" stroke-opacity="0.025"/></pattern>
+    <linearGradient id="cream" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7ed"/><stop offset="1" stop-color="#f3ead7"/></linearGradient>
+    <linearGradient id="stage" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#061417"/><stop offset="0.62" stop-color="#0d2d24"/><stop offset="1" stop-color="#26330d"/></linearGradient>
+    <radialGradient id="spot" cx="76%" cy="24%" r="58%"><stop offset="0" stop-color="#bef264" stop-opacity="0.45"/><stop offset="0.5" stop-color="#facc15" stop-opacity="0.16"/><stop offset="1" stop-color="#facc15" stop-opacity="0"/></radialGradient>
+    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#16a34a"/><stop offset="0.45" stop-color="#a3e635"/><stop offset="0.75" stop-color="#f59e0b"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f172a"/><stop offset="0.62" stop-color="#111827"/><stop offset="1" stop-color="#14532d"/></linearGradient>
+    <filter id="shadow" x="-25%" y="-30%" width="150%" height="170%"><feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#020617" flood-opacity="0.28"/></filter>
+    <pattern id="grain" width="38" height="38" patternUnits="userSpaceOnUse"><circle cx="7" cy="9" r="0.7" fill="#111827" opacity="0.05"/><circle cx="29" cy="21" r="0.55" fill="#111827" opacity="0.035"/></pattern>
     <style>
       .display{font-family:'WenQuanYi Zen Hei','Arial Black',Impact,sans-serif;font-weight:900;fill:#111827;letter-spacing:-4px}
       .sans{font-family:'WenQuanYi Zen Hei',Inter,Arial,sans-serif;fill:#1f2937}
       .mono{font-family:'JetBrains Mono',Consolas,monospace;fill:#334155}
     </style>
   </defs>
-  <rect width="1200" height="520" rx="34" fill="url(#paper)"/>
-  <rect width="1200" height="520" rx="34" fill="url(#sun)"/>
-  <rect width="1200" height="520" rx="34" fill="url(#lime)"/>
+  <rect width="1200" height="520" rx="34" fill="url(#cream)"/>
   <rect width="1200" height="520" rx="34" fill="url(#grain)"/>
-  <circle cx="1068" cy="92" r="76" fill="#111827" opacity="0.055"/>
-  <circle cx="1133" cy="151" r="122" fill="none" stroke="#111827" stroke-opacity="0.08" stroke-width="2"/>
-  <text x="-18" y="500" class="display" font-size="260" opacity="0.045">PA</text>
+  <path d="M522 0H1200V520H458C548 382 566 166 522 0Z" fill="url(#stage)"/>
+  <path d="M522 0H1200V520H458C548 382 566 166 522 0Z" fill="url(#spot)"/>
+  <text x="-20" y="500" class="display" font-size="258" opacity="0.04">450</text>
 
-  <!-- energetic but controlled ribbons, kept behind the headline/readability zone -->
-  <g fill="none" stroke-linecap="round" opacity="0.78">
-    <path d="M74 450 C230 390, 366 454, 532 370 C684 294, 835 296, 1115 214" stroke="url(#flow)" stroke-width="16" opacity="0.66"/>
-    <path d="M92 482 C254 427, 414 470, 574 405 C731 341, 879 338, 1125 286" stroke="#0f766e" stroke-width="5" opacity="0.28"/>
-  </g>
-  <circle cx="532" cy="370" r="8" fill="#111827" opacity="0.22"/>
-  <circle cx="835" cy="296" r="7" fill="#111827" opacity="0.22"/>
-
-  <g transform="translate(66 58)">
-    <rect x="0" y="0" width="188" height="36" rx="18" fill="#111827"/>
-    <text x="18" y="24" class="mono" font-size="12" font-weight="900" letter-spacing="2.4" fill="#bef264">PRODUCT RELEASE</text>
-    <text x="0" y="111" class="display" font-size="88">PA450</text>
-    <text x="0" y="191" class="display" font-size="77">REPORT</text>
-    <text x="2" y="255" class="display" font-size="58">MONITOR</text>
-    <path d="M5 278H388" stroke="url(#flow)" stroke-width="8" stroke-linecap="round"/>
-    <text x="4" y="322" class="sans" font-size="24" font-weight="800">Custom reports, reviewed decisions, reusable rules.</text>
-    <text x="6" y="355" class="mono" font-size="13" letter-spacing="1.5">PAN-OS XML API · CSV EVIDENCE · AI JSON · REVIEW MEMORY</text>
+  <g fill="none" stroke-linecap="round" opacity="0.62">
+    <path d="M602 432 C690 372, 774 372, 852 308 C952 226, 1044 218, 1150 164" stroke="url(#flow)" stroke-width="17"/>
+    <path d="M604 475 C704 422, 788 432, 884 360 C974 302, 1044 296, 1152 254" stroke="#38bdf8" stroke-width="5" opacity="0.30"/>
   </g>
 
-  <!-- dimensional product console -->
-  <g transform="translate(560 72) rotate(-4 285 190)" filter="url(#shadow)">
-    <rect x="0" y="0" width="548" height="346" rx="42" fill="#ffffff" stroke="#111827" stroke-opacity="0.10"/>
-    <rect x="25" y="25" width="498" height="296" rx="30" fill="url(#screen)"/>
-    <rect x="25" y="25" width="498" height="84" rx="30" fill="#ffffff" opacity="0.08"/>
-    <text x="56" y="71" class="mono" font-size="15" font-weight="900" letter-spacing="2" fill="#bef264">REVIEW LAUNCH CONSOLE</text>
-    <rect x="388" y="48" width="94" height="28" rx="14" fill="#ecfccb"/>
-    <text x="407" y="67" class="mono" font-size="10" font-weight="900" fill="#365314">READY</text>
-    <g transform="translate(54 132)">
-      <rect width="132" height="92" rx="22" fill="#f8fafc" opacity="0.96"/>
-      <text x="19" y="33" class="mono" font-size="12" font-weight="900" fill="#14532d">CSV EVIDENCE</text>
-      <path d="M20 58H105" stroke="#16a34a" stroke-width="10" stroke-linecap="round"/>
-      <path d="M20 76H84" stroke="#84cc16" stroke-width="7" stroke-linecap="round"/>
-      <rect x="160" width="132" height="92" rx="22" fill="#fff7ed" opacity="0.98"/>
-      <text x="179" y="33" class="mono" font-size="12" font-weight="900" fill="#92400e">AI ANALYSIS</text>
-      <path d="M180 58H265" stroke="#f59e0b" stroke-width="10" stroke-linecap="round"/>
-      <path d="M180 76H244" stroke="#fb923c" stroke-width="7" stroke-linecap="round"/>
-      <rect x="320" width="132" height="92" rx="22" fill="#eff6ff" opacity="0.98"/>
-      <text x="339" y="33" class="mono" font-size="12" font-weight="900" fill="#1d4ed8">HUMAN REVIEW</text>
-      <path d="M340 58H425" stroke="#2563eb" stroke-width="10" stroke-linecap="round"/>
-      <path d="M340 76H404" stroke="#38bdf8" stroke-width="7" stroke-linecap="round"/>
+  <g transform="translate(66 54)">
+    <rect width="186" height="35" rx="17.5" fill="#111827"/>
+    <text x="18" y="23" class="mono" font-size="12" font-weight="900" letter-spacing="2.4" fill="#bef264">LAUNCH READY</text>
+    <text x="0" y="118" class="display" font-size="91">PA450</text>
+    <text x="0" y="203" class="display" font-size="82">REPORT</text>
+    <text x="3" y="267" class="display" font-size="59">MONITOR</text>
+    <path d="M5 293H410" stroke="url(#flow)" stroke-width="9" stroke-linecap="round"/>
+    <text x="4" y="337" class="sans" font-size="24" font-weight="800">Reports → AI review → reusable rules.</text>
+    <text x="5" y="371" class="mono" font-size="13" letter-spacing="1.35">PAN-OS XML API · CSV · AI JSON · REVIEW MEMORY</text>
+  </g>
+
+  <g transform="translate(626 78) rotate(-3 242 174)" filter="url(#shadow)">
+    <rect x="0" y="0" width="474" height="330" rx="36" fill="#ffffff" opacity="0.95"/>
+    <rect x="23" y="23" width="428" height="284" rx="27" fill="url(#screen)"/>
+    <rect x="23" y="23" width="428" height="70" rx="27" fill="#ffffff" opacity="0.075"/>
+    <text x="52" y="66" class="mono" font-size="14" font-weight="900" letter-spacing="2" fill="#bef264">REVIEW CONSOLE</text>
+    <rect x="330" y="44" width="82" height="27" rx="13.5" fill="#ecfccb"/>
+    <text x="347" y="63" class="mono" font-size="10" font-weight="900" fill="#365314">READY</text>
+    <g transform="translate(52 122)">
+      <rect width="106" height="84" rx="20" fill="#f8fafc"/><text x="17" y="31" class="mono" font-size="11" font-weight="900" fill="#166534">CSV</text><path d="M17 55H86" stroke="#16a34a" stroke-width="9" stroke-linecap="round"/><path d="M17 72H66" stroke="#84cc16" stroke-width="6" stroke-linecap="round"/>
+      <rect x="135" width="106" height="84" rx="20" fill="#fff7ed"/><text x="152" y="31" class="mono" font-size="11" font-weight="900" fill="#92400e">AI JSON</text><path d="M152 55H221" stroke="#f59e0b" stroke-width="9" stroke-linecap="round"/><path d="M152 72H202" stroke="#fb923c" stroke-width="6" stroke-linecap="round"/>
+      <rect x="270" width="106" height="84" rx="20" fill="#eff6ff"/><text x="287" y="31" class="mono" font-size="11" font-weight="900" fill="#1d4ed8">REVIEW</text><path d="M287 55H356" stroke="#2563eb" stroke-width="9" stroke-linecap="round"/><path d="M287 72H337" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/>
     </g>
-    <g transform="translate(58 258)">
-      <path d="M0 0H425" stroke="#94a3b8" stroke-opacity="0.35"/>
-      <text x="0" y="31" class="mono" font-size="13" fill="#d1d5db">report.py → analyze.py → ui.py → .agent/review.md</text>
-    </g>
+    <path d="M54 248H396" stroke="#64748b" stroke-opacity="0.38"/>
+    <text x="54" y="278" class="mono" font-size="13" fill="#d1d5db">report.py → analyze.py → ui.py → review.md</text>
   </g>
 
-  <rect x="20" y="20" width="1160" height="480" rx="28" fill="none" stroke="#111827" stroke-opacity="0.09"/>
+  <text x="1030" y="456" class="display" font-size="118" fill="#ffffff" opacity="0.07">01</text>
+  <rect x="20" y="20" width="1160" height="480" rx="28" fill="none" stroke="#111827" stroke-opacity="0.10"/>
 </svg>

@@ -1,57 +1,57 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
-  <title id="title">PA450 Report Monitor launch workflow</title>
-  <desc id="desc">A product-launch workflow slide with a clear four-step ribbon and an output feedback memory lane.</desc>
+  <title id="title">PA450 Report Monitor refined launch workflow</title>
+  <desc id="desc">A refined product launch workflow with a single clear four-step path and feedback memory lane.</desc>
   <defs>
-    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbf4e8"/><stop offset="0.62" stop-color="#f4ead8"/><stop offset="1" stop-color="#e8f6df"/></linearGradient>
-    <radialGradient id="glow" cx="78%" cy="18%" r="52%"><stop offset="0" stop-color="#fde68a" stop-opacity="0.64"/><stop offset="1" stop-color="#fde68a" stop-opacity="0"/></radialGradient>
-    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#16a34a"/><stop offset="0.45" stop-color="#84cc16"/><stop offset="0.72" stop-color="#f59e0b"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
-    <filter id="shadow" x="-25%" y="-30%" width="150%" height="165%"><feDropShadow dx="0" dy="15" stdDeviation="14" flood-color="#111827" flood-opacity="0.16"/></filter>
+    <linearGradient id="cream" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7ed"/><stop offset="1" stop-color="#eef7df"/></linearGradient>
+    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#16a34a"/><stop offset="0.42" stop-color="#84cc16"/><stop offset="0.72" stop-color="#f59e0b"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-25%" width="140%" height="155%"><feDropShadow dx="0" dy="13" stdDeviation="12" flood-color="#111827" flood-opacity="0.15"/></filter>
     <marker id="arrow" markerWidth="15" markerHeight="15" refX="14" refY="7.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L15,7.5 L0,15 Z" fill="#2563eb"/></marker>
     <marker id="arrowGreen" markerWidth="15" markerHeight="15" refX="14" refY="7.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L15,7.5 L0,15 Z" fill="#16a34a"/></marker>
-    <pattern id="grain" width="42" height="42" patternUnits="userSpaceOnUse"><circle cx="5" cy="7" r="0.8" fill="#111827" opacity="0.04"/><path d="M0 41.5H42" stroke="#111827" stroke-opacity="0.025"/></pattern>
+    <pattern id="grain" width="38" height="38" patternUnits="userSpaceOnUse"><circle cx="7" cy="9" r="0.7" fill="#111827" opacity="0.04"/><circle cx="29" cy="21" r="0.55" fill="#111827" opacity="0.028"/></pattern>
     <style>
       .title{font-family:'WenQuanYi Zen Hei','Noto Sans CJK TC','Microsoft JhengHei',Inter,sans-serif;font-weight:900;fill:#111827}
       .text{font-family:'WenQuanYi Zen Hei','Noto Sans CJK TC','Microsoft JhengHei',Inter,sans-serif;fill:#475569}
       .mono{font-family:'JetBrains Mono',Consolas,monospace;fill:#334155}
-      .label{font-family:'JetBrains Mono',Consolas,monospace;font-weight:900;letter-spacing:1.2px}
+      .label{font-family:'JetBrains Mono',Consolas,monospace;font-weight:900;letter-spacing:1.1px}
     </style>
   </defs>
-  <rect width="1100" height="620" rx="30" fill="url(#paper)"/>
-  <rect width="1100" height="620" rx="30" fill="url(#glow)"/>
+  <rect width="1100" height="620" rx="30" fill="url(#cream)"/>
   <rect width="1100" height="620" rx="30" fill="url(#grain)"/>
+  <circle cx="960" cy="80" r="145" fill="#bef264" opacity="0.18"/>
+  <circle cx="1000" cy="122" r="74" fill="#f59e0b" opacity="0.10"/>
   <text x="58" y="62" class="title" font-size="35">Launch Flow: PA450 Report Monitor</text>
-  <text x="58" y="94" class="text" font-size="16">一條主線完成報表下載、AI 分析、人工審查；下方回饋會成為下一次分析規則。</text>
+  <text x="58" y="94" class="text" font-size="16">主線 1 → 2 → 3 → 4 完成收集、分析與人工審查；回饋會寫回下一次分析規則。</text>
   <rect x="56" y="122" width="988" height="284" rx="34" fill="#ffffff" opacity="0.72" stroke="#111827" stroke-opacity="0.08"/>
-  <path d="M112 265 C246 168, 398 168, 526 265 S820 362, 984 265" fill="none" stroke="url(#flow)" stroke-width="20" stroke-linecap="round" marker-end="url(#arrow)"/>
-  <path d="M112 265 C246 168, 398 168, 526 265 S820 362, 984 265" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.55"/>
+  <path d="M118 266 H982" stroke="url(#flow)" stroke-width="18" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path d="M118 266 H982" stroke="#ffffff" stroke-width="3" opacity="0.65"/>
   <g filter="url(#shadow)">
-    <g transform="translate(70 188)">
-      <rect width="196" height="126" rx="28" fill="#111827"/>
-      <circle cx="44" cy="42" r="23" fill="#bef264"/><text x="36" y="50" class="label" font-size="21" fill="#111827">1</text>
-      <text x="82" y="40" class="label" font-size="12" fill="#bef264">SETUP</text>
-      <text x="28" y="80" class="title" font-size="21" fill="#f8fafc">設定 PA450</text>
-      <text x="28" y="107" class="mono" font-size="12" style="fill:#e5e7eb">config.yaml + .env</text>
+    <g transform="translate(68 184)">
+      <rect width="198" height="136" rx="28" fill="#111827"/>
+      <circle cx="46" cy="46" r="24" fill="#bef264"/><text x="38" y="54" class="label" font-size="22" fill="#111827">1</text>
+      <text x="84" y="43" class="label" font-size="12" fill="#bef264">SETUP</text>
+      <text x="28" y="88" class="title" font-size="21" fill="#f8fafc">設定 PA450</text>
+      <text x="28" y="116" class="mono" font-size="12" style="fill:#e5e7eb">config.yaml + .env</text>
     </g>
-    <g transform="translate(313 132)">
-      <rect width="196" height="126" rx="28" fill="#f8fafc"/>
-      <circle cx="44" cy="42" r="23" fill="#16a34a"/><text x="36" y="50" class="label" font-size="21" fill="#f8fafc">2</text>
-      <text x="82" y="40" class="label" font-size="12" fill="#166534">COLLECT</text>
-      <text x="28" y="80" class="title" font-size="21">下載報表</text>
-      <text x="28" y="107" class="mono" font-size="12">report.py → CSV</text>
+    <g transform="translate(309 184)">
+      <rect width="198" height="136" rx="28" fill="#f8fafc"/>
+      <circle cx="46" cy="46" r="24" fill="#16a34a"/><text x="38" y="54" class="label" font-size="22" fill="#f8fafc">2</text>
+      <text x="84" y="43" class="label" font-size="12" fill="#166534">COLLECT</text>
+      <text x="28" y="88" class="title" font-size="21">下載報表</text>
+      <text x="28" y="116" class="mono" font-size="12">report.py → CSV</text>
     </g>
-    <g transform="translate(565 280)">
-      <rect width="196" height="126" rx="28" fill="#fff7ed"/>
-      <circle cx="44" cy="42" r="23" fill="#f59e0b"/><text x="36" y="50" class="label" font-size="21" fill="#111827">3</text>
-      <text x="82" y="40" class="label" font-size="12" fill="#92400e">ANALYZE</text>
-      <text x="28" y="80" class="title" font-size="21">AI 分析</text>
-      <text x="28" y="107" class="mono" font-size="12">analyze.py → JSON</text>
+    <g transform="translate(550 184)">
+      <rect width="198" height="136" rx="28" fill="#fff7ed"/>
+      <circle cx="46" cy="46" r="24" fill="#f59e0b"/><text x="38" y="54" class="label" font-size="22" fill="#111827">3</text>
+      <text x="84" y="43" class="label" font-size="12" fill="#92400e">ANALYZE</text>
+      <text x="28" y="88" class="title" font-size="21">AI 分析</text>
+      <text x="28" y="116" class="mono" font-size="12">analyze.py → JSON</text>
     </g>
-    <g transform="translate(817 188)">
-      <rect width="196" height="126" rx="28" fill="#eff6ff"/>
-      <circle cx="44" cy="42" r="23" fill="#2563eb"/><text x="36" y="50" class="label" font-size="21" fill="#f8fafc">4</text>
-      <text x="82" y="40" class="label" font-size="12" fill="#1d4ed8">REVIEW</text>
-      <text x="28" y="80" class="title" font-size="21">人工審查</text>
-      <text x="28" y="107" class="mono" font-size="12">ui.py → Markdown</text>
+    <g transform="translate(791 184)">
+      <rect width="198" height="136" rx="28" fill="#eff6ff"/>
+      <circle cx="46" cy="46" r="24" fill="#2563eb"/><text x="38" y="54" class="label" font-size="22" fill="#f8fafc">4</text>
+      <text x="84" y="43" class="label" font-size="12" fill="#1d4ed8">REVIEW</text>
+      <text x="28" y="88" class="title" font-size="21">人工審查</text>
+      <text x="28" y="116" class="mono" font-size="12">ui.py → Markdown</text>
     </g>
   </g>
   <g transform="translate(78 448)">
