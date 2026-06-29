@@ -1,136 +1,116 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
   <title id="title">PA450 automation workflow</title>
-  <desc id="desc">Workflow diagram for PA450 report download, CSV output, AI analysis, Review UI feedback, and review memory rules used on the next analysis run.</desc>
+  <desc id="desc">A two-lane workflow diagram for PA450 custom report download, CSV normalization, AI JSON analysis, Review UI feedback, and reusable review memory rules.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#06111f"/>
-      <stop offset="0.58" stop-color="#0a1932"/>
-      <stop offset="1" stop-color="#132554"/>
+      <stop offset="0" stop-color="#020617"/>
+      <stop offset="0.54" stop-color="#071a2f"/>
+      <stop offset="1" stop-color="#172554"/>
     </linearGradient>
     <pattern id="grid" width="34" height="34" patternUnits="userSpaceOnUse">
-      <path d="M34 0H0V34" fill="none" stroke="#7dd3fc" stroke-width="0.7" opacity="0.10"/>
+      <path d="M34 0H0V34" fill="none" stroke="#60a5fa" stroke-width="0.7" opacity="0.12"/>
     </pattern>
     <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#172740"/>
-      <stop offset="1" stop-color="#0b1426"/>
+      <stop offset="0" stop-color="#132642"/>
+      <stop offset="1" stop-color="#071223"/>
     </linearGradient>
     <linearGradient id="primary" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#38bdf8"/>
-      <stop offset="0.55" stop-color="#60a5fa"/>
+      <stop offset="0.48" stop-color="#22c55e"/>
       <stop offset="1" stop-color="#a78bfa"/>
     </linearGradient>
     <linearGradient id="feedback" x1="1" y1="0" x2="0" y2="0">
       <stop offset="0" stop-color="#f97316"/>
-      <stop offset="0.48" stop-color="#14b8a6"/>
+      <stop offset="0.5" stop-color="#14b8a6"/>
       <stop offset="1" stop-color="#22c55e"/>
     </linearGradient>
-    <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,0 L12,6 L0,12 Z" fill="#60a5fa"/>
-    </marker>
-    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,0 L12,6 L0,12 Z" fill="#14b8a6"/>
-    </marker>
-    <filter id="shadow" x="-24%" y="-24%" width="148%" height="148%">
-      <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#020617" flood-opacity="0.42"/>
-    </filter>
+    <marker id="arrowBlue" markerWidth="14" markerHeight="14" refX="13" refY="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L14,7 L0,14 Z" fill="#60a5fa"/></marker>
+    <marker id="arrowGreen" markerWidth="14" markerHeight="14" refX="13" refY="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L14,7 L0,14 Z" fill="#14b8a6"/></marker>
+    <filter id="shadow" x="-28%" y="-28%" width="156%" height="156%"><feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#020617" flood-opacity="0.46"/></filter>
   </defs>
 
   <rect width="1100" height="620" rx="30" fill="url(#bg)"/>
-  <rect x="28" y="28" width="1044" height="564" rx="24" fill="url(#grid)" opacity="0.95"/>
-
+  <rect x="28" y="28" width="1044" height="564" rx="24" fill="url(#grid)" opacity="0.9"/>
   <g font-family="WenQuanYi Zen Hei, Microsoft JhengHei, Noto Sans TC, Segoe UI, Arial, sans-serif">
-    <text x="550" y="56" text-anchor="middle" fill="#f1f7ff" font-size="34" font-weight="900">PA450 Daily Report Automation</text>
-    <text x="550" y="87" text-anchor="middle" fill="#a9bbd4" font-size="15">下載 PA450 custom report → CSV → AI JSON → Review UI；feedback 會成為下一次分析的 review rules</text>
+    <text x="550" y="58" text-anchor="middle" fill="#f8fafc" font-size="36" font-weight="900">PA450 Daily Report Automation</text>
+    <text x="550" y="88" text-anchor="middle" fill="#9fb2cc" font-size="16">下載 custom report，保存 CSV 證據；AI 分析後由 Review UI 回寫人工判斷，累積成下一次分析規則</text>
+
+    <rect x="64" y="114" width="972" height="202" rx="28" fill="#051225" opacity="0.56" stroke="#1e3a5f"/>
+    <rect x="64" y="342" width="972" height="154" rx="28" fill="#051225" opacity="0.48" stroke="#21423a"/>
+    <text x="88" y="140" fill="#7dd3fc" font-size="12" font-weight="900" letter-spacing="1.8">PRIMARY FLOW</text>
+    <text x="88" y="368" fill="#86efac" font-size="12" font-weight="900" letter-spacing="1.8">HUMAN FEEDBACK LOOP</text>
 
     <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M258 210 H333" stroke="url(#primary)" stroke-width="5" marker-end="url(#arrowBlue)"/>
-      <path d="M518 210 H593" stroke="url(#primary)" stroke-width="5" marker-end="url(#arrowBlue)"/>
-      <path d="M778 210 H853" stroke="url(#primary)" stroke-width="5" marker-end="url(#arrowBlue)"/>
-      <path d="M948 286 V322 Q948 350 920 350 H824" stroke="url(#primary)" stroke-width="5" marker-end="url(#arrowBlue)"/>
-      <path d="M596 410 H526" stroke="url(#feedback)" stroke-width="5" marker-end="url(#arrowGreen)"/>
-      <path d="M336 410 H266" stroke="url(#feedback)" stroke-width="5" marker-end="url(#arrowGreen)"/>
-      <path d="M168 342 V306 Q168 286 188 286 H684 Q706 286 706 262" stroke="url(#feedback)" stroke-width="5" marker-end="url(#arrowGreen)"/>
-    </g>
-
-    <g opacity="0.96" font-size="12" font-weight="900" letter-spacing="1.05">
-      <text x="88" y="126" fill="#7dd3fc">ACQUIRE</text>
-      <text x="354" y="126" fill="#86efac">NORMALIZE</text>
-      <text x="622" y="126" fill="#c4b5fd">ANALYZE</text>
-      <text x="884" y="126" fill="#fcd34d">RESULT</text>
-      <text x="624" y="326" fill="#fdba74">REVIEW</text>
-      <text x="355" y="326" fill="#5eead4">FEEDBACK</text>
-      <text x="90" y="326" fill="#cbd5e1">MEMORY</text>
+      <path d="M268 222 H342" stroke="url(#primary)" stroke-width="6" marker-end="url(#arrowBlue)"/>
+      <path d="M526 222 H600" stroke="url(#primary)" stroke-width="6" marker-end="url(#arrowBlue)"/>
+      <path d="M784 222 H858" stroke="url(#primary)" stroke-width="6" marker-end="url(#arrowBlue)"/>
+      <path d="M946 294 V352 Q946 382 916 382 H792" stroke="#f97316" stroke-width="6" marker-end="url(#arrowBlue)"/>
+      <path d="M596 422 H526" stroke="url(#feedback)" stroke-width="6" marker-end="url(#arrowGreen)"/>
+      <path d="M338 422 H286" stroke="url(#feedback)" stroke-width="6" marker-end="url(#arrowGreen)"/>
+      <path d="M170 382 V326 Q170 296 200 296 H686 Q716 296 716 274" stroke="url(#feedback)" stroke-width="6" marker-end="url(#arrowGreen)"/>
     </g>
 
     <g filter="url(#shadow)">
-      <g transform="translate(76 144)">
-        <rect width="184" height="132" rx="22" fill="url(#panel)" stroke="#38bdf8" stroke-width="1.8"/>
-        <circle cx="30" cy="32" r="16" fill="#0f2742" stroke="#38bdf8"/>
-        <text x="30" y="38" text-anchor="middle" fill="#bae6fd" font-size="15" font-weight="900">1</text>
-        <text x="112" y="43" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="900">PA450 API</text>
-        <text x="92" y="78" text-anchor="middle" fill="#a9bbd4" font-size="14">Custom Report XML</text>
-        <text x="92" y="104" text-anchor="middle" fill="#70839d" font-size="12">PAN-OS XML API</text>
+      <g transform="translate(76 166)">
+        <rect width="192" height="112" rx="22" fill="url(#panel)" stroke="#38bdf8" stroke-width="2.4"/>
+        <circle cx="31" cy="30" r="16" fill="#0d2742" stroke="#38bdf8"/>
+        <text x="31" y="36" text-anchor="middle" fill="#bae6fd" font-size="15" font-weight="900">1</text>
+        <text x="114" y="38" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="900">PA450 API</text>
+        <text x="96" y="72" text-anchor="middle" fill="#a9bad0" font-size="14">Custom Report XML</text>
+        <text x="96" y="95" text-anchor="middle" fill="#64748b" font-size="12">PAN-OS XML API</text>
+      </g>
+      <g transform="translate(334 166)">
+        <rect width="192" height="112" rx="22" fill="url(#panel)" stroke="#22c55e" stroke-width="2.4"/>
+        <circle cx="31" cy="30" r="16" fill="#102c26" stroke="#22c55e"/>
+        <text x="31" y="36" text-anchor="middle" fill="#bbf7d0" font-size="15" font-weight="900">2</text>
+        <text x="114" y="38" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="900">report.py</text>
+        <text x="96" y="72" text-anchor="middle" fill="#a9bad0" font-size="14">下載並轉 CSV</text>
+        <text x="96" y="95" text-anchor="middle" fill="#64748b" font-size="12">YYYYMMDD_report.csv</text>
+      </g>
+      <g transform="translate(592 166)">
+        <rect width="192" height="112" rx="22" fill="url(#panel)" stroke="#a78bfa" stroke-width="2.4"/>
+        <circle cx="31" cy="30" r="16" fill="#261e44" stroke="#a78bfa"/>
+        <text x="31" y="36" text-anchor="middle" fill="#ddd6fe" font-size="15" font-weight="900">3</text>
+        <text x="114" y="38" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="900">analyze.py</text>
+        <text x="96" y="72" text-anchor="middle" fill="#a9bad0" font-size="14">讀 review rules + AI</text>
+        <text x="96" y="95" text-anchor="middle" fill="#64748b" font-size="12">產生分析結果</text>
+      </g>
+      <g transform="translate(850 166)">
+        <rect width="192" height="112" rx="22" fill="url(#panel)" stroke="#f59e0b" stroke-width="2.4"/>
+        <circle cx="31" cy="30" r="16" fill="#3b250b" stroke="#f59e0b"/>
+        <text x="31" y="36" text-anchor="middle" fill="#fde68a" font-size="15" font-weight="900">4</text>
+        <text x="114" y="38" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="900">AI JSON</text>
+        <text x="96" y="72" text-anchor="middle" fill="#a9bad0" font-size="14">report_YYYYMMDD.json</text>
+        <text x="96" y="95" text-anchor="middle" fill="#64748b" font-size="12">異常判斷與摘要</text>
       </g>
 
-      <g transform="translate(336 144)">
-        <rect width="184" height="132" rx="22" fill="url(#panel)" stroke="#22c55e" stroke-width="1.8"/>
-        <circle cx="30" cy="32" r="16" fill="#102c26" stroke="#22c55e"/>
-        <text x="30" y="38" text-anchor="middle" fill="#bbf7d0" font-size="15" font-weight="900">2</text>
-        <text x="112" y="43" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="900">report.py</text>
-        <text x="92" y="78" text-anchor="middle" fill="#a9bbd4" font-size="14">下載並轉成 CSV</text>
-        <text x="92" y="104" text-anchor="middle" fill="#70839d" font-size="12">YYYYMMDD_report.csv</text>
+      <g transform="translate(596 382)">
+        <rect width="220" height="94" rx="22" fill="url(#panel)" stroke="#f97316" stroke-width="2.4"/>
+        <circle cx="34" cy="31" r="16" fill="#3b1f12" stroke="#f97316"/>
+        <text x="34" y="37" text-anchor="middle" fill="#fed7aa" font-size="15" font-weight="900">5</text>
+        <text x="122" y="36" text-anchor="middle" fill="#f8fafc" font-size="20" font-weight="900">Review UI</text>
+        <text x="110" y="68" text-anchor="middle" fill="#a9bad0" font-size="14">檢視 CSV / AI / 明細</text>
       </g>
-
-      <g transform="translate(596 144)">
-        <rect width="184" height="132" rx="22" fill="url(#panel)" stroke="#a78bfa" stroke-width="1.8"/>
-        <circle cx="30" cy="32" r="16" fill="#261e44" stroke="#a78bfa"/>
-        <text x="30" y="38" text-anchor="middle" fill="#ddd6fe" font-size="15" font-weight="900">3</text>
-        <text x="112" y="43" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="900">analyze.py</text>
-        <text x="92" y="78" text-anchor="middle" fill="#a9bbd4" font-size="14">讀 review rules + AI</text>
-        <text x="92" y="104" text-anchor="middle" fill="#70839d" font-size="12">產生分析結果</text>
+      <g transform="translate(334 382)">
+        <rect width="192" height="94" rx="22" fill="url(#panel)" stroke="#14b8a6" stroke-width="2.4"/>
+        <circle cx="31" cy="31" r="16" fill="#0f2f2d" stroke="#14b8a6"/>
+        <text x="31" y="37" text-anchor="middle" fill="#99f6e4" font-size="15" font-weight="900">6</text>
+        <text x="114" y="36" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="900">Feedback</text>
+        <text x="96" y="68" text-anchor="middle" fill="#a9bad0" font-size="14">report_YYYYMMDD.md</text>
       </g>
-
-      <g transform="translate(856 144)">
-        <rect width="184" height="132" rx="22" fill="url(#panel)" stroke="#f59e0b" stroke-width="1.8"/>
-        <circle cx="30" cy="32" r="16" fill="#3b250b" stroke="#f59e0b"/>
-        <text x="30" y="38" text-anchor="middle" fill="#fde68a" font-size="15" font-weight="900">4</text>
-        <text x="112" y="43" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="900">AI JSON</text>
-        <text x="92" y="78" text-anchor="middle" fill="#a9bbd4" font-size="14">report_YYYYMMDD.json</text>
-        <text x="92" y="104" text-anchor="middle" fill="#70839d" font-size="12">AI 分析結果</text>
-      </g>
-
-      <g transform="translate(596 344)">
-        <rect width="220" height="132" rx="22" fill="url(#panel)" stroke="#f97316" stroke-width="1.8"/>
-        <circle cx="34" cy="34" r="16" fill="#3b1f12" stroke="#f97316"/>
-        <text x="34" y="40" text-anchor="middle" fill="#fed7aa" font-size="15" font-weight="900">5</text>
-        <text x="116" y="45" text-anchor="middle" fill="#f8fafc" font-size="20" font-weight="900">Review UI</text>
-        <text x="116" y="82" text-anchor="middle" fill="#a9bbd4" font-size="14">檢視 CSV / AI / 明細</text>
-        <text x="116" y="108" text-anchor="middle" fill="#70839d" font-size="12">寫入單筆回報</text>
-      </g>
-
-      <g transform="translate(336 344)">
-        <rect width="184" height="132" rx="22" fill="url(#panel)" stroke="#14b8a6" stroke-width="1.8"/>
-        <circle cx="30" cy="34" r="16" fill="#0f2f2d" stroke="#14b8a6"/>
-        <text x="30" y="40" text-anchor="middle" fill="#99f6e4" font-size="15" font-weight="900">6</text>
-        <text x="112" y="45" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="900">Feedback</text>
-        <text x="92" y="82" text-anchor="middle" fill="#a9bbd4" font-size="14">report_YYYYMMDD.md</text>
-        <text x="92" y="108" text-anchor="middle" fill="#70839d" font-size="12">人工備註與判斷</text>
-      </g>
-
-      <g transform="translate(76 344)">
-        <rect width="184" height="132" rx="22" fill="url(#panel)" stroke="#94a3b8" stroke-width="1.8"/>
-        <circle cx="30" cy="34" r="16" fill="#1e293b" stroke="#94a3b8"/>
-        <text x="30" y="40" text-anchor="middle" fill="#e2e8f0" font-size="15" font-weight="900">7</text>
-        <text x="116" y="45" text-anchor="middle" fill="#f8fafc" font-size="16" font-weight="900">Review Memory</text>
-        <text x="92" y="82" text-anchor="middle" fill="#a9bbd4" font-size="14">.agent/review.md</text>
-        <text x="92" y="108" text-anchor="middle" fill="#70839d" font-size="12">下一次分析套用</text>
+      <g transform="translate(76 382)">
+        <rect width="210" height="94" rx="22" fill="url(#panel)" stroke="#94a3b8" stroke-width="2.4"/>
+        <circle cx="31" cy="31" r="16" fill="#111827" stroke="#94a3b8"/>
+        <text x="31" y="37" text-anchor="middle" fill="#e2e8f0" font-size="15" font-weight="900">7</text>
+        <text x="126" y="36" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="900">Review Memory</text>
+        <text x="105" y="68" text-anchor="middle" fill="#a9bad0" font-size="14">.agent/review.md</text>
       </g>
     </g>
 
-    <g transform="translate(98 520)">
-      <rect width="904" height="58" rx="18" fill="#020617" opacity="0.72" stroke="#334155"/>
-      <text x="452" y="25" text-anchor="middle" fill="#e2e8f0" font-size="15" font-weight="900">CSV 固定欄位</text>
-      <text x="452" y="47" text-anchor="middle" fill="#b7c6d9" font-size="14">產生時間、來源位址、來源使用者、目的地位址、目的地國家、應用程式、位元組</text>
+    <g transform="translate(96 520)">
+      <rect width="908" height="58" rx="20" fill="#061121" stroke="#253b5f"/>
+      <text x="454" y="24" text-anchor="middle" fill="#f8fafc" font-size="15" font-weight="900">CSV 固定欄位</text>
+      <text x="454" y="46" text-anchor="middle" fill="#a9bad0" font-size="13">產生時間、來源位址、來源使用者、目的地位址、目的地國家、應用程式、位元組</text>
     </g>
   </g>
 </svg>
