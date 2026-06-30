@@ -1,7 +1,7 @@
 # 🛡️ PA450 Report CSV Monitor
 
 <p align="center">
-  <img src="assets/images/pa450-report-monitor-hero.svg" alt="PA450 Report CSV Monitor Hero" width="820" />
+  <img src="assets/images/pa450-report-monitor-hero.png" alt="PA450 Report CSV Monitor Hero" width="820" />
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@ python src\analyze.py --input output\YYYYMMDD_report.csv --output output\report_
 ## 概觀
 
 <p align="center">
-  <img src="assets/images/pa450-workflow.svg" alt="PA450 automation workflow" width="820" />
+  <img src="assets/images/pa450-workflow.png" alt="PA450 automation workflow" width="820" />
 </p>
 
 ```text
