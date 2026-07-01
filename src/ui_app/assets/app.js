@@ -782,10 +782,22 @@
       clearNode(tableHead);
       appState.current.headers.forEach((header) => {
         const th = document.createElement('th');
+        th.className = tableColumnClass(header);
         th.textContent = header;
         th.title = header;
         tableHead.appendChild(th);
       });
+    }
+
+    function tableColumnClass(header) {
+      const normalized = String(header || '');
+      if (normalized.includes('來源')) return 'col-source';
+      if (normalized.includes('目的地國家')) return 'col-country';
+      if (normalized.includes('目的地')) return 'col-destination';
+      if (normalized.includes('應用程式')) return 'col-app';
+      if (normalized.includes('使用者')) return 'col-user';
+      if (normalized.includes('傳輸量') || normalized.includes('位元組')) return 'col-bytes';
+      return '';
     }
 
     function normalizeForAiMatch(value) {
@@ -871,7 +883,9 @@
         });
         appState.current.headers.forEach((header) => {
           const td = document.createElement('td');
-          td.textContent = row[header] || '';
+          td.className = tableColumnClass(header);
+          const cellValue = row[header] || '';
+          td.textContent = td.classList.contains('col-bytes') ? cellValue.replace(/\s*\(.*/, '') : cellValue;
           td.title = row[header] || '';
           if (isAiMatch && ['來源位址', '目的地位址', '應用程式'].includes(header)) {
             td.classList.add('ai-match-cell');
