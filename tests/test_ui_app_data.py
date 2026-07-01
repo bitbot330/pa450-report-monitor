@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from ui_app.assets import load_asset_text, render_index_html
-from ui_app.data import load_report_range_bundle, parse_analysis_sections
+from ui_app.data import load_report_range_bundle, parse_analysis_sections, save_review_markdown, load_review_markdown
 
 
 def write_daily_bundle(base: Path, date_key: str, source: str, bytes_value: int, analysis: str) -> None:
@@ -172,3 +172,33 @@ def test_index_html_syncs_range_daily_report_to_ai_report_date() -> None:
     assert "String(row.__report_date || '') !== activeDate" in html
     assert "AI 報告日期" in html
     assert "syncDailyReportToAnalysisSlide();" in html
+
+
+def test_index_html_has_quick_review_sorting_and_clickable_ai_rows() -> None:
+    html = rendered_index_html()
+
+    assert 'id="reviewQuickActions"' in html
+    assert "REVIEW_QUICK_ACTIONS" in html
+    assert "function toggleSort(header)" in html
+    assert "function sortRowsWithIndexes(items)" in html
+    assert "sort-header-button" in html
+    assert "function focusAnalysisItem(item, analysisPayload = null)" in html
+    assert "analysis-row-link" in html
+    assert "findRowIndexForAnalysisItem(item, analysisPayload)" in html
+
+
+def test_review_markdown_preserves_quick_classification(tmp_path: Path) -> None:
+    row_fields = {
+        "來源位址": "10.0.0.8",
+        "目的地位址": "8.8.8.8",
+        "應用程式": "dns",
+        "傳輸量": "1.0 KB (1,024 bytes)",
+    }
+
+    path = save_review_markdown(tmp_path, "20260521", "需追蹤", "高流量 DNS 需確認。", 0, row_fields)
+    text = path.read_text(encoding="utf-8")
+    reviews = load_review_markdown(tmp_path, "20260521", [row_fields])
+
+    assert "- 分類：需追蹤" in text
+    assert reviews["0"]["reviewStatus"] == "需追蹤"
+    assert reviews["0"]["reviewNote"] == "高流量 DNS 需確認。"

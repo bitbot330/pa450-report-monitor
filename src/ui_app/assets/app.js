@@ -1,7 +1,15 @@
     const DEFAULT_CSV_DIR = __CSV_DIR_JSON__;
     const DEFAULT_ANALYSIS_DIR = __ANALYSIS_DIR_JSON__;
     const DEFAULT_REVIEW_DIR = __REVIEW_DIR_JSON__;
-    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, analysisSlideDirection: 0, rightRailOpen: true };
+    const REVIEW_QUICK_ACTIONS = [
+      { value: '正常', label: '正常' },
+      { value: '需追蹤', label: '需追蹤' },
+      { value: '誤判', label: '誤判' },
+      { value: '可忽略', label: '可忽略' },
+      { value: '需要封鎖', label: '需要封鎖' },
+      { value: '加入觀察名單', label: '觀察名單' },
+    ];
+    const appState = { reports: [], current: null, selectedRowIndex: null, analysisSlideIndex: 0, analysisSlideDirection: 0, rightRailOpen: true, sort: { key: '', direction: 'desc' } };
     const appShell = document.getElementById('appShell');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const selectCsvFolder = document.getElementById('selectCsvFolder');
@@ -41,6 +49,7 @@
     const tableBody = document.getElementById('tableBody');
     const rowDetail = document.getElementById('rowDetail');
     const reviewStatus = document.getElementById('reviewStatus');
+    const reviewQuickActions = document.getElementById('reviewQuickActions');
     const reviewNote = document.getElementById('reviewNote');
     const reviewSaveButton = document.getElementById('reviewSaveButton');
     const reviewSaveMessage = document.getElementById('reviewSaveMessage');
@@ -458,6 +467,7 @@
       reviewStatus.disabled = !enabled;
       reviewNote.disabled = !enabled;
       reviewSaveButton.disabled = !enabled || !canSaveReviewToMarkdown();
+      [...reviewQuickActions.querySelectorAll('button')].forEach((button) => { button.disabled = !enabled; });
       if (!enabled) {
         reviewStatus.value = '';
         reviewNote.value = '';
@@ -465,6 +475,37 @@
       } else {
         reviewNote.placeholder = '例如：這筆高流量其實是備份流量，AI 需要學會辨識。';
       }
+      syncReviewQuickActions();
+    }
+
+    function syncReviewQuickActions() {
+      [...reviewQuickActions.querySelectorAll('button')].forEach((button) => {
+        const active = button.dataset.value === reviewStatus.value;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+
+    function applyReviewQuickAction(value) {
+      if (reviewNote.disabled) return;
+      reviewStatus.value = reviewStatus.value === value ? '' : value;
+      syncReviewQuickActions();
+      updateReviewDraft();
+    }
+
+    function renderReviewQuickActions() {
+      clearNode(reviewQuickActions);
+      REVIEW_QUICK_ACTIONS.forEach((action) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'review-chip';
+        button.dataset.value = action.value;
+        button.textContent = action.label;
+        button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', () => applyReviewQuickAction(action.value));
+        reviewQuickActions.appendChild(button);
+      });
+      syncReviewQuickActions();
     }
 
     function setReviewSaveMessage(message, className = 'subtle') {
@@ -566,12 +607,14 @@
       if (draft) {
         reviewStatus.value = draft.reviewStatus || '';
         reviewNote.value = draft.reviewNote || '';
+        syncReviewQuickActions();
         return;
       }
       if (canSaveReviewToMarkdown()) {
         const saved = (appState.current.reviews || {})[rowKey] || {};
         reviewStatus.value = saved.reviewStatus || '';
         reviewNote.value = saved.reviewNote || '';
+        syncReviewQuickActions();
         return;
       }
     }
@@ -682,6 +725,15 @@
       });
     }
 
+    function focusAnalysisItem(item, analysisPayload = null) {
+      const rowIndex = findRowIndexForAnalysisItem(item, analysisPayload);
+      if (rowIndex === null) return;
+      searchInput.value = '';
+      if (item.source && [...sourceFilter.options].some((option) => option.value === item.source)) sourceFilter.value = item.source;
+      if (item.application && [...appFilter.options].some((option) => option.value === item.application)) appFilter.value = item.application;
+      selectRowByIndex(rowIndex);
+    }
+
     function renderAnalysisItem(analysisPayload) {
       const a = analysisPayload.analysis_sections || {};
       [
@@ -694,11 +746,20 @@
           const itemBytesValue = parseIntLike(item.bytes);
           const itemBytesDisplay = itemBytesValue === null ? (item.bytes || '—') : formatBytesHuman(itemBytesValue);
           const itemBytesSecondary = itemBytesValue === null ? '' : `${itemBytesValue.toLocaleString('en-US')} bytes`;
-          analysisCard.appendChild(createDetailRow(
-            `第${item.item_number}筆`,
-            `來源：${item.source || '—'} 目的地：${item.destination || '—'} 應用程式：${item.application || '—'} 位元組：${itemBytesDisplay}`,
-            itemBytesSecondary,
-          ));
+          const rowIndex = findRowIndexForAnalysisItem(item, analysisPayload);
+          const row = document.createElement('div');
+          row.className = 'detail-row analysis-link-row';
+          row.appendChild(createTextNode('div', `第${item.item_number}筆`, 'detail-key'));
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'analysis-row-link';
+          button.disabled = rowIndex === null;
+          button.textContent = `來源：${item.source || '—'} 目的地：${item.destination || '—'} 應用程式：${item.application || '—'} 位元組：${itemBytesDisplay}`;
+          button.title = rowIndex === null ? 'CSV 表格找不到完整匹配列' : '跳到 CSV 表格對應列並套用來源/應用程式 filter';
+          button.addEventListener('click', () => focusAnalysisItem(item, analysisPayload));
+          row.appendChild(button);
+          if (itemBytesSecondary) row.appendChild(createTextNode('div', itemBytesSecondary, 'subtle'));
+          analysisCard.appendChild(row);
         });
       } else {
         analysisCard.appendChild(createDetailRow('異常項目', '—', ''));
@@ -783,8 +844,20 @@
       appState.current.headers.forEach((header) => {
         const th = document.createElement('th');
         th.className = tableColumnClass(header);
-        th.textContent = header;
-        th.title = header;
+        th.title = `${header} 排序`;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'sort-header-button';
+        button.textContent = header;
+        button.setAttribute('aria-label', `${header} 排序`);
+        const isActive = appState.sort.key === header;
+        if (isActive) {
+          button.classList.add('active');
+          button.dataset.direction = appState.sort.direction;
+          button.setAttribute('aria-sort', appState.sort.direction === 'asc' ? 'ascending' : 'descending');
+        }
+        button.addEventListener('click', () => toggleSort(header));
+        th.appendChild(button);
         tableHead.appendChild(th);
       });
     }
@@ -800,6 +873,33 @@
       return '';
     }
 
+    function toggleSort(header) {
+      const nextDirection = appState.sort.key === header && appState.sort.direction === 'desc' ? 'asc' : 'desc';
+      appState.sort = { key: header, direction: nextDirection };
+      renderHead();
+      renderRows();
+    }
+
+    function sortableValue(row, header) {
+      if (header.includes('傳輸量') || header.includes('位元組')) {
+        const byteValue = parseIntLike(row.__raw_bytes ?? row[header] ?? row['位元組'] ?? row['傳輸量']);
+        return byteValue === null ? Number.NEGATIVE_INFINITY : byteValue;
+      }
+      return String(row[header] || '').trim().toLowerCase();
+    }
+
+    function sortRowsWithIndexes(items) {
+      if (!appState.sort.key) return items;
+      const direction = appState.sort.direction === 'asc' ? 1 : -1;
+      const key = appState.sort.key;
+      return [...items].sort((a, b) => {
+        const av = sortableValue(a.row, key);
+        const bv = sortableValue(b.row, key);
+        if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * direction;
+        return String(av).localeCompare(String(bv), 'zh-Hant', { numeric: true, sensitivity: 'base' }) * direction;
+      });
+    }
+
     function normalizeForAiMatch(value) {
       return String(value || '').trim();
     }
@@ -811,21 +911,47 @@
       return (appState.current.daily_analyses || []).find((analysis) => analysis.date === rowDate) || null;
     }
 
+    function rowMatchesAnalysisItem(row, item) {
+      const rowBytes = parseIntLike(row.__raw_bytes ?? row['傳輸量'] ?? row['位元組']);
+      const itemBytes = parseIntLike(item.bytes);
+      const coreMatch = normalizeForAiMatch(row['來源位址']) === normalizeForAiMatch(item.source)
+        && normalizeForAiMatch(row['目的地位址']) === normalizeForAiMatch(item.destination)
+        && normalizeForAiMatch(row['應用程式']) === normalizeForAiMatch(item.application);
+      if (!coreMatch) return false;
+      if (itemBytes === null || rowBytes === null) return true;
+      return rowBytes === itemBytes;
+    }
+
     function rowMatchesAiReport(row) {
       const dailyAnalysis = dailyAnalysisForRow(row);
       const a = dailyAnalysis ? dailyAnalysis.analysis_sections || {} : {};
       const items = Array.isArray(a.items) ? a.items : [];
       if (!items.length) return false;
-      const rowBytes = parseIntLike(row.__raw_bytes ?? row['傳輸量'] ?? row['位元組']);
-      return items.some((item) => {
-        const itemBytes = parseIntLike(item.bytes);
-        const coreMatch = normalizeForAiMatch(row['來源位址']) === normalizeForAiMatch(item.source)
-          && normalizeForAiMatch(row['目的地位址']) === normalizeForAiMatch(item.destination)
-          && normalizeForAiMatch(row['應用程式']) === normalizeForAiMatch(item.application);
-        if (!coreMatch) return false;
-        if (itemBytes === null || rowBytes === null) return true;
-        return rowBytes === itemBytes;
-      });
+      return items.some((item) => rowMatchesAnalysisItem(row, item));
+    }
+
+    function findRowIndexForAnalysisItem(item, analysisPayload = null) {
+      if (!appState.current || !item) return null;
+      const analysisDate = analysisPayload && analysisPayload.date ? String(analysisPayload.date) : '';
+      const match = appState.current.rows
+        .map((row, originalIndex) => ({ row, originalIndex }))
+        .find(({ row }) => {
+          if (appState.current.mode === 'range' && analysisDate && String(row.__report_date || '') !== analysisDate) return false;
+          return rowMatchesAnalysisItem(row, item);
+        });
+      return match ? match.originalIndex : null;
+    }
+
+    function selectRowByIndex(originalIndex) {
+      if (!appState.current || originalIndex === null || originalIndex === undefined) return;
+      const row = appState.current.rows[originalIndex];
+      if (!row) return;
+      appState.selectedRowIndex = originalIndex;
+      setRightRailOpen(true);
+      renderRows();
+      renderDetails(row);
+      const selected = tableBody.querySelector('tr.is-selected');
+      if (selected) selected.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
 
     function matchesFilters(row) {
@@ -843,9 +969,9 @@
 
     function filteredRowsWithIndexes() {
       if (!appState.current) return [];
-      return appState.current.rows
+      return sortRowsWithIndexes(appState.current.rows
         .map((row, originalIndex) => ({ row, originalIndex }))
-        .filter((item) => matchesFilters(item.row));
+        .filter((item) => matchesFilters(item.row)));
     }
 
     function renderRowCount(totalRows) {
@@ -875,12 +1001,7 @@
             : '完整命中 AI 報告異常項目：來源 IP + 目的地 IP + 應用程式';
         }
         if (appState.selectedRowIndex === originalIndex) tr.classList.add('is-selected');
-        tr.addEventListener('click', () => {
-          appState.selectedRowIndex = originalIndex;
-          setRightRailOpen(true);
-          renderRows();
-          renderDetails(row);
-        });
+        tr.addEventListener('click', () => selectRowByIndex(originalIndex));
         appState.current.headers.forEach((header) => {
           const td = document.createElement('td');
           td.className = tableColumnClass(header);
@@ -1022,6 +1143,7 @@
     }
 
     renderFolderPaths();
+    renderReviewQuickActions();
     setRightRailOpen(true);
     selectCsvFolder.addEventListener('click', () => chooseFolder('csv'));
     selectAnalysisFolder.addEventListener('click', () => chooseFolder('analysis'));
@@ -1036,7 +1158,7 @@
     appFilter.addEventListener('change', handleFilterChanged);
     analysisCard.addEventListener('touchstart', handleAnalysisTouchStart, { passive: true });
     analysisCard.addEventListener('touchend', handleAnalysisTouchEnd, { passive: true });
-    reviewStatus.addEventListener('change', updateReviewDraft);
+    reviewStatus.addEventListener('change', () => { syncReviewQuickActions(); updateReviewDraft(); });
     reviewNote.addEventListener('input', updateReviewDraft);
     reviewSaveButton.addEventListener('click', saveReviewState);
     bootstrap();
