@@ -207,21 +207,26 @@ def _parse_review_markdown(text: str) -> dict[str, str]:
     if marker in text:
         note = text.split(marker, 1)[1].lstrip("\n").rstrip("\n")
 
+    status_match = re.search(r"(?m)^- 分類：\s*(.*)$", text)
+
     row_fields: dict[str, str] = {}
     for header in ["來源位址", "目的地位址", "應用程式", "傳輸量"]:
         match = re.search(rf"(?m)^- {re.escape(header)}：\s*(.*)$", text)
         row_fields[header] = match.group(1).strip() if match else ""
 
     return {
-        "reviewStatus": "",
+        "reviewStatus": status_match.group(1).strip() if status_match else "",
         "reviewNote": note,
         "rowFields": row_fields,
     }
 
 
-def _minimal_review_markdown_content(review_note: str, row_fields: dict[str, Any] | None = None) -> str:
+def _minimal_review_markdown_content(review_note: str, row_fields: dict[str, Any] | None = None, review_status: str = "") -> str:
     row_fields = row_fields or {}
     lines = ["# 報告回報"]
+    status = str(review_status or "").strip()
+    if status:
+        lines.append(f"- 分類：{status}")
     for header in ["來源位址", "目的地位址", "應用程式", "傳輸量"]:
         lines.append(f"- {header}：{str(row_fields.get(header) or '').strip()}")
     lines.append("## 備註")
@@ -258,7 +263,7 @@ def save_review_markdown(
     report_path = _review_markdown_path(review_dir, date_key)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     normalized_row_fields = _review_identity_fields(row_fields)
-    entry = _minimal_review_markdown_content(review_note, normalized_row_fields).rstrip()
+    entry = _minimal_review_markdown_content(review_note, normalized_row_fields, review_status).rstrip()
     separator = "\n---\n\n"
     if not report_path.exists() or not report_path.read_text(encoding="utf-8").strip():
         report_path.write_text(entry + "\n", encoding="utf-8")
@@ -276,6 +281,7 @@ def save_review_markdown(
         _minimal_review_markdown_content(
             str(entry_payload.get("reviewNote") or ""),
             _review_identity_fields(entry_payload.get("rowFields") or {}),
+            str(entry_payload.get("reviewStatus") or ""),
         ).rstrip()
         for entry_payload in existing_entries
     ]
