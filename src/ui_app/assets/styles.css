@@ -66,7 +66,6 @@
     .workspace-header::before { content: ''; position: absolute; width: 220px; height: 220px; right: 70px; top: -118px; border-radius: 999px; border: 1px solid rgba(153,239,255,0.22); background: radial-gradient(circle, rgba(54,213,255,0.25), transparent 62%); filter: blur(0.1px); }
     .workspace-header::after { content: ''; position: absolute; inset: auto 26px 0 26px; height: 3px; background: linear-gradient(90deg, var(--accent), transparent 48%, var(--success)); opacity: 0.9; }
     .workspace-header h2 { position: relative; margin-top: 7px; font-size: clamp(32px, 3.3vw, 54px); line-height: 0.98; letter-spacing: -0.07em; max-width: 760px; }
-    .workspace-lede { position: relative; max-width: 760px; margin-top: 13px; color: #c0d3ea; font-size: 14px; line-height: 1.62; }
     .eyebrow { position: relative; color: var(--accent-strong); font-size: 12px; font-weight: 950; letter-spacing: 0.20em; line-height: 1; text-transform: uppercase; }
     .workspace-meta { position: relative; display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; max-width: 360px; }
     .status-orb { width: 12px; height: 12px; border-radius: 999px; background: var(--success); box-shadow: 0 0 0 6px rgba(125,255,178,0.10), 0 0 24px rgba(125,255,178,0.70); }
