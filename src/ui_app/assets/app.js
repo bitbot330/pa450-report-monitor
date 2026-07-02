@@ -717,6 +717,7 @@
       renderDetails(row);
       const selected = tableBody.querySelector('tr.is-selected');
       if (selected) selected.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      document.querySelector('.row-detail-card')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
 
     function matchesFilters(row) {
