@@ -7,6 +7,8 @@ import sys
 
 
 def _default_project_root() -> Path:
+    # Source runs resolve to the repository root. PyInstaller builds resolve near
+    # the executable so packaged UI runs can still find/write .agent files.
     if getattr(sys, "frozen", False):
         exe_dir = Path(sys.executable).resolve().parent
         if exe_dir.name.lower() == "dist":
@@ -36,6 +38,8 @@ def _ui_settings_path(project_root: str | Path | None = None) -> Path:
 
 
 def read_ui_feedback_dir(project_root: str | Path | None = None) -> Path | None:
+    """Return the Review UI-selected feedback directory, if one was saved."""
+
     path = _ui_settings_path(project_root)
     if not path.exists():
         return None
@@ -52,6 +56,8 @@ def read_ui_feedback_dir(project_root: str | Path | None = None) -> Path | None:
 
 
 def write_ui_feedback_dir(review_dir: str | Path, project_root: str | Path | None = None) -> None:
+    """Persist the current Review UI feedback folder for later analysis runs."""
+
     path = _ui_settings_path(project_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     data: dict[str, str] = {}
@@ -67,6 +73,8 @@ def write_ui_feedback_dir(review_dir: str | Path, project_root: str | Path | Non
 
 
 def _feedback_dir(project_root: str | Path | None = None) -> Path:
+    # Prefer the Review UI-selected folder; fallback to output/ keeps standalone
+    # analyze.py behavior working before the UI has written settings.
     configured = read_ui_feedback_dir(project_root)
     if configured is not None:
         return configured
@@ -79,6 +87,8 @@ def feedback_dir_path(project_root: str | Path | None = None) -> Path:
 
 
 def _normalize_rule_line(line: str) -> str:
+    """Normalize AI-extracted rules into markdown bullet lines."""
+
     stripped = line.strip()
     if not stripped:
         return ""
@@ -109,6 +119,8 @@ def write_review_memory(rules: str, project_root: str | Path | None = None) -> s
     merged: list[str] = []
     seen: set[str] = set()
     for line in existing_lines + new_lines:
+        # De-duplicate case-insensitively so repeated feedback does not bloat
+        # .agent/review.md with equivalent rules.
         if not line:
             continue
         key = line.casefold()
@@ -158,6 +170,8 @@ def list_unprocessed_feedback_files(
         if not match or not path.is_file():
             continue
         report_date = match.group(1)
+        # YYYYMMDD strings sort chronologically, so lexical comparison is enough
+        # for the checkpoint gate.
         if report_date > last_processed:
             feedback_files.append((report_date, path))
 

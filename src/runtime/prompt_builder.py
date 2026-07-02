@@ -9,6 +9,8 @@ def find_agents_md(start_dir: str | Path | None = None) -> Path | None:
     if current.is_file():
         current = current.parent
 
+    # Walk upward so scripts launched from src/, tests/, or a packaged working
+    # directory can still locate the repository-level AGENTS.md contract.
     for directory in (current, *current.parents):
         candidate = directory / "AGENTS.md"
         if candidate.is_file():
@@ -39,6 +41,8 @@ def build_system_prompt(
     agents_path = find_agents_md(start_dir)
     if agents_path is not None:
         agents_content = agents_path.read_text(encoding="utf-8").strip()
+        # Include the source path for debugging, but pass the content as already
+        # loaded context rather than instructing the model to read files.
         prompt_parts.append(
             "以下是 runtime 預先載入的 AGENTS.md workspace 指示，請遵守。\n"
             f"來源: {agents_path}\n\n"

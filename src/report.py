@@ -10,12 +10,15 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+import re
 import xml.etree.ElementTree as ET
 
 from config import OutputColumn, load_config
 
 
 class Pa450ApiError(RuntimeError):
+    """Raised when the PAN-OS API response cannot be used by this workflow."""
+
     pass
 
 
@@ -33,6 +36,8 @@ class Pa450ApiClient:
 
     @property
     def api_url(self) -> str:
+        # Config may contain either a bare host/IP or a full URL. Normalize it
+        # once so every API request uses the same endpoint path.
         host = self.host
         if not host.startswith(("http://", "https://")):
             host = f"https://{host}"
@@ -44,6 +49,8 @@ class Pa450ApiClient:
         return ssl._create_unverified_context()
 
     def _post(self, data: dict[str, str], include_key: bool = True) -> ET.Element:
+        # PAN-OS accepts form-encoded API requests. Use stdlib urllib so the
+        # report downloader stays easy to run on a fresh Windows/WSL Python.
         encoded = urllib.parse.urlencode(data).encode("utf-8")
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         if include_key and self.api_key:
@@ -55,6 +62,8 @@ class Pa450ApiClient:
             root = ET.fromstring(body)
         except ET.ParseError as exc:
             raise Pa450ApiError(f"PAN-OS API returned invalid XML: {exc}") from exc
+        # PAN-OS can return HTTP 200 with <response status="error">, so inspect
+        # the XML status instead of relying only on urllib exceptions.
         if root.attrib.get("status") == "error":
             raise Pa450ApiError(ET.tostring(root, encoding="unicode"))
         return root
@@ -71,6 +80,8 @@ class Pa450ApiClient:
         return key
 
     def get_custom_report_definition(self, report_name: str) -> ReportDefinition:
+        # The project currently supports shared custom reports. Keep the XPath
+        # visible in errors/output for comparison with the firewall UI.
         xpath = f"/config/shared/reports/entry[@name='{report_name}']"
         root = self._post({"type": "config", "action": "get", "xpath": xpath})
         entry = root.find(".//entry")
@@ -83,6 +94,8 @@ class Pa450ApiClient:
         )
 
     def enqueue_dynamic_report(self, report_job_name: str, report_definition_xml: str | ReportDefinition) -> str:
+        # Re-run the saved custom-report definition as a dynamic report job, then
+        # poll the returned job id for actual result rows.
         if isinstance(report_definition_xml, ReportDefinition):
             report_definition_xml = report_definition_xml.xml
         root = self._post(
@@ -102,6 +115,9 @@ class Pa450ApiClient:
         return self._post({"type": "report", "action": "get", "job-id": job_id})
 
     def wait_for_report_result(self, job_id: str, attempts: int = 12, delay_seconds: int = 10) -> ET.Element:
+        # PA450 report jobs are asynchronous. Return as soon as rows appear; if
+        # the firewall finishes without rows, downstream CSV validation raises a
+        # clearer "No rows found" error.
         last_root: ET.Element | None = None
         for _ in range(attempts):
             root = self.get_report_result(job_id)
@@ -115,6 +131,8 @@ class Pa450ApiClient:
 
 
 def xml_text_to_rows(xml_text: str) -> list[dict[str, str]]:
+    """Flatten PAN-OS <entry> XML elements into row dictionaries."""
+
     root = ET.fromstring(xml_text)
     rows: list[dict[str, str]] = []
     for entry in root.findall(".//entry"):
@@ -130,6 +148,8 @@ def xml_text_to_rows(xml_text: str) -> list[dict[str, str]]:
 
 
 def _first_matching_value(row: dict[str, str], candidates: list[str]) -> str:
+    # PAN-OS XML field names can vary by firmware/export format. Configured
+    # candidates let one logical CSV header accept multiple source names.
     normalized = {key.lower().replace("_", "-").replace(" ", "-"): value for key, value in row.items()}
     for candidate in candidates:
         if candidate in row:
@@ -149,6 +169,8 @@ def rows_to_csv(
     csv_path: str | Path,
     columns: list[OutputColumn] | None = None,
 ) -> None:
+    """Write report rows to UTF-8-sig CSV for Excel-friendly Windows use."""
+
     if not rows:
         raise ValueError("No rows found in XML report result")
     if columns:
@@ -167,7 +189,10 @@ def parse_int(value: str | int | None) -> int | None:
         return None
     if isinstance(value, int):
         return value
-    cleaned = value.strip().replace(",", "")
+    text = value.strip()
+    if not re.fullmatch(r"[+-]?\d[\d,]*\s*(?:bytes?)?", text, flags=re.IGNORECASE):
+        return None
+    cleaned = re.sub(r"\s*(?:bytes?)\s*$", "", text, flags=re.IGNORECASE).replace(",", "")
     if not cleaned:
         return None
     try:
@@ -196,12 +221,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
 
+    # Loading config here keeps CLI parsing/test helpers independent from local
+    # secrets and environment variables.
     cfg = load_config(args.config)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     csv_path = output_csv_path(args.output_dir)
 
     client = Pa450ApiClient(cfg.pa450.host, verify_tls=cfg.pa450.verify_tls, api_key=cfg.pa450.api_key)
     if not client.api_key:
+        # Prefer a pre-generated API key, but support keygen for deployments that
+        # store only username/password in their environment.
         if not cfg.pa450.username or not cfg.pa450.password:
             raise SystemExit("Missing PA450_API_KEY or PA450_USERNAME/PA450_PASSWORD")
         client.keygen(cfg.pa450.username, cfg.pa450.password)
@@ -210,6 +239,8 @@ def main(argv: list[str] | None = None) -> int:
     job_id = client.enqueue_dynamic_report(cfg.pa450.report_job_name, report_definition)
     result_root = client.wait_for_report_result(job_id)
 
+    # Convert the final API response back to text so XML parsing stays shared
+    # with tests and any saved raw responses used during troubleshooting.
     xml_text = ET.tostring(result_root, encoding="unicode")
 
     rows = xml_text_to_rows(xml_text)

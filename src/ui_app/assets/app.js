@@ -1,3 +1,8 @@
+    // Browser-side controller for the PA450 Review UI.
+    //
+    // The Python server injects the three folder defaults below when rendering
+    // index.html. All API calls send the currently selected CSV/analysis/review
+    // folders explicitly so the backend remains stateless between requests.
     const DEFAULT_CSV_DIR = __CSV_DIR_JSON__;
     const DEFAULT_ANALYSIS_DIR = __ANALYSIS_DIR_JSON__;
     const DEFAULT_REVIEW_DIR = __REVIEW_DIR_JSON__;
@@ -80,16 +85,6 @@
       return row;
     }
 
-    function createPreformattedDetailRow(key, value, secondary = '') {
-      const row = document.createElement('div');
-      row.className = 'detail-row';
-      row.appendChild(createTextNode('div', key, 'detail-key'));
-      const valueNode = createTextNode('div', value || '—', 'report-text');
-      row.appendChild(valueNode);
-      if (secondary) row.appendChild(createTextNode('div', secondary, 'subtle'));
-      return row;
-    }
-
     function setSidebarCollapsed(collapsed) {
       appShell.classList.toggle('sidebar-collapsed', collapsed);
       sidebarToggle.textContent = collapsed ? '›' : '‹';
@@ -99,6 +94,8 @@
     }
 
     function setRightRailOpen(open) {
+      // Collapsing the right rail hides AI, row detail, and review feedback as
+      // one accessibility region; keep aria-hidden/inert synchronized with CSS.
       appState.rightRailOpen = Boolean(open);
       contentGrid.classList.toggle('right-rail-collapsed', !appState.rightRailOpen);
       rightRailToggleButton.textContent = appState.rightRailOpen ? '隱藏 AI' : '顯示 AI';
@@ -126,6 +123,8 @@
     }
 
     function apiUrl(path, extraParams = {}) {
+      // Folder paths are query parameters by design. This lets the same local
+      // server serve independent CSV, AI JSON, and review directories.
       const params = new URLSearchParams();
       params.set('csv_dir', currentCsvDir());
       params.set('analysis_dir', currentAnalysisDir());
@@ -141,6 +140,8 @@
     }
 
     async function chooseFolder(kind) {
+      // Ask the Python backend to open the native folder picker because browser
+      // JavaScript cannot select arbitrary local directories directly.
       try {
         clearError();
         const response = await fetch(apiUrl('/api/pick-folder', { kind }));
@@ -158,23 +159,6 @@
       setFolderPath('review', currentReviewDir());
     }
 
-    function updateSelectedFileNames() {
-      csvFileName.textContent = csvFileInput.files[0] ? `CSV：${csvFileInput.files[0].name}` : '尚未選擇 CSV';
-      jsonFileName.textContent = jsonFileInput.files[0] ? `AI JSON：${jsonFileInput.files[0].name}` : '尚未選擇 AI JSON';
-      const hasCsv = Boolean(csvFileInput.files[0]);
-      const hasJson = Boolean(jsonFileInput.files[0]);
-      loadSelectedFilesButton.disabled = !(hasCsv && hasJson);
-      if (hasCsv && hasJson) {
-        manualLoadState.textContent = '已分開記住目前選擇的 CSV 與 AI JSON；即使來自不同資料夾也可直接一起載入。';
-      } else if (hasCsv) {
-        manualLoadState.textContent = 'CSV 已選好；可切換到另一個資料夾再挑 AI JSON。';
-      } else if (hasJson) {
-        manualLoadState.textContent = 'AI JSON 已選好；可切換到另一個資料夾再挑 CSV。';
-      } else {
-        manualLoadState.textContent = 'CSV 與 AI JSON 可分別從不同資料夾挑選；兩個都選好後再載入。';
-      }
-    }
-
     function showError(message) {
       errorBox.hidden = false;
       errorBox.textContent = message;
@@ -187,86 +171,11 @@
       errorBox.textContent = '';
     }
 
-    function readFileAsText(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
-        reader.onerror = () => reject(new Error(`讀取檔案失敗：${file.name}`));
-        reader.readAsText(file, 'utf-8');
-      });
-    }
-
-    function splitCsvLine(line) {
-      const values = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < line.length; i += 1) {
-        const char = line[i];
-        if (char === '"') {
-          if (inQuotes && line[i + 1] === '"') {
-            current += '"';
-            i += 1;
-          } else {
-            inQuotes = !inQuotes;
-          }
-          continue;
-        }
-        if (char === ',' && !inQuotes) {
-          values.push(current);
-          current = '';
-          continue;
-        }
-        current += char;
-      }
-      values.push(current);
-      return values;
-    }
-
-    function parseCsvText(csvText) {
-      const normalized = csvText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-      const rows = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < normalized.length; i += 1) {
-        const char = normalized[i];
-        if (char === '"') {
-          current += char;
-          if (inQuotes && normalized[i + 1] === '"') {
-            current += normalized[i + 1];
-            i += 1;
-          } else {
-            inQuotes = !inQuotes;
-          }
-          continue;
-        }
-        if (char === '\n' && !inQuotes) {
-          rows.push(current);
-          current = '';
-          continue;
-        }
-        current += char;
-      }
-      if (current || normalized.endsWith('\n')) rows.push(current);
-      const nonEmptyRows = rows.filter((line) => line.length > 0);
-      if (!nonEmptyRows.length) throw new Error('CSV 內容是空的');
-      const headers = splitCsvLine(nonEmptyRows[0]);
-      if (!headers.length || headers.every((header) => !header.trim())) throw new Error('CSV 缺少表頭');
-      const dataRows = nonEmptyRows.slice(1).map((line) => {
-        const values = splitCsvLine(line);
-        const row = {};
-        headers.forEach((header, index) => {
-          row[header] = values[index] || '';
-        });
-        return row;
-      });
-      return { headers, rows: dataRows };
-    }
-
     function parseIntLike(value) {
       if (value === null || value === undefined) return null;
-      const text = String(value).replace(/[^\d-]/g, '');
-      if (!text || text === '-') return null;
-      const parsed = Number.parseInt(text, 10);
+      const text = String(value).trim();
+      if (!/^[+-]?\d[\d,]*\s*(?:bytes?)?$/i.test(text)) return null;
+      const parsed = Number.parseInt(text.replace(/\s*(?:bytes?)\s*$/i, '').replace(/,/g, ''), 10);
       return Number.isNaN(parsed) ? null : parsed;
     }
 
@@ -281,146 +190,6 @@
         size /= 1024;
       }
       return unit === 'bytes' ? `${Number(value).toLocaleString('en-US')} bytes` : `${size.toFixed(1)} ${unit}`;
-    }
-
-    function analysisItemFromMatch(match, fallbackItemNumber = '') {
-      return {
-        item_number: (match.groups && (match.groups.itemNumber || match.groups.prefixItemNumber) || fallbackItemNumber || '').trim(),
-        source: (match.groups && match.groups.source || '').trim(),
-        destination: (match.groups && match.groups.destination || '').trim(),
-        application: (match.groups && match.groups.application || '').trim(),
-        bytes: (match.groups && match.groups.bytes || '').trim(),
-      };
-    }
-
-    function parseAnalysisSections(analysisText) {
-      const parsed = { status: '', summary: '', source: '', destination: '', application: '', bytes: '', reason: '', items: [] };
-      let pendingItemNumber = '';
-      analysisText.split(/\r?\n/).forEach((rawLine) => {
-        const line = rawLine.trim();
-        if (!line) return;
-        const normalized = line.replace(/^[\-\s]+/, '');
-        const itemMatch = normalized.match(/^第(?<itemNumber>\d+)筆的來源：(?<source>.*?)\s+目的地：(?<destination>.*?)\s+(?:目的地國家：?.*?\s+)?應用程式：(?<application>.*?)\s+位元組：(?<bytes>.*)$/);
-        const itemDetailMatch = normalized.match(/^(?:第(?<prefixItemNumber>\d+)筆(?:的)?\s*)?來源：(?<source>.*?)\s+目的地：(?<destination>.*?)\s+(?:目的地國家：?.*?\s+)?應用程式：(?<application>.*?)\s+位元組：(?<bytes>.*)$/);
-        const itemHeadingMatch = normalized.match(/^第(?<itemNumber>\d+)筆[：:]?$/);
-        if (normalized.startsWith('異常狀態：')) { parsed.status = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
-        else if (normalized.startsWith('摘要：')) { parsed.summary = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
-        else if (itemMatch) { parsed.items.push(analysisItemFromMatch(itemMatch)); pendingItemNumber = ''; }
-        else if (itemDetailMatch && (pendingItemNumber || (itemDetailMatch.groups && itemDetailMatch.groups.prefixItemNumber))) { parsed.items.push(analysisItemFromMatch(itemDetailMatch, pendingItemNumber)); pendingItemNumber = ''; }
-        else if (/^\d[\d,]*\s*bytes$/i.test(normalized) && parsed.items.length) parsed.items[parsed.items.length - 1].bytes = normalized;
-        else if (itemHeadingMatch) pendingItemNumber = itemHeadingMatch.groups.itemNumber.trim();
-        else if (normalized.startsWith('來源：')) { parsed.source = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
-        else if (normalized.startsWith('目的地：')) { parsed.destination = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
-        else if (normalized.startsWith('應用程式：')) { parsed.application = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
-        else if (normalized.startsWith('位元組：')) { parsed.bytes = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
-        else if (normalized.startsWith('原因：')) { parsed.reason = normalized.split('：', 2)[1].trim(); pendingItemNumber = ''; }
-      });
-      if (parsed.items.length) {
-        const firstItem = parsed.items[0];
-        parsed.source = parsed.source || firstItem.source;
-        parsed.destination = parsed.destination || firstItem.destination;
-        parsed.application = parsed.application || firstItem.application;
-        parsed.bytes = parsed.bytes || firstItem.bytes;
-      }
-      return parsed;
-    }
-
-    function summarizeRows(rows) {
-      const sourceSet = new Set();
-      const destinationSet = new Set();
-      const byteValues = [];
-      rows.forEach((row) => {
-        const source = (row['來源位址'] || '').trim();
-        const destination = (row['目的地位址'] || '').trim();
-        if (source) sourceSet.add(source);
-        if (destination) destinationSet.add(destination);
-        const byteValue = parseIntLike(row['位元組']);
-        if (byteValue !== null) byteValues.push(byteValue);
-      });
-      const maxBytes = byteValues.length ? Math.max(...byteValues) : 0;
-      const totalBytes = byteValues.reduce((sum, value) => sum + value, 0);
-      return {
-        total_rows: rows.length,
-        unique_sources: sourceSet.size,
-        unique_destinations: destinationSet.size,
-        max_bytes_human: formatBytesHuman(maxBytes),
-        max_bytes_raw: `${maxBytes.toLocaleString('en-US')} bytes`,
-        total_bytes_human: formatBytesHuman(totalBytes),
-        total_bytes_raw: `${totalBytes.toLocaleString('en-US')} bytes`,
-      };
-    }
-
-    function enrichRowsForDisplay(headers, rows) {
-      const displayHeaders = headers.map((header) => header === '位元組' ? '傳輸量' : header);
-      const displayRows = rows.map((row) => {
-        const displayRow = { ...row };
-        if (Object.prototype.hasOwnProperty.call(row, '位元組')) {
-          const byteValue = parseIntLike(row['位元組']);
-          displayRow['傳輸量'] = byteValue === null ? (row['位元組'] || '') : `${formatBytesHuman(byteValue)} (${byteValue.toLocaleString('en-US')} bytes)`;
-          displayRow.__raw_bytes = row['位元組'] || '';
-          delete displayRow['位元組'];
-        }
-        return displayRow;
-      });
-      return { displayHeaders, displayRows };
-    }
-
-    function deriveManualLabel(csvFile, jsonFile, analysisPayload) {
-      const candidates = [analysisPayload.date, analysisPayload.report_date, analysisPayload.date_key, csvFile.name, jsonFile.name].filter(Boolean);
-      const matched = candidates.map((value) => String(value).match(/(\d{8})/)).find(Boolean);
-      if (matched) {
-        const dateKey = matched[1];
-        return { date: `manual-${dateKey}`, label: `${dateKey.slice(0, 4)}-${dateKey.slice(4, 6)}-${dateKey.slice(6, 8)}` };
-      }
-      return { date: `manual-${csvFile.name}-${jsonFile.name}`, label: '手動載入' };
-    }
-
-    function buildManualReport(csvFile, jsonFile, csvText, jsonText) {
-      const parsedCsv = parseCsvText(csvText);
-      const analysisPayload = JSON.parse(jsonText);
-      if (!analysisPayload || typeof analysisPayload !== 'object' || Array.isArray(analysisPayload)) {
-        throw new Error('AI JSON 必須是物件');
-      }
-      const analysisText = String(analysisPayload.analysis || '');
-      const analysisSections = parseAnalysisSections(analysisText);
-      const analysisBytesValue = parseIntLike(analysisSections.bytes);
-      analysisSections.bytes_human = analysisBytesValue === null ? '' : formatBytesHuman(analysisBytesValue);
-      analysisSections.bytes_raw = analysisBytesValue === null ? (analysisSections.bytes || '') : `${analysisBytesValue.toLocaleString('en-US')} bytes`;
-      const { displayHeaders, displayRows } = enrichRowsForDisplay(parsedCsv.headers, parsedCsv.rows);
-      const labelInfo = deriveManualLabel(csvFile, jsonFile, analysisPayload);
-      return {
-        date: labelInfo.date,
-        label: labelInfo.label,
-        data_dir: 'browser-upload',
-        csv_path: csvFile.name,
-        analysis_path: jsonFile.name,
-        headers: displayHeaders,
-        rows: displayRows,
-        summary: summarizeRows(parsedCsv.rows),
-        analysis_text: analysisText,
-        analysis_sections: analysisSections,
-        source: 'manual-upload',
-      };
-    }
-
-    async function loadSelectedFiles() {
-      const csvFile = csvFileInput.files[0];
-      const jsonFile = jsonFileInput.files[0];
-      if (!csvFile || !jsonFile) {
-        showError('請先各選 1 個 CSV 與 1 個 AI JSON。');
-        return;
-      }
-      try {
-        clearError();
-        loading.hidden = false;
-        reportApp.hidden = true;
-        const [csvText, jsonText] = await Promise.all([readFileAsText(csvFile), readFileAsText(jsonFile)]);
-        appState.current = buildManualReport(csvFile, jsonFile, csvText, jsonText);
-        appState.selectedRowIndex = null;
-        renderCurrentReport();
-      } catch (error) {
-        showError(error.message || '載入選擇檔案失敗');
-      }
     }
 
     function selectedRow() {
@@ -557,6 +326,8 @@
     }
 
     async function saveReviewState() {
+      // Persist only server-backed reports. Manual local-file preview mode has no
+      // safe browser permission to write report_YYYYMMDD.md back to disk.
       const review = buildCurrentReviewPayload();
       if (!review || !appState.current) return;
       setReviewSaveMessage('儲存中...', 'subtle');
@@ -633,6 +404,8 @@
     }
 
     function rowsForCurrentAnalysisDate() {
+      // In range mode, the table follows the active AI carousel date instead of
+      // showing all dates at once.
       if (!appState.current) return [];
       if (appState.current.mode !== 'range') return appState.current.rows;
       const activeDate = currentAnalysisDate();
@@ -767,6 +540,8 @@
     }
 
     function moveAnalysisSlide(delta) {
+      // delta > 0 moves to newer daily analysis because Python sorts
+      // daily_analyses oldest → newest.
       const items = (appState.current && appState.current.daily_analyses) || [];
       if (!items.length) return;
       const nextIndex = Math.min(Math.max(appState.analysisSlideIndex + delta, 0), items.length - 1);
@@ -912,6 +687,8 @@
     }
 
     function rowMatchesAnalysisItem(row, item) {
+      // Match by CSV field values rather than visible row position because
+      // filtering/sorting and date-range merges change table indexes.
       const rowBytes = parseIntLike(row.__raw_bytes ?? row['傳輸量'] ?? row['位元組']);
       const itemBytes = parseIntLike(item.bytes);
       const coreMatch = normalizeForAiMatch(row['來源位址']) === normalizeForAiMatch(item.source)
@@ -1026,6 +803,8 @@
     }
 
     function renderCurrentReport() {
+      // Central re-render entry point after loading a report, changing date range,
+      // or resetting the active row/filter state.
       if (!appState.current) return;
       clearError();
       loading.hidden = true;
@@ -1118,6 +897,8 @@
     }
 
     async function bootstrap() {
+      // Initial page load: restore folder preferences, fetch report metadata, and
+      // auto-open the newest report when one is available.
       try {
         clearError();
         loading.hidden = false;

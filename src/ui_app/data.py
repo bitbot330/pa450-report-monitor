@@ -12,6 +12,9 @@ from report import parse_int
 
 
 DATE_KEY_RE = re.compile(r"^\d{8}$")
+# AI output can arrive as one-line items or as a heading plus detail line. Keep
+# these regexes centralized so row highlighting, summary cards, and tests parse
+# the same analysis text shape.
 ANALYSIS_ITEM_RE = re.compile(
     r"^第(?P<item_number>\d+)筆的來源：(?P<source>.*?)\s+"
     r"目的地：(?P<destination>.*?)\s+"
@@ -32,6 +35,8 @@ ANALYSIS_ITEM_RAW_BYTES_RE = re.compile(r"^\d[\d,]*\s*bytes$", re.IGNORECASE)
 
 
 def format_bytes_human(value: int | None) -> str:
+    """Format raw byte counts for dense table/card display."""
+
     if value is None:
         return "—"
     units = ["bytes", "KB", "MB", "GB", "TB"]
@@ -58,6 +63,8 @@ def _analysis_item_from_match(item_match: re.Match[str], fallback_item_number: s
 
 
 def parse_analysis_sections(analysis_text: str) -> dict[str, Any]:
+    """Extract status, summary, reason, and abnormal row items from AI text."""
+
     parsed = {
         "status": "",
         "summary": "",
@@ -118,6 +125,8 @@ def parse_analysis_sections(analysis_text: str) -> dict[str, Any]:
 
 
 def load_csv_rows(csv_path: str | Path) -> tuple[list[str], list[dict[str, str]]]:
+    """Read a UTF-8-sig CSV report and preserve header order for the UI table."""
+
     with Path(csv_path).open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         headers = list(reader.fieldnames or [])
@@ -128,6 +137,8 @@ def load_csv_rows(csv_path: str | Path) -> tuple[list[str], list[dict[str, str]]
 
 
 def load_analysis_payload(analysis_json_path: str | Path) -> dict[str, Any]:
+    """Read the analysis JSON written by analyze.py."""
+
     payload = json.loads(Path(analysis_json_path).read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError(f"Analysis JSON must be an object: {analysis_json_path}")
@@ -135,6 +146,8 @@ def load_analysis_payload(analysis_json_path: str | Path) -> dict[str, Any]:
 
 
 def summarize_rows(rows: list[dict[str, str]]) -> dict[str, Any]:
+    """Build lightweight CSV-only summary metrics shown above the table."""
+
     source_counter = Counter(row.get("來源位址", "").strip() for row in rows if row.get("來源位址", "").strip())
     destination_counter = Counter(row.get("目的地位址", "").strip() for row in rows if row.get("目的地位址", "").strip())
     byte_values = [parse_int(row.get("位元組")) for row in rows]
@@ -155,6 +168,8 @@ def summarize_rows(rows: list[dict[str, str]]) -> dict[str, Any]:
 
 
 def enrich_rows_for_display(headers: list[str], rows: list[dict[str, str]]) -> tuple[list[str], list[dict[str, str]]]:
+    """Add UI-friendly byte labels while preserving raw bytes for matching."""
+
     display_headers = ["傳輸量" if header == "位元組" else header for header in headers]
     display_rows: list[dict[str, str]] = []
     for row in rows:
@@ -258,6 +273,8 @@ def save_review_markdown(
     row_number: int | None = None,
     csv_line_number: int | None = None,
 ) -> Path:
+    """Create or update one row-review entry in report_YYYYMMDD.md."""
+
     _validated_date_key(date_key)
     int(row_index)
     report_path = _review_markdown_path(review_dir, date_key)
@@ -273,6 +290,8 @@ def save_review_markdown(
         _parse_review_markdown(existing_entry)
         for existing_entry in _split_review_markdown_entries(report_path.read_text(encoding="utf-8"))
     ]
+    # Row indexes can shift when reports are regenerated, so replacement uses
+    # stable row identity fields instead of trusting the previous index alone.
     replacement_index = next(
         (index for index, existing_entry in enumerate(existing_entries) if _same_review_identity(existing_entry.get("rowFields"), normalized_row_fields)),
         None,
@@ -298,6 +317,8 @@ def load_review_markdown(
     date_key: str,
     rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, dict[str, Any]]:
+    """Load saved row-review markdown and map entries back to current rows."""
+
     _validated_date_key(date_key)
     report_path = _review_markdown_path(review_dir, date_key)
     if not report_path.exists():
@@ -316,14 +337,15 @@ def load_review_markdown(
 
     reviews: dict[str, dict[str, Any]] = {}
     used_row_indexes: set[int] = set()
-    tracked_headers = ["來源位址", "目的地位址", "應用程式", "傳輸量"]
     for entry in parsed_entries:
         matched_index: int | None = None
-        entry_fields = entry.get("rowFields") or {}
+        entry_fields = entry.get("rowFields")
+        if not isinstance(entry_fields, dict):
+            continue
         for index, row in enumerate(rows):
             if index in used_row_indexes:
                 continue
-            if all(str(row.get(header) or "").strip() == str(entry_fields.get(header) or "").strip() for header in tracked_headers):
+            if _same_review_identity(row, entry_fields):
                 matched_index = index
                 break
         if matched_index is None:
@@ -339,13 +361,27 @@ def load_review_markdown(
 
 
 def _validated_date_key(date_key: str) -> str:
+    """Validate the compact YYYYMMDD date keys used in file names and routes."""
+
     if not DATE_KEY_RE.fullmatch(date_key):
         raise ValueError(f"Invalid report date: {date_key}")
     return date_key
 
 
+def validate_date_key(date_key: str) -> str:
+    """Public route/API wrapper for validating compact YYYYMMDD report dates."""
+
+    return _validated_date_key(date_key)
+
+
 def _normalized_base(data_dir: str | Path) -> Path:
     return Path(data_dir).expanduser()
+
+
+def normalize_base_dir(data_dir: str | Path) -> Path:
+    """Public route/API wrapper for normalizing user-selected folders."""
+
+    return _normalized_base(data_dir)
 
 
 def _date_key_from_ancestors(path: Path) -> str | None:
@@ -411,6 +447,8 @@ def _relative_label(base: Path, path: Path) -> str:
 
 
 def build_report_map(csv_dir: str | Path, analysis_dir: str | Path) -> dict[str, dict[str, Path]]:
+    """Find matching CSV and analysis JSON files grouped by report date."""
+
     csv_base = _normalized_base(csv_dir)
     analysis_base = _normalized_base(analysis_dir)
     report_map: dict[str, dict[str, Path]] = {}
@@ -433,6 +471,8 @@ def build_report_map(csv_dir: str | Path, analysis_dir: str | Path) -> dict[str,
 
 
 def discover_reports(csv_dir: str | Path, analysis_dir: str | Path) -> list[dict[str, str]]:
+    """Return sidebar-ready report metadata for dates with both CSV and JSON."""
+
     csv_base = _normalized_base(csv_dir)
     analysis_base = _normalized_base(analysis_dir)
     report_map = build_report_map(csv_base, analysis_base)
@@ -454,6 +494,8 @@ def discover_reports(csv_dir: str | Path, analysis_dir: str | Path) -> list[dict
 
 
 def locate_report_paths(csv_dir: str | Path, analysis_dir: str | Path, date_key: str) -> tuple[Path, Path]:
+    """Resolve the best CSV/JSON pair for one report date."""
+
     report_map = build_report_map(csv_dir, analysis_dir)
     paths = report_map.get(date_key, {})
     csv_path = paths.get("csv")
@@ -464,6 +506,8 @@ def locate_report_paths(csv_dir: str | Path, analysis_dir: str | Path, date_key:
 
 
 def select_folder_dialog(initial_dir: str | Path) -> str | None:
+    """Open a native folder picker for the localhost UI."""
+
     initial_path = _normalized_base(initial_dir)
     try:
         import tkinter as tk
@@ -490,6 +534,8 @@ def select_folder_dialog(initial_dir: str | Path) -> str | None:
 
 
 def load_report_bundle(csv_dir: str | Path, analysis_dir: str | Path, review_dir: str | Path, date_key: str) -> dict[str, Any]:
+    """Load one day's CSV, AI analysis, summary metrics, and row reviews."""
+
     date_key = _validated_date_key(date_key)
     csv_path, json_path = locate_report_paths(csv_dir, analysis_dir, date_key)
 
@@ -528,6 +574,8 @@ def load_report_range_bundle(
     start_date: str,
     end_date: str,
 ) -> dict[str, Any]:
+    """Load a date-range view while preserving each row's source report date."""
+
     start_date = _validated_date_key(start_date)
     end_date = _validated_date_key(end_date)
     if start_date > end_date:
@@ -558,8 +606,7 @@ def load_report_range_bundle(
             "analysis_sections": bundle["analysis_sections"],
             "summary": bundle["summary"],
         })
-        csv_path, _json_path = locate_report_paths(csv_dir, analysis_dir, report["date"])
-        _raw_headers, raw_rows = load_csv_rows(csv_path)
+        _raw_headers, raw_rows = load_csv_rows(bundle["csv_path"])
         summary_rows.extend(raw_rows)
         for row_index, row in enumerate(bundle["rows"]):
             global_index = len(range_rows)
