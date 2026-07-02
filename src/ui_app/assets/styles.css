@@ -88,8 +88,8 @@
     .summary-meta { color: var(--muted); font-size: 11px; line-height: 1.25; word-break: break-all; }
     .content-grid { display: grid; grid-template-columns: minmax(0, 1fr) var(--right-rail-w); gap: 20px; align-items: stretch; transition: grid-template-columns 180ms ease, gap 180ms ease; }
     .content-grid.right-rail-collapsed { grid-template-columns: minmax(0, 1fr) 0; gap: 0; }
-    .right-rail { display: grid; gap: 14px; align-content: start; min-width: 0; max-height: 1200px; overflow: hidden; opacity: 1; transform: translateX(0); transition: opacity 180ms ease, transform 180ms ease, max-height 180ms ease; }
-    .content-grid.right-rail-collapsed .right-rail { max-height: 0; opacity: 0; pointer-events: none; transform: translateX(18px); }
+    .right-rail { display: grid; gap: 14px; align-content: start; min-width: 0; overflow: visible; opacity: 1; transform: translateX(0); transition: opacity 180ms ease, transform 180ms ease; }
+    .content-grid.right-rail-collapsed .right-rail { max-height: 0; overflow: hidden; opacity: 0; pointer-events: none; transform: translateX(18px); }
     .card { position: relative; background: linear-gradient(180deg, rgba(8, 18, 33, 0.96), rgba(4, 10, 20, 0.96)); border: 1px solid rgba(95, 187, 255, 0.23); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow); }
     .card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: linear-gradient(135deg, rgba(54,213,255,0.40), transparent 42%, rgba(125,255,178,0.22)); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; pointer-events: none; }
     .csv-card { display: flex; flex-direction: column; min-height: calc(100vh - 154px); }
