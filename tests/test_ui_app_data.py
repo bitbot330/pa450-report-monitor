@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from analyze import ANALYSIS_USER_PROMPT_TEMPLATE
+from config import load_config
+from report import parse_int
 from ui_app.assets import load_asset_text, render_index_html
 from ui_app.data import load_report_range_bundle, parse_analysis_sections, save_review_markdown, load_review_markdown
 
@@ -195,10 +198,38 @@ def test_review_markdown_preserves_quick_classification(tmp_path: Path) -> None:
         "傳輸量": "1.0 KB (1,024 bytes)",
     }
 
-    path = save_review_markdown(tmp_path, "20260521", "需追蹤", "高流量 DNS 需確認。", 0, row_fields)
+    path = save_review_markdown(tmp_path, "20260521", "需追蹤", "高流量 DNS 需確認。", row_fields)
     text = path.read_text(encoding="utf-8")
     reviews = load_review_markdown(tmp_path, "20260521", [row_fields])
 
     assert "- 分類：需追蹤" in text
     assert reviews["0"]["reviewStatus"] == "需追蹤"
     assert reviews["0"]["reviewNote"] == "高流量 DNS 需確認。"
+
+
+def test_python_byte_parsing_accepts_raw_bytes_suffix() -> None:
+    assert parse_int("1,234 bytes") == 1234
+    assert parse_int("1.2 GB") is None
+
+
+def test_load_config_parses_string_false_for_verify_tls(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("PA450_HOST", raising=False)
+    monkeypatch.delenv("PA450_API_KEY", raising=False)
+    (tmp_path / ".env").write_text("PA450_HOST=192.0.2.1\nPA450_API_KEY=test-key\n", encoding="utf-8")
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("pa450:\n  verify_tls: \"false\"\n  report_name: Demo\n", encoding="utf-8")
+
+    config = load_config(config_path)
+
+    assert config.pa450.verify_tls is False
+
+
+def test_analysis_prompt_template_includes_cli_query() -> None:
+    rendered = ANALYSIS_USER_PROMPT_TEMPLATE.format(
+        query="只檢查 DNS 流量",
+        monitoring_guidance="無候選異常",
+        context="來源位址,目的地位址,目的地國家,應用程式,位元組\n",
+    )
+
+    assert "問題：\n只檢查 DNS 流量" in rendered

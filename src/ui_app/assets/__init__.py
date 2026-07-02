@@ -23,14 +23,20 @@ def asset_root() -> Path:
 
 
 def load_asset_text(name: str) -> str:
+    """Read one bundled/source asset as UTF-8 text."""
+
     return (asset_root() / name).read_text(encoding="utf-8")
 
 
 def load_index_html() -> str:
+    """Read the HTML shell before placeholder replacement."""
+
     return load_asset_text("index.html")
 
 
 def render_index_html(*, title: str, csv_dir_json: str, analysis_dir_json: str, review_dir_json: str) -> str:
+    """Render index.html with embedded CSS/JS and JSON-encoded folder defaults."""
+
     html = load_index_html()
     app_js = load_asset_text("app.js")
     values = {
@@ -41,6 +47,8 @@ def render_index_html(*, title: str, csv_dir_json: str, analysis_dir_json: str, 
         "style_css": load_asset_text("styles.css"),
     }
     for key in ("csv_dir_json", "analysis_dir_json", "review_dir_json"):
+        # Folder values are already JSON-encoded by ui.py; replacing them inside
+        # app.js preserves Windows paths without hand-built JavaScript escaping.
         app_js = app_js.replace(_PLACEHOLDERS[key], values[key])
     values["app_js"] = app_js
     for key, placeholder in _PLACEHOLDERS.items():

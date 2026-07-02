@@ -9,6 +9,8 @@ import statistics
 import sys
 from typing import Any
 
+from report import parse_int
+
 
 DEFAULT_QUERY = "請判斷這份 PA450 report 是否有異常，並只根據 context 回答。"
 
@@ -24,6 +26,8 @@ ANALYSIS_SYSTEM_PROMPT = (
 
 ANALYSIS_USER_PROMPT_TEMPLATE = """
 問題：
+{query}
+
 請像監控幫手一樣分析以下 PA450 report 是否有異常流量，並說明原因。
 
 判斷重點：
@@ -71,22 +75,14 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 def build_context(input_path: str | Path) -> str:
+    """Read the CSV exactly as text so the AI receives the same rows humans see."""
+
     return Path(input_path).read_text(encoding="utf-8-sig")
 
 
-def _parse_bytes(value: str | None) -> int | None:
-    if value is None:
-        return None
-    cleaned = value.strip().replace(",", "")
-    if not cleaned:
-        return None
-    try:
-        return int(cleaned)
-    except ValueError:
-        return None
-
-
 def _iqr_upper_fence(values: list[int]) -> float | None:
+    # Use an IQR fence only as guidance for this CSV's distribution. This is not
+    # the removed global bytes-threshold alert feature.
     if len(values) < 4:
         return None
     quartiles = statistics.quantiles(sorted(values), n=4, method="inclusive")
@@ -95,6 +91,8 @@ def _iqr_upper_fence(values: list[int]) -> float | None:
 
 
 def build_monitoring_guidance(context: str) -> str:
+    """Build deterministic CSV-only hints that help the model avoid over-reporting."""
+
     reader = csv.DictReader(io.StringIO(context))
     rows = list(reader)
     required_columns = {"來源位址", "目的地位址", "目的地國家", "應用程式", "位元組"}
@@ -105,7 +103,9 @@ def build_monitoring_guidance(context: str) -> str:
 
     parsed_rows: list[tuple[int, dict[str, str], int]] = []
     for row_number, row in enumerate(rows, start=1):
-        bytes_value = _parse_bytes(row.get("位元組"))
+        # Keep the 1-based row number aligned with the required AI output:
+        # 「第N筆」 means the Nth data row after the CSV header.
+        bytes_value = parse_int(row.get("位元組"))
         if bytes_value is not None:
             parsed_rows.append((row_number, row, bytes_value))
 
@@ -125,6 +125,8 @@ def build_monitoring_guidance(context: str) -> str:
     source_totals: dict[str, int] = {}
     country_totals: dict[str, tuple[int, int]] = {}
     for _, row, bytes_value in parsed_rows:
+        # Source/country summaries are supporting context only; final anomalies
+        # must still point back to concrete CSV rows.
         source = row.get("來源位址", "")
         source_totals[source] = source_totals.get(source, 0) + bytes_value
         country = (row.get("目的地國家") or "(空白)").strip() or "(空白)"
@@ -176,6 +178,8 @@ def build_monitoring_guidance(context: str) -> str:
 
 
 def _build_ai_model():
+    """Create the configured OpenAI-compatible chat model client."""
+
     import httpx
     import os
     from langchain_openai import ChatOpenAI
@@ -193,6 +197,8 @@ def _build_ai_model():
     if not api_key:
         raise RuntimeError("Missing AI_GATEWAY_API_KEY in .env")
 
+    # The internal gateway may use a private/self-signed certificate in local
+    # deployments, so TLS verification is disabled for this gateway client only.
     sync_client = httpx.Client(verify=False)
     return ChatOpenAI(
         base_url=url,
@@ -205,6 +211,8 @@ def _build_ai_model():
 
 
 def analyze_with_ai(query: str, context: str) -> str:
+    """Send one CSV analysis request with project context and review memory."""
+
     from langchain_core.messages import HumanMessage, SystemMessage
 
     from runtime.prompt_builder import build_system_prompt
@@ -212,6 +220,8 @@ def analyze_with_ai(query: str, context: str) -> str:
 
     model = _build_ai_model()
     review_rules = read_review_memory(PROJECT_ROOT)
+    # build_system_prompt injects AGENTS.md and review rules; the HumanMessage
+    # contains the raw CSV plus per-run monitoring guidance.
     messages = [
         SystemMessage(
             content=build_system_prompt(
@@ -222,6 +232,7 @@ def analyze_with_ai(query: str, context: str) -> str:
         ),
         HumanMessage(
             content=ANALYSIS_USER_PROMPT_TEMPLATE.format(
+                query=query,
                 context=context,
                 monitoring_guidance=build_monitoring_guidance(context),
             )
@@ -232,6 +243,8 @@ def analyze_with_ai(query: str, context: str) -> str:
 
 
 def extract_review_rules_from_feedback(feedback: str, existing_rules: str = "") -> str:
+    """Ask the AI to turn human feedback into compact reusable review rules."""
+
     from langchain_core.messages import HumanMessage, SystemMessage
 
     model = _build_ai_model()
@@ -258,6 +271,8 @@ def extract_review_rules_from_feedback(feedback: str, existing_rules: str = "") 
 
 
 def process_pending_feedback() -> str:
+    """Process new Review UI feedback before analyzing today's CSV."""
+
     from runtime.review_tools import (
         feedback_dir_path,
         mark_feedback_processed,
@@ -272,18 +287,24 @@ def process_pending_feedback() -> str:
         return f"Feedback folder: {feedback_location}\nNo pending feedback."
 
     if not feedback_text.strip():
+        # Empty files still advance the checkpoint so they are not retried on
+        # every analysis run.
         mark_feedback_processed(latest_date, PROJECT_ROOT)
         return f"Feedback folder: {feedback_location}\nProcessed empty feedback through {latest_date}."
 
     existing_rules = read_review_memory(PROJECT_ROOT)
     new_rules = extract_review_rules_from_feedback(feedback_text, existing_rules)
     if new_rules:
+        # review_tools owns merge/write behavior so this script does not need to
+        # know the exact markdown storage format.
         write_review_memory(new_rules, PROJECT_ROOT)
     mark_feedback_processed(latest_date, PROJECT_ROOT)
     return f"Feedback folder: {feedback_location}\nProcessed feedback through {latest_date}."
 
 
 def write_analysis_result(output_path: str | Path, analysis: str) -> None:
+    """Persist the UI-facing analysis payload."""
+
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     payload: dict[str, Any] = {"analysis": analysis}
     Path(output_path).write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -299,6 +320,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    # Feedback is intentionally processed first so today's analysis can apply
+    # newly learned reusable review rules.
     print(process_pending_feedback())
     context = build_context(args.input)
     analysis = analyze_with_ai(args.query, context)

@@ -9,19 +9,13 @@ def find_agents_md(start_dir: str | Path | None = None) -> Path | None:
     if current.is_file():
         current = current.parent
 
+    # Walk upward so scripts launched from src/, tests/, or a packaged working
+    # directory can still locate the repository-level AGENTS.md contract.
     for directory in (current, *current.parents):
         candidate = directory / "AGENTS.md"
         if candidate.is_file():
             return candidate
     return None
-
-
-def read_agents_md(start_dir: str | Path | None = None) -> str:
-    """Return preloaded AGENTS.md content, or an empty string when absent."""
-    agents_path = find_agents_md(start_dir)
-    if agents_path is None:
-        return ""
-    return agents_path.read_text(encoding="utf-8")
 
 
 def build_system_prompt(
@@ -39,6 +33,8 @@ def build_system_prompt(
     agents_path = find_agents_md(start_dir)
     if agents_path is not None:
         agents_content = agents_path.read_text(encoding="utf-8").strip()
+        # Include the source path for debugging, but pass the content as already
+        # loaded context rather than instructing the model to read files.
         prompt_parts.append(
             "以下是 runtime 預先載入的 AGENTS.md workspace 指示，請遵守。\n"
             f"來源: {agents_path}\n\n"
@@ -47,13 +43,14 @@ def build_system_prompt(
             "</agents_md>"
         )
 
-    if review_rules.strip():
+    review_rules = review_rules.strip()
+    if review_rules:
         prompt_parts.append(
             "以下是 runtime 在本次任務開始前讀取的 review rules，是本次分析必須遵守的判斷規則。\n"
             "若 review rules 與一般高流量直覺衝突，必須優先遵守 review rules。\n"
             "最終結論仍必須只根據本次 CSV context 中真實存在的資料列。\n\n"
             "<review_rules>\n"
-            f"{review_rules.strip()}\n"
+            f"{review_rules}\n"
             "</review_rules>"
         )
 

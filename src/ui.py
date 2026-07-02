@@ -14,22 +14,17 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from ui_app.data import (
-    build_report_map,
     discover_reports,
     enrich_rows_for_display,
-    format_bytes_human,
-    load_analysis_payload,
     load_csv_rows,
     load_report_bundle,
     load_report_range_bundle,
     load_review_markdown,
     locate_report_paths,
-    parse_analysis_sections,
+    normalize_base_dir,
     save_review_markdown,
     select_folder_dialog,
-    summarize_rows,
-    _normalized_base,
-    _validated_date_key,
+    validate_date_key,
 )
 from ui_app.assets import render_index_html
 from runtime.review_tools import write_ui_feedback_dir
@@ -40,18 +35,23 @@ LOCALHOST = "127.0.0.1"
 
 
 class ReportUIHandler(BaseHTTPRequestHandler):
+    """HTTP handler for report discovery, report loading, and row review writes."""
+
     def __init__(self, *args: Any, data_dir: str, **kwargs: Any) -> None:
-        self.default_data_dir = _normalized_base(data_dir)
+        self.default_data_dir = normalize_base_dir(data_dir)
         super().__init__(*args, **kwargs)
 
     def _request_folders(self, parsed) -> dict[str, Path]:
+        # Each request carries the currently selected CSV/analysis/review folders
+        # so the browser can keep independent folder state without server-side
+        # sessions. data_dir remains as the legacy/default fallback.
         params = parse_qs(parsed.query)
         legacy_data_dir = (params.get("data_dir") or [""])[0].strip()
-        default_dir = _normalized_base(legacy_data_dir) if legacy_data_dir else self.default_data_dir
+        default_dir = normalize_base_dir(legacy_data_dir) if legacy_data_dir else self.default_data_dir
 
         def pick(name: str) -> Path:
             requested = (params.get(name) or [""])[0].strip()
-            return _normalized_base(requested) if requested else default_dir
+            return normalize_base_dir(requested) if requested else default_dir
 
         return {
             "csv_dir": pick("csv_dir"),
@@ -60,6 +60,8 @@ class ReportUIHandler(BaseHTTPRequestHandler):
         }
 
     def do_GET(self) -> None:
+        # Route only the few endpoints the local UI needs; anything else returns
+        # JSON 404 so browser fetch callers can show a useful error message.
         parsed = urlparse(self.path)
         folders = self._request_folders(parsed)
         if parsed.path == "/":
@@ -86,6 +88,8 @@ class ReportUIHandler(BaseHTTPRequestHandler):
             self._send_json({"selected": bool(selected), "path": selected or ""})
             return
         if parsed.path == "/api/reports":
+            # Persist the selected review folder so standalone analyze.py can
+            # scan the same feedback location before the next AI run.
             write_ui_feedback_dir(folders["review_dir"])
             self._send_json({
                 "csv_dir": str(folders["csv_dir"]),
@@ -95,6 +99,8 @@ class ReportUIHandler(BaseHTTPRequestHandler):
             })
             return
         if parsed.path == "/api/reports/range":
+            # Range mode merges CSV evidence across dates while keeping the AI
+            # daily analyses separate for the carousel in app.js.
             write_ui_feedback_dir(folders["review_dir"])
             params = parse_qs(parsed.query)
             start_date = (params.get("start_date") or [""])[0].strip()
@@ -134,10 +140,12 @@ class ReportUIHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         folders = self._request_folders(parsed)
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/review"):
+            # Save human feedback as report_YYYYMMDD.md. analyze.py later turns
+            # this feedback into reusable review rules via runtime.review_tools.
             write_ui_feedback_dir(folders["review_dir"])
             date_key = unquote(parsed.path.removeprefix("/api/reports/").removesuffix("/review").strip("/"))
             try:
-                date_key = _validated_date_key(date_key)
+                date_key = validate_date_key(date_key)
                 content_length = int(self.headers.get("Content-Length", "0"))
                 body = self.rfile.read(content_length).decode("utf-8")
                 payload = json.loads(body or "{}")
@@ -154,10 +162,7 @@ class ReportUIHandler(BaseHTTPRequestHandler):
                     date_key,
                     str(payload.get("reviewStatus") or ""),
                     str(payload.get("reviewNote") or ""),
-                    int(row_index),
                     row_fields,
-                    int(payload.get("rowNumber") or int(row_index) + 1),
-                    int(payload.get("csvLineNumber") or int(row_index) + 2),
                 )
                 csv_path, _json_path = locate_report_paths(folders["csv_dir"], folders["analysis_dir"], date_key)
                 headers, rows = load_csv_rows(csv_path)
@@ -170,6 +175,8 @@ class ReportUIHandler(BaseHTTPRequestHandler):
         self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
 
     def log_message(self, format: str, *args: Any) -> None:
+        # Suppress stdlib per-request logging; UI errors are returned as JSON and
+        # the CLI prints only startup information.
         return
 
     def _send_html(self, html: str, status: HTTPStatus = HTTPStatus.OK) -> None:
@@ -192,10 +199,14 @@ class ReportUIHandler(BaseHTTPRequestHandler):
 
 
 def open_browser_when_ready(port: int) -> None:
+    """Open the Review UI in the user's default browser."""
+
     webbrowser.open(f"http://{LOCALHOST}:{port}")
 
 
 def create_server(handler, requested_port: int) -> tuple[ThreadingHTTPServer, int, bool]:
+    """Bind localhost, falling back to an available port if the default is busy."""
+
     try:
         server = ThreadingHTTPServer((LOCALHOST, requested_port), handler)
         return server, requested_port, False
@@ -225,6 +236,8 @@ def main(argv: list[str] | None = None) -> int:
             f"using http://{LOCALHOST}:{active_port} instead."
         )
     print(f"PA450 Daily Review UI running at http://{LOCALHOST}:{active_port}")
+    # Launch the browser shortly after bind so the server is already accepting
+    # requests when the browser tab opens.
     if not args.no_browser:
         threading.Timer(0.6, open_browser_when_ready, args=(active_port,)).start()
     try:

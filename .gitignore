@@ -12,6 +12,7 @@ output/**/*.json
 output/*.md
 output/**/*.md
 .agent/review_state.json
+.agent/ui_settings.json
 logs/*.log
 build/
 dist/

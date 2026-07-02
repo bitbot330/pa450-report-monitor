@@ -1,10 +1,22 @@
+# Build the local PA450 Review UI into a single Windows executable.
+#
+# Usage from PowerShell:
+#   .\scripts\build-ui-exe.ps1
+#   .\scripts\build-ui-exe.ps1 -Python .venv\Scripts\python.exe
+#
+# The --add-data entries below bundle the static HTML/CSS/JS assets that
+# src/ui.py serves at runtime. Keep this list in sync when UI asset files move.
 param(
     [string]$Python = "python"
 )
 
+# Stop on the first failed command so engineers do not miss a broken build.
 $ErrorActionPreference = "Stop"
 
+# Install/upgrade PyInstaller in the selected Python environment before build.
 & $Python -m pip install pyinstaller
+
+# Produce dist\PA450-Daily-Review-UI.exe as a one-file executable for operators.
 & $Python -m PyInstaller `
     --noconfirm `
     --clean `
