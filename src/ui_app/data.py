@@ -204,9 +204,7 @@ def _report_month_label(date_key: str) -> str:
     return f"{date_key[:4]} 年 {date_key[4:6]} 月"
 
 
-def _review_markdown_path(review_dir: str | Path, date_key: str | None = None) -> Path:
-    if date_key is None:
-        raise ValueError("date_key is required for review markdown path")
+def _review_markdown_path(review_dir: str | Path, date_key: str) -> Path:
     validate_date_key(date_key)
     return normalize_base_dir(review_dir) / f"report_{date_key}.md"
 
@@ -268,15 +266,10 @@ def save_review_markdown(
     date_key: str,
     review_status: str,
     review_note: str,
-    row_index: int,
     row_fields: dict[str, Any] | None = None,
-    row_number: int | None = None,
-    csv_line_number: int | None = None,
 ) -> Path:
     """Create or update one row-review entry in report_YYYYMMDD.md."""
 
-    validate_date_key(date_key)
-    int(row_index)
     report_path = _review_markdown_path(review_dir, date_key)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     normalized_row_fields = _review_identity_fields(row_fields)
@@ -319,7 +312,6 @@ def load_review_markdown(
 ) -> dict[str, dict[str, Any]]:
     """Load saved row-review markdown and map entries back to current rows."""
 
-    validate_date_key(date_key)
     report_path = _review_markdown_path(review_dir, date_key)
     if not report_path.exists():
         return {}

@@ -162,10 +162,7 @@ class ReportUIHandler(BaseHTTPRequestHandler):
                     date_key,
                     str(payload.get("reviewStatus") or ""),
                     str(payload.get("reviewNote") or ""),
-                    int(row_index),
                     row_fields,
-                    int(payload.get("rowNumber") or int(row_index) + 1),
-                    int(payload.get("csvLineNumber") or int(row_index) + 2),
                 )
                 csv_path, _json_path = locate_report_paths(folders["csv_dir"], folders["analysis_dir"], date_key)
                 headers, rows = load_csv_rows(csv_path)

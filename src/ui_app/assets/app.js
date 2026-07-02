@@ -302,8 +302,6 @@
         reviewStatus: reviewStatus.value,
         reviewNote: reviewNote.value,
         rowIndex,
-        rowNumber: rowIndex + 1,
-        csvLineNumber: rowIndex + 2,
         rowFields: row,
       };
     }

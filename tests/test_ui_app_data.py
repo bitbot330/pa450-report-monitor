@@ -198,7 +198,7 @@ def test_review_markdown_preserves_quick_classification(tmp_path: Path) -> None:
         "傳輸量": "1.0 KB (1,024 bytes)",
     }
 
-    path = save_review_markdown(tmp_path, "20260521", "需追蹤", "高流量 DNS 需確認。", 0, row_fields)
+    path = save_review_markdown(tmp_path, "20260521", "需追蹤", "高流量 DNS 需確認。", row_fields)
     text = path.read_text(encoding="utf-8")
     reviews = load_review_markdown(tmp_path, "20260521", [row_fields])
 
