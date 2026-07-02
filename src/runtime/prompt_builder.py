@@ -18,14 +18,6 @@ def find_agents_md(start_dir: str | Path | None = None) -> Path | None:
     return None
 
 
-def read_agents_md(start_dir: str | Path | None = None) -> str:
-    """Return preloaded AGENTS.md content, or an empty string when absent."""
-    agents_path = find_agents_md(start_dir)
-    if agents_path is None:
-        return ""
-    return agents_path.read_text(encoding="utf-8")
-
-
 def build_system_prompt(
     base_prompt: str,
     start_dir: str | Path | None = None,

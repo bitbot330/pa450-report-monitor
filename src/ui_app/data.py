@@ -207,8 +207,8 @@ def _report_month_label(date_key: str) -> str:
 def _review_markdown_path(review_dir: str | Path, date_key: str | None = None) -> Path:
     if date_key is None:
         raise ValueError("date_key is required for review markdown path")
-    _validated_date_key(date_key)
-    return _normalized_base(review_dir) / f"report_{date_key}.md"
+    validate_date_key(date_key)
+    return normalize_base_dir(review_dir) / f"report_{date_key}.md"
 
 
 def _split_review_markdown_entries(text: str) -> list[str]:
@@ -275,7 +275,7 @@ def save_review_markdown(
 ) -> Path:
     """Create or update one row-review entry in report_YYYYMMDD.md."""
 
-    _validated_date_key(date_key)
+    validate_date_key(date_key)
     int(row_index)
     report_path = _review_markdown_path(review_dir, date_key)
     report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -319,7 +319,7 @@ def load_review_markdown(
 ) -> dict[str, dict[str, Any]]:
     """Load saved row-review markdown and map entries back to current rows."""
 
-    _validated_date_key(date_key)
+    validate_date_key(date_key)
     report_path = _review_markdown_path(review_dir, date_key)
     if not report_path.exists():
         return {}
@@ -360,7 +360,7 @@ def load_review_markdown(
     return reviews
 
 
-def _validated_date_key(date_key: str) -> str:
+def validate_date_key(date_key: str) -> str:
     """Validate the compact YYYYMMDD date keys used in file names and routes."""
 
     if not DATE_KEY_RE.fullmatch(date_key):
@@ -368,20 +368,10 @@ def _validated_date_key(date_key: str) -> str:
     return date_key
 
 
-def validate_date_key(date_key: str) -> str:
-    """Public route/API wrapper for validating compact YYYYMMDD report dates."""
-
-    return _validated_date_key(date_key)
-
-
-def _normalized_base(data_dir: str | Path) -> Path:
-    return Path(data_dir).expanduser()
-
-
 def normalize_base_dir(data_dir: str | Path) -> Path:
-    """Public route/API wrapper for normalizing user-selected folders."""
+    """Normalize a user-selected report folder path."""
 
-    return _normalized_base(data_dir)
+    return Path(data_dir).expanduser()
 
 
 def _date_key_from_ancestors(path: Path) -> str | None:
@@ -449,8 +439,8 @@ def _relative_label(base: Path, path: Path) -> str:
 def build_report_map(csv_dir: str | Path, analysis_dir: str | Path) -> dict[str, dict[str, Path]]:
     """Find matching CSV and analysis JSON files grouped by report date."""
 
-    csv_base = _normalized_base(csv_dir)
-    analysis_base = _normalized_base(analysis_dir)
+    csv_base = normalize_base_dir(csv_dir)
+    analysis_base = normalize_base_dir(analysis_dir)
     report_map: dict[str, dict[str, Path]] = {}
 
     for path in _iter_files(csv_base):
@@ -473,8 +463,8 @@ def build_report_map(csv_dir: str | Path, analysis_dir: str | Path) -> dict[str,
 def discover_reports(csv_dir: str | Path, analysis_dir: str | Path) -> list[dict[str, str]]:
     """Return sidebar-ready report metadata for dates with both CSV and JSON."""
 
-    csv_base = _normalized_base(csv_dir)
-    analysis_base = _normalized_base(analysis_dir)
+    csv_base = normalize_base_dir(csv_dir)
+    analysis_base = normalize_base_dir(analysis_dir)
     report_map = build_report_map(csv_base, analysis_base)
 
     reports: list[dict[str, str]] = []
@@ -508,7 +498,7 @@ def locate_report_paths(csv_dir: str | Path, analysis_dir: str | Path, date_key:
 def select_folder_dialog(initial_dir: str | Path) -> str | None:
     """Open a native folder picker for the localhost UI."""
 
-    initial_path = _normalized_base(initial_dir)
+    initial_path = normalize_base_dir(initial_dir)
     try:
         import tkinter as tk
         from tkinter import filedialog
@@ -536,7 +526,7 @@ def select_folder_dialog(initial_dir: str | Path) -> str | None:
 def load_report_bundle(csv_dir: str | Path, analysis_dir: str | Path, review_dir: str | Path, date_key: str) -> dict[str, Any]:
     """Load one day's CSV, AI analysis, summary metrics, and row reviews."""
 
-    date_key = _validated_date_key(date_key)
+    date_key = validate_date_key(date_key)
     csv_path, json_path = locate_report_paths(csv_dir, analysis_dir, date_key)
 
     headers, rows = load_csv_rows(csv_path)
@@ -552,9 +542,9 @@ def load_report_bundle(csv_dir: str | Path, analysis_dir: str | Path, review_dir
         "mode": "single",
         "date": date_key,
         "label": _report_date_label(date_key),
-        "csv_dir": str(_normalized_base(csv_dir)),
-        "analysis_dir": str(_normalized_base(analysis_dir)),
-        "review_dir": str(_normalized_base(review_dir)),
+        "csv_dir": str(normalize_base_dir(csv_dir)),
+        "analysis_dir": str(normalize_base_dir(analysis_dir)),
+        "review_dir": str(normalize_base_dir(review_dir)),
         "csv_path": str(csv_path),
         "analysis_path": str(json_path),
         "headers": display_headers,
@@ -576,8 +566,8 @@ def load_report_range_bundle(
 ) -> dict[str, Any]:
     """Load a date-range view while preserving each row's source report date."""
 
-    start_date = _validated_date_key(start_date)
-    end_date = _validated_date_key(end_date)
+    start_date = validate_date_key(start_date)
+    end_date = validate_date_key(end_date)
     if start_date > end_date:
         raise ValueError("start_date must be before or equal to end_date")
 
@@ -629,9 +619,9 @@ def load_report_range_bundle(
         "start_date": start_date,
         "end_date": end_date,
         "label": f"{_report_date_label(start_date)} ～ {_report_date_label(end_date)}",
-        "csv_dir": str(_normalized_base(csv_dir)),
-        "analysis_dir": str(_normalized_base(analysis_dir)),
-        "review_dir": str(_normalized_base(review_dir)),
+        "csv_dir": str(normalize_base_dir(csv_dir)),
+        "analysis_dir": str(normalize_base_dir(analysis_dir)),
+        "review_dir": str(normalize_base_dir(review_dir)),
         "headers": range_headers,
         "rows": range_rows,
         "summary": summary,

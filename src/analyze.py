@@ -80,12 +80,6 @@ def build_context(input_path: str | Path) -> str:
     return Path(input_path).read_text(encoding="utf-8-sig")
 
 
-def _parse_bytes(value: str | None) -> int | None:
-    """Parse the PA450 位元組 column while tolerating commas and blanks."""
-
-    return parse_int(value)
-
-
 def _iqr_upper_fence(values: list[int]) -> float | None:
     # Use an IQR fence only as guidance for this CSV's distribution. This is not
     # the removed global bytes-threshold alert feature.
@@ -111,7 +105,7 @@ def build_monitoring_guidance(context: str) -> str:
     for row_number, row in enumerate(rows, start=1):
         # Keep the 1-based row number aligned with the required AI output:
         # 「第N筆」 means the Nth data row after the CSV header.
-        bytes_value = _parse_bytes(row.get("位元組"))
+        bytes_value = parse_int(row.get("位元組"))
         if bytes_value is not None:
             parsed_rows.append((row_number, row, bytes_value))
 

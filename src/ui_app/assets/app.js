@@ -200,8 +200,7 @@
     function canSaveReviewToMarkdown() {
       return appState.current
         && appState.selectedRowIndex !== null
-        && /^\d{8}$/.test(currentReviewDate() || '')
-        && appState.current.source !== 'manual-upload';
+        && /^\d{8}$/.test(currentReviewDate() || '');
     }
 
     function currentReviewDate() {
@@ -222,14 +221,6 @@
         return Number.isNaN(rowIndex) ? null : rowIndex;
       }
       return appState.selectedRowIndex;
-    }
-
-    function rowSummary(row) {
-      const preferredHeaders = ['來源位址', '目的地位址', '應用程式', '傳輸量', '來源使用者', '使用者', '主機名稱'];
-      return preferredHeaders
-        .filter((header) => row && row[header])
-        .map((header) => `${header}=${row[header]}`)
-        .join('；');
     }
 
     function setReviewControlsEnabled(enabled) {
@@ -313,7 +304,6 @@
         rowIndex,
         rowNumber: rowIndex + 1,
         csvLineNumber: rowIndex + 2,
-        rowSummary: rowSummary(row),
         rowFields: row,
       };
     }
@@ -326,8 +316,8 @@
     }
 
     async function saveReviewState() {
-      // Persist only server-backed reports. Manual local-file preview mode has no
-      // safe browser permission to write report_YYYYMMDD.md back to disk.
+      // Persist row feedback through the localhost API; range mode maps the
+      // visible merged-row index back to that day's original CSV row index.
       const review = buildCurrentReviewPayload();
       if (!review || !appState.current) return;
       setReviewSaveMessage('儲存中...', 'subtle');

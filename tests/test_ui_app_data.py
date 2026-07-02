@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from analyze import ANALYSIS_USER_PROMPT_TEMPLATE, _parse_bytes
+from analyze import ANALYSIS_USER_PROMPT_TEMPLATE
 from config import load_config
 from report import parse_int
 from ui_app.assets import load_asset_text, render_index_html
@@ -209,7 +209,6 @@ def test_review_markdown_preserves_quick_classification(tmp_path: Path) -> None:
 
 def test_python_byte_parsing_accepts_raw_bytes_suffix() -> None:
     assert parse_int("1,234 bytes") == 1234
-    assert _parse_bytes("1,234 bytes") == 1234
     assert parse_int("1.2 GB") is None
 
 
