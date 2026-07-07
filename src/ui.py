@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import errno
-import ipaddress
 import json
 import os
 import threading
@@ -37,7 +36,6 @@ DASHBOARD_TITLE = "PA450 Daily Review UI"
 LOCALHOST = "127.0.0.1"
 UI_PORT_ENV = "PA450_UI_PORT"
 UI_NO_BROWSER_ENV = "PA450_UI_NO_BROWSER"
-UI_ALLOWED_CLIENTS_ENV = "PA450_UI_ALLOWED_CLIENTS"
 
 
 def parse_bool_env(value: str | None) -> bool:
@@ -64,48 +62,12 @@ def ui_port_from_env(default: int = 8765) -> int:
     return port
 
 
-def parse_allowed_client_networks(raw_value: str | None = None) -> tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...]:
-    """Parse comma-separated client IP/CIDR entries from PA450_UI_ALLOWED_CLIENTS."""
-
-    value = os.environ.get(UI_ALLOWED_CLIENTS_ENV, "") if raw_value is None else raw_value
-    networks = []
-    for raw_entry in value.split(","):
-        entry = raw_entry.strip()
-        if not entry:
-            continue
-        try:
-            networks.append(ipaddress.ip_network(entry, strict=False))
-        except ValueError as exc:
-            raise ValueError(f"Invalid {UI_ALLOWED_CLIENTS_ENV} entry: {entry}") from exc
-    return tuple(networks)
-
-
-def client_ip_allowed(
-    client_ip: str,
-    allowed_networks: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...],
-) -> bool:
-    """Allow local loopback always; allow remote clients only when listed."""
-
-    try:
-        ip = ipaddress.ip_address(client_ip)
-    except ValueError:
-        return False
-    return ip.is_loopback or any(ip in network for network in allowed_networks)
-
-
 class ReportUIHandler(BaseHTTPRequestHandler):
     """HTTP handler for report discovery, report loading, and row review writes."""
 
-    def __init__(self, *args: Any, data_dir: str, allowed_client_networks: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...], **kwargs: Any) -> None:
+    def __init__(self, *args: Any, data_dir: str, **kwargs: Any) -> None:
         self.default_data_dir = normalize_base_dir(data_dir)
-        self.allowed_client_networks = allowed_client_networks
         super().__init__(*args, **kwargs)
-
-    def _client_allowed(self) -> bool:
-        return client_ip_allowed(str(self.client_address[0]), self.allowed_client_networks)
-
-    def _reject_forbidden_client(self) -> None:
-        self._send_json({"error": "Forbidden"}, status=HTTPStatus.FORBIDDEN)
 
     def _request_folders(self, parsed) -> dict[str, Path]:
         # Each request carries the currently selected CSV/analysis/review folders
@@ -126,9 +88,6 @@ class ReportUIHandler(BaseHTTPRequestHandler):
         }
 
     def do_GET(self) -> None:
-        if not self._client_allowed():
-            self._reject_forbidden_client()
-            return
         # Route only the few endpoints the local UI needs; anything else returns
         # JSON 404 so browser fetch callers can show a useful error message.
         parsed = urlparse(self.path)
@@ -206,9 +165,6 @@ class ReportUIHandler(BaseHTTPRequestHandler):
         self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
-        if not self._client_allowed():
-            self._reject_forbidden_client()
-            return
         parsed = urlparse(self.path)
         folders = self._request_folders(parsed)
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/review"):
@@ -301,8 +257,7 @@ def main(argv: list[str] | None = None) -> int:
     load_dotenv()
     args = parse_args(argv)
     requested_port = ui_port_from_env()
-    allowed_client_networks = parse_allowed_client_networks()
-    handler = partial(ReportUIHandler, data_dir=str(args.data_dir), allowed_client_networks=allowed_client_networks)
+    handler = partial(ReportUIHandler, data_dir=str(args.data_dir))
     server, active_port, used_fallback_port = create_server(handler, requested_port)
     if used_fallback_port:
         print(
