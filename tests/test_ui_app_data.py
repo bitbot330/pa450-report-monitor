@@ -6,6 +6,7 @@ from pathlib import Path
 from analyze import ANALYSIS_USER_PROMPT_TEMPLATE
 from config import load_config
 from report import parse_int
+from ui import REMOTE_BIND_HOST, client_ip_allowed, create_server, parse_allowed_clients, parse_args, setting_as_bool
 from ui_app.assets import load_asset_text, render_index_html
 from ui_app.data import load_report_range_bundle, parse_analysis_sections, save_review_markdown, load_review_markdown
 
@@ -233,3 +234,56 @@ def test_analysis_prompt_template_includes_cli_query() -> None:
     )
 
     assert "問題：\n只檢查 DNS 流量" in rendered
+
+
+def test_ui_settings_json_supplies_lan_defaults(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "ui_settings.json").write_text(
+        json.dumps({"port": 8765, "data_dir": "output", "no_browser": True}),
+        encoding="utf-8",
+    )
+
+    args = parse_args([])
+
+    assert args.port == 8765
+    assert args.data_dir == Path("output")
+    assert args.no_browser is True
+
+
+def test_create_server_always_binds_remote_host() -> None:
+    server, active_port, used_fallback = create_server(lambda *args, **kwargs: None, 0)
+    try:
+        assert server.server_address[0] == REMOTE_BIND_HOST
+        assert active_port > 0
+        assert used_fallback is False
+    finally:
+        server.server_close()
+
+
+def test_setting_as_bool_accepts_string_values() -> None:
+    assert setting_as_bool("true") is True
+    assert setting_as_bool("off") is False
+
+
+def test_allowed_clients_accept_private_ranges_and_reject_public_ips() -> None:
+    networks = parse_allowed_clients(["127.0.0.1", "192.168.10.0/24", "10.0.0.8"])
+
+    assert client_ip_allowed("127.0.0.1", networks) is True
+    assert client_ip_allowed("192.168.10.25", networks) is True
+    assert client_ip_allowed("10.0.0.8", networks) is True
+    assert client_ip_allowed("192.168.11.25", networks) is False
+    assert client_ip_allowed("8.8.8.8", networks) is False
+
+
+def test_ui_settings_json_supplies_allowed_clients(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "ui_settings.json").write_text(
+        json.dumps({"allowed_clients": ["127.0.0.1", "192.168.1.0/24"]}),
+        encoding="utf-8",
+    )
+
+    args = parse_args([])
+
+    assert client_ip_allowed("127.0.0.1", args.allowed_clients) is True
+    assert client_ip_allowed("192.168.1.50", args.allowed_clients) is True
+    assert client_ip_allowed("192.168.2.50", args.allowed_clients) is False

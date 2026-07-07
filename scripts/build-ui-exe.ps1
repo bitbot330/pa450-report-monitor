@@ -27,5 +27,8 @@ $ErrorActionPreference = "Stop"
     --add-data "src/ui_app/assets/app.js;ui_app/assets" `
     src/ui.py
 
+Copy-Item ui_settings.example.json dist\ui_settings.json -Force
+
 Write-Host "Built exe: dist\PA450-Daily-Review-UI.exe"
-Write-Host "Run it with a local output folder beside the exe, or pass --data-dir when launching from a shortcut/command line."
+Write-Host "Copied dashboard settings: dist\ui_settings.json"
+Write-Host "Double-click the exe. Remote clients can open http://<this-windows-lan-ip>:8765 after Windows Firewall allows the port."
