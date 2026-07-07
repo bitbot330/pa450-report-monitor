@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import errno
 import json
+import os
 import threading
 import webbrowser
 from functools import partial
@@ -13,6 +14,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
+from config import load_dotenv
 from ui_app.data import (
     discover_reports,
     enrich_rows_for_display,
@@ -32,6 +34,32 @@ from runtime.review_tools import write_ui_feedback_dir
 
 DASHBOARD_TITLE = "PA450 Daily Review UI"
 LOCALHOST = "127.0.0.1"
+UI_PORT_ENV = "PA450_UI_PORT"
+UI_NO_BROWSER_ENV = "PA450_UI_NO_BROWSER"
+
+
+def parse_bool_env(value: str | None) -> bool:
+    """Parse an opt-in env boolean; missing/blank values are false."""
+
+    if not value:
+        return False
+    normalized = value.strip().casefold()
+    return normalized in {"1", "true", "yes", "y", "on"}
+
+
+def ui_port_from_env(default: int = 8765) -> int:
+    """Return the Review UI port configured through .env, or the default."""
+
+    raw_port = os.environ.get(UI_PORT_ENV, "").strip()
+    if not raw_port:
+        return default
+    try:
+        port = int(raw_port)
+    except ValueError as exc:
+        raise ValueError(f"{UI_PORT_ENV} must be an integer") from exc
+    if not 1 <= port <= 65535:
+        raise ValueError(f"{UI_PORT_ENV} must be between 1 and 65535")
+    return port
 
 
 class ReportUIHandler(BaseHTTPRequestHandler):
@@ -205,40 +233,41 @@ def open_browser_when_ready(port: int) -> None:
 
 
 def create_server(handler, requested_port: int) -> tuple[ThreadingHTTPServer, int, bool]:
-    """Bind localhost, falling back to an available port if the default is busy."""
+    """Bind all interfaces, falling back to an available port if requested port is busy."""
 
     try:
-        server = ThreadingHTTPServer((LOCALHOST, requested_port), handler)
-        return server, requested_port, False
+        server = ThreadingHTTPServer(("0.0.0.0", requested_port), handler)
+        active_port = int(server.server_address[1])
+        return server, active_port, False
     except OSError as exc:
         if exc.errno != errno.EADDRINUSE:
             raise
-    fallback_server = ThreadingHTTPServer((LOCALHOST, 0), handler)
+    fallback_server = ThreadingHTTPServer(("0.0.0.0", 0), handler)
     fallback_port = int(fallback_server.server_address[1])
     return fallback_server, fallback_port, True
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Serve a localhost-only PA450 daily review UI")
+    parser = argparse.ArgumentParser(description="Serve the PA450 daily review UI")
     parser.add_argument("--data-dir", default=Path("output"), type=Path, help="Folder containing daily CSV/JSON results")
-    parser.add_argument("--port", default=8765, type=int, help="Localhost port to bind the UI server")
-    parser.add_argument("--no-browser", action="store_true", help="Do not auto-open the browser")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_dotenv()
     args = parse_args(argv)
+    requested_port = ui_port_from_env()
     handler = partial(ReportUIHandler, data_dir=str(args.data_dir))
-    server, active_port, used_fallback_port = create_server(handler, args.port)
+    server, active_port, used_fallback_port = create_server(handler, requested_port)
     if used_fallback_port:
         print(
-            f"Requested port {args.port} is already in use on {LOCALHOST}; "
+            f"Requested port {requested_port} is already in use on 0.0.0.0; "
             f"using http://{LOCALHOST}:{active_port} instead."
         )
     print(f"PA450 Daily Review UI running at http://{LOCALHOST}:{active_port}")
     # Launch the browser shortly after bind so the server is already accepting
     # requests when the browser tab opens.
-    if not args.no_browser:
+    if not parse_bool_env(os.environ.get(UI_NO_BROWSER_ENV)):
         threading.Timer(0.6, open_browser_when_ready, args=(active_port,)).start()
     try:
         server.serve_forever()
