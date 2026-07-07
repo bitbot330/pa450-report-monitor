@@ -18,3 +18,5 @@ build/
 dist/
 *.spec
 *.exe
+
+tests/

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import errno
+import ipaddress
 import json
+import os
 import threading
 import webbrowser
 from functools import partial
@@ -13,6 +15,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
+from config import load_dotenv
 from ui_app.data import (
     discover_reports,
     enrich_rows_for_display,
@@ -32,14 +35,77 @@ from runtime.review_tools import write_ui_feedback_dir
 
 DASHBOARD_TITLE = "PA450 Daily Review UI"
 LOCALHOST = "127.0.0.1"
+UI_PORT_ENV = "PA450_UI_PORT"
+UI_NO_BROWSER_ENV = "PA450_UI_NO_BROWSER"
+UI_ALLOWED_CLIENTS_ENV = "PA450_UI_ALLOWED_CLIENTS"
+
+
+def parse_bool_env(value: str | None) -> bool:
+    """Parse an opt-in env boolean; missing/blank values are false."""
+
+    if not value:
+        return False
+    normalized = value.strip().casefold()
+    return normalized in {"1", "true", "yes", "y", "on"}
+
+
+def ui_port_from_env(default: int = 8765) -> int:
+    """Return the Review UI port configured through .env, or the default."""
+
+    raw_port = os.environ.get(UI_PORT_ENV, "").strip()
+    if not raw_port:
+        return default
+    try:
+        port = int(raw_port)
+    except ValueError as exc:
+        raise ValueError(f"{UI_PORT_ENV} must be an integer") from exc
+    if not 1 <= port <= 65535:
+        raise ValueError(f"{UI_PORT_ENV} must be between 1 and 65535")
+    return port
+
+
+def parse_allowed_client_networks(raw_value: str | None = None) -> tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...]:
+    """Parse comma-separated client IP/CIDR entries from PA450_UI_ALLOWED_CLIENTS."""
+
+    value = os.environ.get(UI_ALLOWED_CLIENTS_ENV, "") if raw_value is None else raw_value
+    networks = []
+    for raw_entry in value.split(","):
+        entry = raw_entry.strip()
+        if not entry:
+            continue
+        try:
+            networks.append(ipaddress.ip_network(entry, strict=False))
+        except ValueError as exc:
+            raise ValueError(f"Invalid {UI_ALLOWED_CLIENTS_ENV} entry: {entry}") from exc
+    return tuple(networks)
+
+
+def client_ip_allowed(
+    client_ip: str,
+    allowed_networks: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...],
+) -> bool:
+    """Allow local loopback always; allow remote clients only when listed."""
+
+    try:
+        ip = ipaddress.ip_address(client_ip)
+    except ValueError:
+        return False
+    return ip.is_loopback or any(ip in network for network in allowed_networks)
 
 
 class ReportUIHandler(BaseHTTPRequestHandler):
     """HTTP handler for report discovery, report loading, and row review writes."""
 
-    def __init__(self, *args: Any, data_dir: str, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, data_dir: str, allowed_client_networks: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...], **kwargs: Any) -> None:
         self.default_data_dir = normalize_base_dir(data_dir)
+        self.allowed_client_networks = allowed_client_networks
         super().__init__(*args, **kwargs)
+
+    def _client_allowed(self) -> bool:
+        return client_ip_allowed(str(self.client_address[0]), self.allowed_client_networks)
+
+    def _reject_forbidden_client(self) -> None:
+        self._send_json({"error": "Forbidden"}, status=HTTPStatus.FORBIDDEN)
 
     def _request_folders(self, parsed) -> dict[str, Path]:
         # Each request carries the currently selected CSV/analysis/review folders
@@ -60,6 +126,9 @@ class ReportUIHandler(BaseHTTPRequestHandler):
         }
 
     def do_GET(self) -> None:
+        if not self._client_allowed():
+            self._reject_forbidden_client()
+            return
         # Route only the few endpoints the local UI needs; anything else returns
         # JSON 404 so browser fetch callers can show a useful error message.
         parsed = urlparse(self.path)
@@ -137,6 +206,9 @@ class ReportUIHandler(BaseHTTPRequestHandler):
         self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
+        if not self._client_allowed():
+            self._reject_forbidden_client()
+            return
         parsed = urlparse(self.path)
         folders = self._request_folders(parsed)
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/review"):
@@ -205,40 +277,42 @@ def open_browser_when_ready(port: int) -> None:
 
 
 def create_server(handler, requested_port: int) -> tuple[ThreadingHTTPServer, int, bool]:
-    """Bind localhost, falling back to an available port if the default is busy."""
+    """Bind all interfaces, falling back to an available port if requested port is busy."""
 
     try:
-        server = ThreadingHTTPServer((LOCALHOST, requested_port), handler)
-        return server, requested_port, False
+        server = ThreadingHTTPServer(("0.0.0.0", requested_port), handler)
+        active_port = int(server.server_address[1])
+        return server, active_port, False
     except OSError as exc:
         if exc.errno != errno.EADDRINUSE:
             raise
-    fallback_server = ThreadingHTTPServer((LOCALHOST, 0), handler)
+    fallback_server = ThreadingHTTPServer(("0.0.0.0", 0), handler)
     fallback_port = int(fallback_server.server_address[1])
     return fallback_server, fallback_port, True
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Serve a localhost-only PA450 daily review UI")
+    parser = argparse.ArgumentParser(description="Serve the PA450 daily review UI")
     parser.add_argument("--data-dir", default=Path("output"), type=Path, help="Folder containing daily CSV/JSON results")
-    parser.add_argument("--port", default=8765, type=int, help="Localhost port to bind the UI server")
-    parser.add_argument("--no-browser", action="store_true", help="Do not auto-open the browser")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_dotenv()
     args = parse_args(argv)
-    handler = partial(ReportUIHandler, data_dir=str(args.data_dir))
-    server, active_port, used_fallback_port = create_server(handler, args.port)
+    requested_port = ui_port_from_env()
+    allowed_client_networks = parse_allowed_client_networks()
+    handler = partial(ReportUIHandler, data_dir=str(args.data_dir), allowed_client_networks=allowed_client_networks)
+    server, active_port, used_fallback_port = create_server(handler, requested_port)
     if used_fallback_port:
         print(
-            f"Requested port {args.port} is already in use on {LOCALHOST}; "
+            f"Requested port {requested_port} is already in use on 0.0.0.0; "
             f"using http://{LOCALHOST}:{active_port} instead."
         )
     print(f"PA450 Daily Review UI running at http://{LOCALHOST}:{active_port}")
     # Launch the browser shortly after bind so the server is already accepting
     # requests when the browser tab opens.
-    if not args.no_browser:
+    if not parse_bool_env(os.environ.get(UI_NO_BROWSER_ENV)):
         threading.Timer(0.6, open_browser_when_ready, args=(active_port,)).start()
     try:
         server.serve_forever()
